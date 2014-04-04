@@ -1,0 +1,6 @@
+useDynLib(TitanCNA)
+import(HMMcopy,foreach)
+export(loadAlleleCountsFromFile,loadDefaultParameters,filterData,getPositionOverlap,
+       outputTitanResults,outputModelParameters,correctReadDepth,
+       runEMclonalCN, viterbiClonalCN,computeSDbwIndex,
+       plotAllelicRatio,plotClonalFrequency,plotCNlogRByChr)

@@ -1,0 +1,109 @@
+\name{Plotting TITAN results}
+\alias{plotCNlogRByChr}
+\alias{plotAllelicRatio}
+\alias{plotClonalFrequency}
+
+\title{
+  Plotting functions for \pkg{TitanCNA} results.
+}
+\description{
+  Three plotting functions for \pkg{TitanCNA} results. \code{plotCNlogRByChr} plots the copy number results from log ratio data. \code{plotAllelicRatio} plots the allelic imbalance and loss of heterozygosity (LOH) from allelic ratio data. \code{plotClonalFrequency} plots the clonal cluster and cellular prevalence results for each data point.
+}
+
+\usage{
+  plotAllelicRatio(dataIn, chr = NULL, geneAnnot = NULL, spacing = 4, 
+      xlim = NULL, ...)
+  plotClonalFrequency(dataIn, chr = NULL, normal = NULL, geneAnnot = NULL, 
+      spacing = 4, xlim = NULL, ...)
+  plotCNlogRByChr(dataIn, chr = NULL, geneAnnot = NULL, ploidy = NULL, 
+      spacing = 4, alphaVal = 1, xlim = NULL, ...)
+}
+
+\arguments{
+  \item{dataIn}{
+    Formatted \pkg{TitanCNA} results output from \code{\link{outputTitanResults}}. See Example.
+  }
+  \item{chr}{
+    Plot results for specified \code{chr}. If \code{chr} is \code{NULL}, then results for the entire genome is plot.
+  }
+  \item{geneAnnot}{
+    \code{\link[base:data.frame]{data.frame}} specifying the genes to annotate in the plot. Gene boundaries are indicated using vertical dotted grey lines and gene symbols are shown at the top of the plot. \code{geneAnnot} must have four columns: gene symbol, chr, start coordinate, stop coordinate.
+  }
+  \item{normal}{
+    \code{numeric} scalar indicating the normal contamination. This can be obtained from converge parameters output using \code{\link{runEMclonalCN}}. See Example.
+  }
+  \item{ploidy}{
+    \code{numeric} scalar indicating the tumour ploidy used to adjust the copy number plot \code{\link{plotCNlogRByChr}}. This can be obtained from converge parameters output using \code{\link{runEMclonalCN}}. See Example. If \code{NULL} is used, then ploidy adjustment is not used in the plot.
+  }
+  \item{spacing}{
+    Number of lines of spacing for the margin spacing at the bottom of the plot. Useful if an idiogram/karogram is plot underneath.
+  }
+  \item{alphaVal}{
+    Set an alpha value between 0 and 1 to allow transparency in the points being plot.
+  }
+  \item{xlim}{
+  	Two element vector to specify the xlim for the plot. If \code{NULL}, then entire chromosome is plot.
+  }
+  \item{...}{
+    Additional arguments used in the \code{\link[graphics:plot]{plot}} function.  
+  }
+  
+}
+
+\details{
+  \code{\link{plotCNlogRByChr}} plots the copy number alterations from log ratio data. The Y-axis is based on log ratios. Log ratios are computed ratios between normalized tumour and normal read depths. Data points close to 0 represent diploid, above 0 are copy gains, below 0 are deletions. \code{ploidy} argument adjusts the baseline of the data points. Colours represent the copy number state.
+  Bright Green - Homozygous deletion (HOMD)
+  Green - Hemizygous deletion (DLOH)
+  Blue - Diploid heterozygous (HET), Copy-neutral LOH (NLOH)
+  Dark Red - GAIN
+  Red - Allele-specific CNA (ASCNA), Unbalanced CNA (UBCNA), Balanced CNA (BCNA)
+  
+  \code{\link{plotAllelicRatio}} plots the allelic imbalance and loss of heterozygosity from allelic ratio data. The Y-axis is based on allelic ratios. Allelic ratios are computed as RefCount/Depth. Data points close to 1 represent homozygous reference base, close to 0 represent homozygous non-reference base, and close to 0.5 represent heterozygous. Normal contamination influences the divergence away from 0.5 for LOH events. No adjustments are made to the plot as the original data from \code{dataIn} are shown. Colours represent the allelic imbalance and LOH state.
+  Grey - HET, BCNA
+  Bright Green - HOMD
+  Green - DLOH, ALOH
+  Blue - NLOH
+  Dark Red - GAIN
+  Red - ASCNA, UBCNA
+  
+  \code{\link{plotClonalFrequency}} plots the cellular prevalence and clonal clusters from the results. The Y-axis is the cellular prevalence that includes the normal proportion. Therefore, the cellular prevalence here refers to the proportion in the sample (including normal). Lines are drawn for each data point indicating the cellular prevalence. Heterozygous diploid are not shown because it is a normal genotype and is not categorized as being subclonal (this means 100\% of cells are normal). The black horizontal line represents the tumour content labeled as \sQuote{T}. Each horizontal grey line represents the cellular prevalence of the clonal clusters labeled as Z1, Z2, etc. Colours are the sames for allelic ratio plots.
+
+}
+
+\references{
+  G. Ha, A. Roth, N. Melnyk, A. McPherson, L. M. Prentice, A. Bashashati, J. Ding, A. Le, J. Rosner, K. Shumansky, M. A. Marra, D. G. Huntsman, J. N. McAlpine, S. A. J. R. Aparicio, S. P. Shah. Modeling the evolution of copy number architecture in tumour whole genome sequencing data. Under Review 2013.
+}
+
+\author{
+  Gavin Ha <gavinha@gmail.com>
+}
+
+\seealso{
+  \code{\link{outputTitanResults}}, \code{\link{runEMclonalCN}}, \code{\link{computeSDbwIndex}}
+}
+
+\examples{
+data(EMresults)
+
+#### COMPUTE OPTIMAL STATE PATH USING VITERBI ####
+optimalPath <- viterbiClonalCN(data, convergeParams)
+
+#### FORMAT RESULTS ####
+results <- outputTitanResults(data, convergeParams, optimalPath, 
+                              filename = NULL, posteriorProbs = FALSE)
+
+#### PLOT RESULTS ####
+norm <- tail(convergeParams$n, 1)
+ploidy <- tail(convergeParams$phi, 1)
+
+par(mfrow=c(3, 1))    
+plotCNlogRByChr(results, chr = 2, ploidy = ploidy, geneAnnot = NULL, 
+                ylim = c(-2, 2), cex = 0.5, xlab = "", main = "Chr 2")
+plotAllelicRatio(results, chr = 2, geneAnnot = NULL, ylim = c(0, 1), cex = 0.5, 
+                xlab = "", main = "Chr 2")
+plotClonalFrequency(results, chr = 2, normal = norm, geneAnnot = NULL, 
+                    ylim = c(0, 1), cex = 0.5, xlab = "", main = "Chr 2")
+}
+
+\keyword{aplot}
+\keyword{color}

@@ -1,0 +1,66 @@
+\name{correctReadDepth}
+\alias{correctReadDepth}
+
+\title{
+  Correct GC content and mappability biases in sequencing data read counts
+}
+\description{
+  Correct GC content and mappability biases in tumour sequence read counts using Loess curve fitting. Wrapper for function in \pkg{HMMcopy}.
+}
+\usage{
+  correctReadDepth(tumWig, normWig, gcWig, mapWig, targetedSequence = NULL)
+}
+
+\arguments{
+  \item{tumWig}{
+    File path to fixedStep WIG format file for the tumour sample. See \code{\link[HMMcopy:wigToRangedData]{wigToRangedData}} in the \pkg{HMMcopy} for more details.
+  }
+  \item{normWig}{
+    File path to fixedStep WIG format file for the normal sample.
+  }
+  \item{gcWig}{
+    File path to fixedStep WIG format file for the GC content based on the specific reference genome sequence used. 
+  }
+  \item{mapWig}{
+    File path to fixedStep WIG format file for the mappability scores computed on the specific reference genome used.
+  }
+  \item{targetedSequence}{
+    data.frame with 3 columns: chr, start position, stop position.  Use this argument for exome capture sequencing or targeted deep sequencing data. This is experimental and may not work as desired. 
+  }
+}
+\details{
+  Wrapper for \code{\link[HMMcopy:correctReadcount]{correctReadcount}} in \pkg{HMMcopy} package. It uses a sampling of 50000 bins to find the Loess fit. Then, the log ratio for every bin is returned as the log base 2 of the ratio between  the corrected tumour read count and the corrected normal read count.
+}
+
+\value{
+  \code{\link[base:data.frame]{data.frame}} containing columns:
+  \item{chr}{Chromosome; uses 'X' and 'Y' for sex chromosomes}
+  \item{start}{Start genomic coordinate for bin in which read count is corrected}
+  \item{end}{End genomic coordinate for bin in which read count is corrected}
+  \item{logR}{Log ratio, log2(tumour:normal), for bin in which read count is corrected}
+}
+
+\references{
+  G. Ha, A. Roth, N. Melnyk, A. McPherson, L. M. Prentice, A. Bashashati, J. Ding, A. Le, J. Rosner, K. Shumansky, M. A. Marra, D. G. Huntsman, J. N. McAlpine, S. A. J. R. Aparicio, S. P. Shah. Modeling the evolution of copy number architecture in tumour whole genome sequencing data. Under Review 2013.
+}
+
+\author{
+  Gavin Ha <gavinha@gmail.com>
+}
+
+\seealso{
+  \code{\link[HMMcopy:correctReadcount]{correctReadcount}} and \code{\link[HMMcopy:wigToRangedData]{wigToRangedData}} in the \pkg{HMMcopy} package. WIG: \url{http://genome.ucsc.edu/goldenPath/help/wiggle.html}
+}
+
+\examples{
+tumWig <- system.file("extdata", "test_tum_chr2.wig", package = "TitanCNA")
+normWig <- system.file("extdata", "test_norm_chr2.wig", package = "TitanCNA")
+gc <- system.file("extdata", "gc_chr2.wig", package = "TitanCNA")
+map <- system.file("extdata", "map_chr2.wig", package = "TitanCNA")
+
+#### GC AND MAPPABILITY CORRECTION ####
+cnData <- correctReadDepth(tumWig, normWig, gc, map)
+}
+
+\keyword{IO}
+\keyword{manip}
