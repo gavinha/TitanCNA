@@ -103,11 +103,16 @@ loadAlleleCountsFromFile <- function(infile, symmetric = TRUE,
     message("titan: Loading data ", infile)
     data <- read.delim(infile, header = TRUE, stringsAsFactors = FALSE, 
         sep = sep)
+    ## assign integer values to chromosomes
+    data[data[, 1] == "X", 1] <- "23"; 
+    data[data[, 1] == "Y", 1] <- "24"; 
+    data[data[, 1] == "M", 1] <- "25"; 
+    data[data[, 1] == "MT", 1] <- "25"; 
+    class(data[,1]) <- "integer"
+    ## sort the data by chr and position
+    data <- data[order(data[, 1], data[, 2]), ]
+    
     chr <- data[, 1]
-    chr[chr == "X"] <- "23"
-    chr[chr == "Y"] <- "24"
-    chr[chr == "MT"] <- "25"
-    chr[chr == "M"] <- "25"
     chr <- as.numeric(chr)
     posn <- as.numeric(data[, 2])
     refOriginal <- as.numeric(data[, 4])
