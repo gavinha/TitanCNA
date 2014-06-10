@@ -9,7 +9,7 @@
 }
 
 \usage{
-filterData(data ,chrs = 1:24, minDepth = 10, maxDepth = 200, 
+filterData(data ,chrs = NULL, minDepth = 10, maxDepth = 200, 
     positionList = NULL, map = NULL, mapThres = 0.9)
 }
 
@@ -19,7 +19,7 @@ filterData(data ,chrs = 1:24, minDepth = 10, maxDepth = 200,
     \code{\link[base:list]{list}} object that contains an arbitrary number of components. Should include \sQuote{chr}, \sQuote{tumDepth}. All vector elements must have the same number of rows where each row corresponds to information pertaining to a chromosomal position.
   }
   \item{chrs}{
-    \code{Numeric array} specifying the chromosomes to keep. Chromosomes not included in this \code{array} will be filtered. 
+    \code{character} or vector of \code{character} specifying the chromosomes to keep. Chromosomes not included in this \code{array} will be filtered out. Chromosome style must match the \code{genomeStyle} used when running \code{\link{loadAlleleCounts}}
   }
   \item{minDepth}{
     \code{Numeric integer} specifying the minimum tumour read depth to include. Positions >= \code{minDepth} are kept. 
@@ -55,7 +55,7 @@ filterData(data ,chrs = 1:24, minDepth = 10, maxDepth = 200,
 }
 
 \seealso{
-  \code{\link{loadAlleleCountsFromFile}}
+  \code{\link{loadAlleleCounts}}
 }
 
 \examples{
@@ -67,7 +67,7 @@ gc <- system.file("extdata", "gc_chr2.wig", package = "TitanCNA")
 map <- system.file("extdata", "map_chr2.wig", package = "TitanCNA")
 
 #### LOAD DATA ####
-data <- loadAlleleCountsFromFile(infile)
+data <-  loadAlleleCounts(infile, genomeStyle = "NCBI")
 
 #### GC AND MAPPABILITY CORRECTION ####
 cnData <- correctReadDepth(tumWig, normWig, gc, map)
@@ -78,8 +78,8 @@ logR <- getPositionOverlap(data$chr, data$posn, cnData)
 data$logR <- log(2^logR) #use natural logs
 
 #### FILTER DATA FOR DEPTH, MAPPABILITY, NA, etc ####
-filtereData <- filterData(data, 1:24, minDepth = 10, maxDepth = 200, 
-                          map = NULL, mapThres=0.9)
+filtereData <- filterData(data, as.character(1:24), minDepth = 10, 
+				maxDepth = 200, map = NULL, mapThres=0.9)
 }
 
 

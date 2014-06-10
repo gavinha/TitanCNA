@@ -1,6 +1,8 @@
 useDynLib(TitanCNA)
-import(HMMcopy,foreach)
-export(loadAlleleCountsFromFile,loadDefaultParameters,filterData,getPositionOverlap,
-       outputTitanResults,outputModelParameters,correctReadDepth,
-       runEMclonalCN, viterbiClonalCN,computeSDbwIndex,
-       plotAllelicRatio,plotClonalFrequency,plotCNlogRByChr)
+import(IRanges,foreach,Rsamtools,GenomeInfoDb)
+export(loadAlleleCounts,loadDefaultParameters,extractAlleleReadCounts,
+		filterData,getPositionOverlap,wigToRangedData,
+		outputTitanResults,outputModelParameters,correctReadDepth,
+		runEMclonalCN, viterbiClonalCN,computeSDbwIndex,
+		plotAllelicRatio,plotClonalFrequency,plotCNlogRByChr,
+		plotSubcloneProfiles)

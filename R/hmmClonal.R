@@ -5,7 +5,7 @@
 
 #### EM (FWD-BACK) Algorithm ####
 runEMclonalCN <- function(data, gParams, nParams, pParams, 
-    sParams, txnExpLen = 1e+09, txnZstrength = 1e+09, 
+    sParams, txnExpLen = 1e+15, txnZstrength = 1e+5, 
     maxiter = 15, maxiterUpdate = 1500, pseudoCounts = 1e-300, 
     normalEstimateMethod = "map", estimateS = TRUE, 
     estimatePloidy = TRUE, useOutlierState = FALSE, 
@@ -142,10 +142,11 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     if (useOutlierState == 1) {
         pyO <- outlierObslik(data$ref, data$tumDepth, 
             data$logR, gParams$outlierVar)
-        py <- exp(rbind(pyO$R, pyR) + rbind(pyO$C, 
-            pyC)) + pseudoCounts  #add the outlier state
+        py <- exp(rbind(pyO$R, pyR) 
+        			+ rbind(pyO$C, pyC)) + pseudoCounts  #add the outlier state
     } else {
-        py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
+        #py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
+        py <- pyR + pyC + pseudoCounts
     }
     
     ## EXPECTATION MAXIMIZATION
@@ -188,7 +189,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
                   message(c, " ", appendLF = FALSE)
                 }
                 fwdBackOut <- .Call("fwd_backC_clonalCN", 
-                  piGiZi[c, ], py[, chrsI[[c]]], gNoOUTStateParams$ct, 
+                  log(piGiZi[c, ]), py[, chrsI[[c]]], gNoOUTStateParams$ct, 
                   gNoOUTStateParams$ZS, Z, data$posn[chrsI[[c]]], 
                   txnZstrength, txnExpLen, O)
             }
@@ -207,8 +208,8 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         }
         
         outRhoRow <- rho[1, ]
-        rho <- array(rho[KtotalRange, ], dim = c(KnoOutlier, 
-            Z, N))  ##only use states that we will need to for estimation later
+        rho <- exp(array(rho[KtotalRange, ], dim = c(KnoOutlier, Z, N))) 
+        ##only use states that we will need to for estimation later
         # marginalize to get rhoZ and rhoG from rho
         rhoZ <- colSums(rho)
         rhoG <- colSums(aperm(rho, c(2, 1, 3)))
@@ -251,10 +252,11 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         if (useOutlierState == 1) {
             pyO <- outlierObslik(data$ref, data$tumDepth, 
                 data$logR, gParams$outlierVar)
-            py <- exp(rbind(pyO$R, pyR) + rbind(pyO$C, 
-                pyC)) + pseudoCounts  #add the outlier state
+            py <- exp(rbind(pyO$R, pyR) 
+            		+ rbind(pyO$C, pyC)) + pseudoCounts  #add the outlier state
         } else {
-            py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
+            #py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
+            py <- pyR + pyC + pseudoCounts
         }
         
         
@@ -444,10 +446,10 @@ viterbiClonalCN <- function(data, convergeParams, genotypeParams = NULL) {
     if (useOutlierState) {
         pyO <- outlierObslik(data$ref, data$tumDepth, 
             data$logR, genotypeParams$outlierVar)
-        py <- exp(rbind(pyO$R, pyR) + rbind(pyO$C, 
-            pyC)) + pseudoCounts  #add the outlier state
+        py <- rbind(pyO$R, pyR) 
+        		+ rbind(pyO$C, pyC) + pseudoCounts  #add the outlier state
     } else {
-        py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
+        py <- pyR + pyC + pseudoCounts  #joint likelihood between Binomial and Gaussian
     }
     
     piGiZi <- matrix(0, numChrs, Ktotal)
@@ -467,7 +469,7 @@ viterbiClonalCN <- function(data, convergeParams, genotypeParams = NULL) {
         {
             # dyn.load(cFun)
             viterbiOut <- .Call("viterbiC_clonalCN", 
-                log(piGiZi[c, ]), log(py[, chrsI[[c]]]), 
+                log(piGiZi[c, ]), py[, chrsI[[c]]], 
                 genotypeParams$ct, genotypeParams$ZS, 
                 Z, data$posn[chrsI[[c]]], txnZstrength, 
                 txnExpLen, O)

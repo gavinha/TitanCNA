@@ -8,7 +8,7 @@
 # 4 columns: geneSymbol, chr, start, stop spacing
 # is the distance between each track
 plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL, 
-    spacing = 4, xlim = NULL, ...) {
+    spacing = 4,  xlim = NULL, ...) {
     # color coding alphaVal <- ceiling(alphaVal * 255);
     # class(alphaVal) = 'hexmode'
     lohCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000", 
@@ -30,7 +30,7 @@ plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
             # pdf(outfile,width=10,height=6) }
             par(mar = c(spacing, 8, 2, 2))
             # par(xpd=NA)
-            if (is.null(xlim)) {
+            if (missing(xlim)) {
                 xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), 
                   "Position"]))
             }
@@ -69,8 +69,7 @@ plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
 # geneSymbol, chr, start, stop spacing is the
 # distance between each track
 plotClonalFrequency <- function(dataIn, chr = NULL, 
-    normal = NULL, geneAnnot = NULL, spacing = 4, xlim = NULL, 
-    ...) {
+    normal = NULL, geneAnnot = NULL, spacing = 4, xlim = NULL, ...) {
     # color coding
     lohCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000", 
         "#006400", "#BEBEBE", "#FF0000", "#FF0000", 
@@ -89,12 +88,10 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
             (1 - as.numeric(normal))
     }
     
-    dataToUse <- dataIn[dataIn[, "TITANcall"] != "OUT", 
-        ]
+    dataToUse <- dataIn[dataIn[, "TITANcall"] != "OUT", ]
     dataToUse[dataToUse[, "CellularPrevalence"] == 
         "NA" | is.na(dataToUse[, "CellularPrevalence"]), 
-        c("ClonalCluster", "CellularPrevalence")] <- c(NA, 
-        NA)
+        c("ClonalCluster", "CellularPrevalence")] <- c(NA, NA)
     # extract clonal info
     clonalFreq <- cbind(as.numeric(dataToUse[, "ClonalCluster"]), 
         as.numeric(dataToUse[, "CellularPrevalence"]))
@@ -117,7 +114,7 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
             # par(xpd=NA)
             
             # PLOT CLONAL FREQUENCIES
-            if (is.null(xlim)) {
+            if (missing(xlim)) {
                 xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), 
                   "Position"]))
             }
@@ -150,12 +147,12 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
                 lines(c(1 - chrLen * 0.02, chrLen * 
                   1.02), rep((1 - normal), 2), type = "l", 
                   col = "#000000", lwd = 3)
-                mtext(side = 4, at = (1 - normal), 
-                  text = paste("-T-", sep = ""), padj = 0.5, 
-                  adj = 1, cex = 1, las = 2, outer = FALSE)
-                mtext(side = 2, at = (1 - normal), 
-                  text = paste("-T-", sep = ""), padj = 0.5, 
-                  adj = 0, cex = 1, las = 2, outer = FALSE)
+                #mtext(side = 4, at = (1 - normal), 
+                  #text = paste("-T-", sep = ""), padj = 0.5, 
+                  #adj = 1, cex = 1, las = 2, outer = FALSE)
+                #mtext(side = 2, at = (1 - normal), 
+                  #text = paste("-T-", sep = ""), padj = 0.5, 
+                  #adj = 0, cex = 1, las = 2, outer = FALSE)
             }
             
             if (!is.null(geneAnnot)) {
@@ -204,8 +201,7 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
 # columns: geneSymbol, chr, start, stop spacing is
 # the distance between each track
 plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL, 
-    ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, 
-    ...) {
+    ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
     # color coding
     alphaVal <- ceiling(alphaVal * 255)
     class(alphaVal) = "hexmode"
@@ -234,7 +230,7 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL,
             # pdf(outfile,width=10,height=6) }
             par(mar = c(spacing, 8, 2, 2))
             # par(xpd=NA)
-            if (is.null(xlim)) {
+            if (missing(xlim)) {
                 xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), 
                   "Position"]))
             }
@@ -268,9 +264,95 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL,
     
 }
 
+plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
+	spacing = 4, xlim = NULL, ...){
+	args <- list(...)
+	lohCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000", 
+        "#006400", "#BEBEBE", "#FF0000", "#FF0000", 
+        "#FF0000")
+    names(lohCol) <- c("HOMD", "DLOH", "NLOH", "GAIN", 
+        "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
+        
+    numClones <- sum(!is.na(unique(as.numeric(dataIn$ClonalCluster))))
+         # plot per chromosome
+    if (!is.null(chr)) {
+        for (i in chr) {
+            ind <- dataIn[, "Chr"] == as.character(i)
+            dataByChr <- dataIn[ind, ]
+            
+            # plot the data
+            par(mar = c(spacing, 8, 2, 2), xpd = NA)
+          
+            # PLOT SUBCLONE PROFILES
+            if (missing(xlim)) {
+                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), 
+                  "Position"]))
+            }
+            
+            # setup plot to include X number of clones (numClones)
+            maxCN <- max(as.numeric(dataByChr$CopyNumber)) + 1
+            ylim <- c(0, numClones * (maxCN + 2) - 1)
+            plot(0, type = "n", xaxt = "n", ylab = "", xlab = "", 
+            	xlim = xlim, ylim = ylim, yaxt = "n", ...)
+            axis(2, at = seq(ylim[1], ylim[2], 1), las = 1,
+            	labels = rep(c(0:maxCN, "---"), numClones))
+            for (i in 1:numClones){
+            	val <- dataByChr[, paste("Subclone", i, ".CopyNumber", sep = "")]
+            	cellPrev <- dataByChr[1, paste("Subclone", i, ".Prevalence", sep = "")]
+            	if (i > 1){
+            		# shift values up for each subclone
+            		val <- val + (numClones - 1) * (maxCN + 2)
+            	}
+            	call <- dataByChr[, paste("Subclone", i, ".TITANcall", sep = "")]
+            	points(dataByChr[, "Position"], val, col = lohCol[call], 
+            		pch = 15, ...)
+            	#lines(dataIn[, "Position"], val, col = lohCol[call], type = "l", lwd = 3, ...)
+               	mtext(text = paste("Subclone", i, "\n", cellPrev, sep = ""), 
+               		side = 2, las = 0, line = 3, 
+               		at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = 0.75)
+               	chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], "Position"])
+                lines(c(1 - chrLen * 0.035, chrLen * 
+                  1.035), rep(i * (maxCN + 2) - 1, 2), type = "l", 
+                  col = "black", lwd = 1.5)
+            }
+            
+            if (!is.null(geneAnnot)) {
+                plotGeneAnnotation(geneAnnot, i)
+            }
+        }
+    } else {
+        # plot genome-wide
+        coord <- getGenomeWidePositions(dataIn[, "Chr"], dataIn[, "Position"])
+        # setup plot to include X number of clones (numClones)
+            maxCN <- max(as.numeric(dataIn$CopyNumber)) + 1
+            ylim <- c(0, numClones * (maxCN + 2) - 1)
+            xlim <- as.numeric(c(1, coord$posns[length(coord$posns)]))
+            plot(0, type = "n", xaxt = "n", ylab = "", xlim = xlim, 
+            	ylim = ylim, yaxt = "n", ...)
+            axis(2, at = seq(ylim[1], ylim[2], 1), las = 1,
+            	labels = rep(c(0:maxCN, "---"), numClones))
+            for (i in 1:numClones){
+            	val <- dataIn[, paste("Subclone", i, ".CopyNumber", sep = "")]
+            	if (i > 1){
+            		# shift values up for each subclone
+            		val <- val + (numClones - 1) * (maxCN + 2)
+            	}
+            	call <- dataIn[, paste("Subclone", i, ".TITANcall", sep = "")]
+            	points(dataIn[, "Position"], val, col = lohCol[call], 
+            		pch = 15, ...)
+               	mtext(text = paste("Subclone", i, sep = ""), side = 2, las = 0, line = 2,
+            		at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = 0.75)
+            		chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], "Position"])
+                lines(c(1 - chrLen * 0.035, chrLen * 
+                  1.035), rep(i * (maxCN + 2) - 1, 2), type = "l", 
+                  col = "black", lwd = 1.5)
+            }
+        plotChrLines(unique(dataIn[, "Chr"]), coord$chrBkpt, c(-0.1, 1.1))
+      }
+    
+}
 
-plotGeneAnnotation <- function(geneAnnot, chr = 1, 
-    ...) {
+plotGeneAnnotation <- function(geneAnnot, chr = 1, ...) {
     colnames(geneAnnot) <- c("Gene", "Chr", "Start", 
         "Stop")
     geneAnnot <- geneAnnot[geneAnnot[, "Chr"] == as.character(chr), 

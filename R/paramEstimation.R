@@ -28,8 +28,7 @@ estimateClonalCNParamsMap <- function(x, N, l, rho,
             c[k, z] <- l %*% rho[k, z, ]
             e[k, z] <- sum(rho[k, z, ])
             g[k, z] <- (l^2) %*% rho[k, z, ]
-            d[k, z] <- lchoose(N, x) %*% rho[k, z, 
-                ]
+            d[k, z] <- lchoose(N, x) %*% rho[k, z, ]
         }
     }
     

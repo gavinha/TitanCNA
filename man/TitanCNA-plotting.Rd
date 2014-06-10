@@ -2,6 +2,7 @@
 \alias{plotCNlogRByChr}
 \alias{plotAllelicRatio}
 \alias{plotClonalFrequency}
+\alias{plotSubcloneProfiles}
 
 \title{
   Plotting functions for \pkg{TitanCNA} results.
@@ -17,6 +18,8 @@
       spacing = 4, xlim = NULL, ...)
   plotCNlogRByChr(dataIn, chr = NULL, geneAnnot = NULL, ploidy = NULL, 
       spacing = 4, alphaVal = 1, xlim = NULL, ...)
+  plotSubcloneProfiles(dataIn, chr = NULL, geneAnnot = NULL, 
+  	  spacing = 4, xlim = NULL, ...)
 }
 
 \arguments{
@@ -67,6 +70,8 @@
   Red - ASCNA, UBCNA
   
   \code{\link{plotClonalFrequency}} plots the cellular prevalence and clonal clusters from the results. The Y-axis is the cellular prevalence that includes the normal proportion. Therefore, the cellular prevalence here refers to the proportion in the sample (including normal). Lines are drawn for each data point indicating the cellular prevalence. Heterozygous diploid are not shown because it is a normal genotype and is not categorized as being subclonal (this means 100\% of cells are normal). The black horizontal line represents the tumour content labeled as \sQuote{T}. Each horizontal grey line represents the cellular prevalence of the clonal clusters labeled as Z1, Z2, etc. Colours are the sames for allelic ratio plots.
+  
+  \code{\link{plotSubcloneProfiles}} plots the predicted copy number profile for individual subclones inferred by TITAN. Currently, this only works for solutions having 1 or 2 clonal clusters. The colours are the same as for \code{\link{plotAllelicRatio}}.
 
 }
 
@@ -96,13 +101,14 @@ results <- outputTitanResults(data, convergeParams, optimalPath,
 norm <- tail(convergeParams$n, 1)
 ploidy <- tail(convergeParams$phi, 1)
 
-par(mfrow=c(3, 1))    
+par(mfrow=c(4, 1))    
 plotCNlogRByChr(results, chr = 2, ploidy = ploidy, geneAnnot = NULL, 
                 ylim = c(-2, 2), cex = 0.5, xlab = "", main = "Chr 2")
 plotAllelicRatio(results, chr = 2, geneAnnot = NULL, ylim = c(0, 1), cex = 0.5, 
                 xlab = "", main = "Chr 2")
 plotClonalFrequency(results, chr = 2, normal = norm, geneAnnot = NULL, 
                     ylim = c(0, 1), cex = 0.5, xlab = "", main = "Chr 2")
+plotSubcloneProfiles(results, chr = 2, cex = 2, main = "Chr 2")
 }
 
 \keyword{aplot}

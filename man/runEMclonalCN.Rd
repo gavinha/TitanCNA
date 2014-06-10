@@ -9,7 +9,7 @@
 }
 \usage{
 runEMclonalCN(data, gParams, nParams, pParams, sParams,
-              txnExpLen = 1e9, txnZstrength = 1e9, maxiter = 15,
+              txnExpLen = 1e15, txnZstrength = 1e05, maxiter = 15,
               maxiterUpdate = 1500, pseudoCounts = 1e-300,
               normalEstimateMethod = "map", estimateS = TRUE, 
               estimatePloidy = TRUE, useOutlierState = FALSE, verbose = TRUE)
@@ -17,7 +17,7 @@ runEMclonalCN(data, gParams, nParams, pParams, sParams,
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{data}{
-    \code{\link[base:list]{list}} object that contains the components for the data to be analyzed. \code{chr}, \code{posn}, \code{ref}, and \code{tumDepth} that can be obtained using \code{\link{loadAlleleCountsFromFile}}, and \code{logR} that can be obtained using \code{\link{correctReadDepth}} and \code{\link{getPositionOverlap}} (see Example).
+    \code{\link[base:list]{list}} object that contains the components for the data to be analyzed. \code{chr}, \code{posn}, \code{ref}, and \code{tumDepth} that can be obtained using \code{\link{loadAlleleCounts}}, and \code{logR} that can be obtained using \code{\link{correctReadDepth}} and \code{\link{getPositionOverlap}} (see Example).
   }
   \item{gParams}{
     \code{\link[base:list]{list}} object that contains the copy number and allelic ratio genotype parameters. Can be obtained from \code{\link{loadDefaultParameters}}.
@@ -105,7 +105,7 @@ runEMclonalCN(data, gParams, nParams, pParams, sParams,
 }
 
 \seealso{
-  \code{"\link{foreach}"}, \code{"doMC"}, \code{"doMPI"}, \code{\link{loadAlleleCountsFromFile}}, \code{\link{loadDefaultParameters}}, \code{\link{viterbiClonalCN}}
+  \code{"\link{foreach}"}, \code{"doMC"}, \code{"doMPI"}, \code{\link{loadAlleleCounts}}, \code{\link{loadDefaultParameters}}, \code{\link{viterbiClonalCN}}
 }
 
 \examples{
@@ -113,7 +113,7 @@ message('Running TITAN ...')
 #### LOAD DATA ####
 infile <- system.file("extdata", "test_alleleCounts_chr2.txt", 
               package = "TitanCNA")
-data <- loadAlleleCountsFromFile(infile)
+data <- loadAlleleCounts(infile)
 
 #### LOAD PARAMETERS ####
 message('titan: Loading default parameters')

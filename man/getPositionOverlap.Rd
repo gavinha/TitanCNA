@@ -38,7 +38,7 @@
 }
 
 \seealso{
-  \code{\link{loadAlleleCountsFromFile}}, \code{\link{correctReadDepth}}
+  \code{\link{loadAlleleCounts}}, \code{\link{correctReadDepth}}
 }
 
 \examples{
@@ -50,7 +50,7 @@ gc <- system.file("extdata", "gc_chr2.wig", package = "TitanCNA")
 map <- system.file("extdata", "map_chr2.wig", package = "TitanCNA")
 
 #### LOAD DATA ####
-data <- loadAlleleCountsFromFile(infile)
+data <- loadAlleleCounts(infile)
 
 #### GC AND MAPPABILITY CORRECTION ####
 cnData <- correctReadDepth(tumWig, normWig, gc, map)

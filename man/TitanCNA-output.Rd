@@ -11,14 +11,14 @@
 
 \usage{
   outputTitanResults(data, convergeParams, optimalPath, filename = NULL, 
-      posteriorProbs = FALSE)
+      posteriorProbs = FALSE, subcloneProfiles = TRUE)
   outputModelParameters(convergeParams, results, filename)
 }
 
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{data}{
-    \code{\link[base:list]{list}} object that contains the components for the data to be analyzed. \code{chr}, \code{posn}, \code{ref}, and \code{tumDepth} that can be obtained using \code{\link{loadAlleleCountsFromFile}}, and \code{logR} that can be obtained using \code{\link{correctReadDepth}} and \code{\link{getPositionOverlap}} (see Example).
+    \code{\link[base:list]{list}} object that contains the components for the data to be analyzed. \code{chr}, \code{posn}, \code{ref}, and \code{tumDepth} that can be obtained using \code{\link{loadAlleleCounts}}, and \code{logR} that can be obtained using \code{\link{correctReadDepth}} and \code{\link{getPositionOverlap}} (see Example).
   }
   \item{convergeParams}{
     \code{\link[base:list]{list}} object that is returned from the function \code{\link{runEMclonalCN}} in \pkg{TitanCNA}.      
@@ -34,6 +34,9 @@
   }
   \item{posteriorProbs}{
     \code{Logical TRUE} to include the posterior marginal probabilities in printing to \code{filename}. 
+  }
+  \item{subcloneProfiles}{
+  	\code{Logical TRUE} to include the subclone profiles to the output \code{data.frame}. Currently, this only works for 1 or 2 clonal clusters.
   }
 }
 \details{
@@ -78,6 +81,11 @@
   \item{TITANcall}{interpretable \pkg{TitanCNA} state; string (HOMD,DLOH,HET,NLOH,ALOH,ASCNA,BCNA,UBCNA); See Reference}
   \item{ClonalCluster}{predicted \pkg{TitanCNA} clonal cluster; lower cluster numbers represent clusters with higher cellular prevalence}
   \item{CellularPrevalence}{proportion of tumour cells containing event; not to be mistaken as proportion of sample (including normal)}
+  
+  If \code{subcloneProfiles} is set to \code{TRUE}, then the subclone profiles will be appended to the output \code{data.frame}. 
+  \item{Subclone1.CopyNumber}{Integer copy number for Subclone 1.}
+  \item{Subclone1.TITANcall}{States for Subclone 1}
+  \item{Subclone1.Prevalence}{The cellular prevalence of Subclone 1, or sometimes referred to as the subclone fraction.}
 }
 
 \references{
@@ -100,7 +108,8 @@ optimalPath <- viterbiClonalCN(data, convergeParams)
 
 #### FORMAT RESULTS ####
 results <- outputTitanResults(data, convergeParams, optimalPath, 
-                              filename = NULL, posteriorProbs = FALSE)
+                              filename = NULL, posteriorProbs = FALSE,
+                              subcloneProfiles = TRUE)
 
 #### OUTPUT RESULTS TO FILE ####
 outparam <- paste("cluster2_params.txt", sep = "")

@@ -20,9 +20,13 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         rt = rt + skew
         rt[rt > 1] <- 1
         rt[rt < (rn + skew)] <- rn + skew
+        ## shift heterozygous states to account for noise
+        rt[c(4, 9, 25)] <- rt[c(4, 9, 25)] + 0.08
         ZS = 0:24
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
+        highStates <- c(1,10:length(rt))
+        hetState <- 4
     } else {
         rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
             1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
@@ -42,6 +46,8 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
             4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 
             6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
             8, 8, 8, 8, 8, 8, 8)
+        highStates <- c(1,16:length(rt))
+        hetState <- 5
     }
     rn = rn + skew
     ind <- ct <= copyNumber
@@ -54,7 +60,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     ## Dirichlet hyperparameter for initial state
     ## distribution, kappaG
     kappaGHyper = rep(1, K) + 1
-    kappaGHyper[5] = 5
+    kappaGHyper[hetState] = 5
     ## Gather all genotype related parameters into a
     ## list
     genotypeParams <- vector("list", 0)
@@ -65,7 +71,6 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     genotypeParams$var_0 <- var_0
     genotypeParams$alphaKHyper <- rep(5000, K)
     varHyperHigh <- 15000
-    highStates <- c(11:K)
     genotypeParams$alphaKHyper[highStates] <- varHyperHigh  #AMP(11-15),HLAMP(16-21) states
     genotypeParams$betaKHyper <- rep(25, K)
     genotypeParams$kappaGHyper <- kappaGHyper
@@ -96,51 +101,128 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
 }
 
 
-loadAlleleCountsFromFile <- function(infile, symmetric = TRUE, 
-    sep = "\t") {
-    options(stringsAsFactors = FALSE)
+loadAlleleCounts <- function(inCounts, symmetric = TRUE, 
+			genomeStyle = "NCBI", sep = "\t") {
+	if (is.character(inCounts)){
     #### LOAD INPUT READ COUNT DATA ####
-    message("titan: Loading data ", infile)
-    data <- read.delim(infile, header = TRUE, stringsAsFactors = FALSE, 
-        sep = sep)
-    ## assign integer values to chromosomes
-    data[data[, 1] == "X", 1] <- "23"; 
-    data[data[, 1] == "Y", 1] <- "24"; 
-    data[data[, 1] == "M", 1] <- "25"; 
-    data[data[, 1] == "MT", 1] <- "25"; 
-    class(data[,1]) <- "integer"
-    ## sort the data by chr and position
-    data <- data[order(data[, 1], data[, 2]), ]
+    	message("titan: Loading data ", inCounts)
+    	data <- read.delim(inCounts, header = TRUE, stringsAsFactors = FALSE, 
+        		sep = sep)
+    }else if (is.data.frame(inCounts)){  #inCounts is a data.frame
+    	data <- inCounts
+    }else{
+    	stop("loadAlleleCounts: Must provide a filename or data.frame 
+    		to inCounts")
+    }
+    ## use GenomeInfoDb
+    #require(GenomeInfoDb)
+    if (seqlevelsStyle(as.character(data[, 1])) != genomeStyle){
+    	data[, 1] <- mapSeqlevels(as.character(data[, 1]), genomeStyle)
+    }
+    autoSexMChr <- extractSeqlevelsByGroup(species = "Homo sapiens", 
+    		style = genomeStyle, group = "all")
+    data <- data[data[, 1] %in% autoSexMChr, ]
+    ## sort chromosomes
+	indChr <- orderSeqlevels(as.character(data[, 1]), X.is.sexchrom = TRUE)
+	data <- data[indChr, ]
+	## sort positions within each chr
+	for (x in unique(data[, 1])){
+		ind <- which(data[, 1] == x)
+		data[ind, ] <- data[ind[sort(data[ind, 2], index.return = TRUE)$ix], ]
+	}
     
-    chr <- data[, 1]
-    chr <- as.numeric(chr)
-    posn <- as.numeric(data[, 2])
     refOriginal <- as.numeric(data[, 4])
     nonRef <- as.numeric(data[, 6])
     tumDepth <- refOriginal + nonRef
     if (symmetric) {
-        ref <- apply(cbind(refOriginal, nonRef), 1, 
-            max, na.rm = TRUE)
+        ref <- apply(cbind(refOriginal, nonRef), 1, max, na.rm = TRUE)
     } else {
         ref <- refOriginal
     }
-    if (ncol(data) == 7) {
-        normDepth <- as.numeric(data[, 7])
-    } else {
-        normDepth <- NULL
-    }
-    return(list(chr = chr, posn = posn, ref = ref, 
+    
+    return(list(chr = data[, 1], posn = data[, 2], ref = ref, 
         refOriginal = refOriginal, nonRef = nonRef, 
-        tumDepth = tumDepth, normDepth = normDepth))
+        tumDepth = tumDepth))
 }
 
 
-## filter data by depth and mappability.  cI is a
+extractAlleleReadCounts <- function(bamFile, bamIndex, 
+			positions, outputFilename = NULL, 
+			pileupParam = PileupParam()){
+	#require(Rsamtools)
+
+## read in vcf file of het positions
+	vcf <- BcfFile(positions)
+	vcfPosns <- scanBcf(vcf)
+
+## setup the positions of interest to generate the pileup for
+	which <- GRanges(as.character(vcfPosns$CHROM), 
+		IRanges(vcfPosns$POS, width = 1))
+## setup addition BAM filters, such as excluding duplicate reads
+	sbp <- ScanBamParam(flag = scanBamFlag(isDuplicate = FALSE), which = which)
+
+## generate pileup using function (Rsamtools >= 1.17.11)
+## this step can take a while
+	tumbamObj <- BamFile(bamFile, index = bamIndex)
+	counts <- pileup(tumbamObj, scanBamParam = sbp,  pileupParam = pileupParam)
+
+## set of command to manipulate the "counts" data.frame output
+##     by pileup() such that multiple nucleotides are in a single
+##     row rather than in multiple rows.
+	countsMerge <- xtabs(count ~ which_label + nucleotide, counts)
+	
+	label <- do.call(rbind, strsplit(rownames(countsMerge), ":"))
+	posn <- do.call(rbind, strsplit(label[, 2],"-"))
+	countsMerge <- cbind(data.frame(chr = label[, 1]), 
+		position = posn[, 1], countsMerge[,1:7])
+	
+## GET REFERENCE AND NON-REF READ COUNTS
+## this block of code is used to match up the reference and 
+##   non-reference nucleotide when assigning read counts
+##   final output data.frame is "countMat"
+## setup output data.frame
+	countMat <- data.frame(chr = vcfPosns$CHROM, 
+			position = as.numeric(vcfPosns$POS), 
+			ref = vcfPosns$REF, refCount = 0, 
+			Nref = vcfPosns$ALT, NrefCount = 0, 
+			stringsAsFactors = FALSE)
+
+## match rows with vcf positions of interest
+	countMat <- merge(countMat, countsMerge, by = c("chr","position"), 
+		sort = FALSE, stringsAsFactors = FALSE)
+
+## assign the flattened table of nucleotide counts to ref, Nref
+## note that non-reference (Nref) allele is sum of other bases
+##    that is not matching the ref.
+	NT <- c("A", "T", "C", "G")
+	for (n in 1:length(NT)){	
+		indRef <- countMat$ref == NT[n]
+		countMat[indRef, "refCount"] <- countMat[indRef, NT[n]]
+		countMat[indRef, "NrefCount"] <- rowSums(countMat[indRef, NT[-n]])
+	}
+
+## remove "chr" string from chromosome
+	countMat$chr <- gsub("chr","",countMat$chr)	
+## only use autosomes and sex chrs
+	countMat <- countMat[countMat$chr %in% c(as.character(1:22),"X","Y"),]
+## only use first 6 columns for TitanCNA
+	countMat <- countMat[,1:6]
+
+## OUTPUT TO TEXT FILE 
+	if (!is.null(outputFilename)){
+		## output text file will have the same format required by TitanCNA
+		message("extractAlleleReadCounts: writing to ", outputFilename)
+		write.table(countMat, file = outputFilename, row.names = FALSE, 
+			col.names = TRUE, quote = FALSE, sep = "\t")
+	}
+	return(countMat)
+	#return(loadAlleleCounts(countMat))
+}
+
+## filter data by depth and mappability.  data is a
 ## logical vector data is a list containing all our
-## data: ref, depth, logR, etc.  assumes that data
-## is pass by value assumes chromosome is numeric
-## and ranges from 1:25 where 23=X, 24=Y, 25=MT
-filterData <- function(data, chrs = 1:24, minDepth = 10, 
+## data: ref, depth, logR, etc.  
+filterData <- function(data, chrs = NULL, minDepth = 10, 
     maxDepth = 200, positionList = NULL, map = NULL, 
     mapThres = 0.9) {
     if (!is.null(map)) {
@@ -158,7 +240,11 @@ filterData <- function(data, chrs = 1:24, minDepth = 10,
     }
     keepTumDepth <- data$tumDepth <= maxDepth & data$tumDepth >= 
         minDepth
-    keepChrs <- is.element(data$chr, chrs)
+    if (is.null(chrs)){
+   		keepChrs <- logical(length = length(data$chr))
+   	}else{
+   		keepChrs <- is.element(data$chr, chrs)
+   	}
     cI <- keepChrs & keepTumDepth & !is.na(data$logR) & 
         keepMap & keepPosn
     for (i in 1:length(data)) {
@@ -182,11 +268,6 @@ excludeGarbageState <- function(params, K) {
 
 getPositionOverlap <- function(chr, posn, cnData) {
     cnChr <- cnData[, 1]
-    cnChr[cnChr == "X"] <- "23"
-    cnChr[cnChr == "Y"] <- "24"
-    cnChr[cnChr == "MT"] <- "25"
-    cnChr[cnChr == "M"] <- "25"
-    cnChr <- as.numeric(cnChr)
     cnStart <- as.numeric(cnData[, 2])
     cnStop <- as.numeric(cnData[, 3])
     cnVal <- as.numeric(cnData[, 4])
@@ -213,52 +294,9 @@ getPositionOverlap <- function(chr, posn, cnData) {
     return(as.numeric(valByPosn))
 }
 
-### Subroutine for correcting read counts ###
-correctGCMapBias <- function(x, gc, map, mappability = 0.9, 
-    samplesize = 50000, verbose = TRUE) {
-    
-    if (verbose) {
-        message("Applying filter on data...")
-    }
-    valid <- !logical(length = length(x))
-    valid[x <= 0 | gc < 0] <- FALSE
-    ideal <- !logical(length = length(x))
-    routlier <- 0.01
-    range <- quantile(x[valid], prob = c(0, 1 - routlier), 
-        na.rm = TRUE)
-    doutlier <- 0.001
-    domain <- quantile(gc[valid], prob = c(doutlier, 
-        1 - doutlier), na.rm = TRUE)
-    ideal[!valid | map < mappability | x <= range[1] | 
-        x > range[2] | gc < domain[1] | gc > domain[2]] <- FALSE
-    
-    if (verbose) {
-        message("Correcting for GC bias...")
-    }
-    set <- which(ideal)
-    select <- sample(set, min(length(set), samplesize))
-    rough = loess(x[select] ~ gc[select], span = 0.03)
-    i <- seq(0, 1, by = 0.001)
-    final = loess(predict(rough, i) ~ i, span = 0.3)
-    cor.gc <- x/predict(final, gc)
-    
-    if (verbose) {
-        message("Correcting for mappability bias...")
-    }
-    coutlier <- 0.01
-    range <- quantile(cor.gc[which(valid)], prob = c(0, 
-        1 - coutlier), na.rm = TRUE)
-    set <- which(cor.gc < range[2])
-    select <- sample(set, min(length(set), samplesize))
-    final = approxfun(lowess(map[select], cor.gc[select]))
-    y <- cor.gc/final(map)
-    
-    return(y)
-}
-
-correctReadDepth <- function(tumWig, normWig, gcWig, 
-    mapWig, targetedSequence = NULL) {
-    # require(HMMcopy)
+correctReadDepth <- function(tumWig, normWig, gcWig, mapWig, 
+	genomeStyle = "NCBI", targetedSequence = NULL) {
+    #require(HMMcopy)
     
     message("Reading GC and mappability files")
     gc <- wigToRangedData(gcWig)
@@ -270,7 +308,20 @@ correctReadDepth <- function(tumWig, normWig, gcWig,
     message("Loading normal file:", normWig)
     normal_reads <- wigToRangedData(normWig)
     
-    ### remove 'chr' or 'CHR' from chromosome
+    ### set the genomeStyle: NCBI or UCSC
+    #require(GenomeInfoDb)
+    if (seqlevelsStyle(names(gc)) != genomeStyle){
+    	names(gc) <- mapSeqlevels(names(gc), genomeStyle)
+    }
+    if (seqlevelsStyle(names(map)) != genomeStyle){
+    	names(map) <- mapSeqlevels(names(map), genomeStyle)
+    }
+    if (seqlevelsStyle(names(tumour_reads)) != genomeStyle){
+    	names(tumour_reads) <- mapSeqlevels(names(tumour_reads), genomeStyle)
+    }
+    if (seqlevelsStyle(names(normal_reads)) != genomeStyle){
+    	names(normal_reads) <- mapSeqlevels(names(normal_reads), genomeStyle)
+    }
     
     ### make sure tumour wig and gc/map wigs have same
     ### chromosomes
@@ -331,7 +382,6 @@ correctReadDepth <- function(tumWig, normWig, gcWig,
     rm(normal_copy)
     
     ### PUTTING TOGETHER THE COLUMNS IN THE OUTPUT ###
-    options(stringsAsFactors = FALSE)
     temp <- cbind(chr = as.character(space(tumour_copy)), 
         start = start(tumour_copy), end = end(tumour_copy), 
         logR = tumour_copy$copy)
@@ -541,7 +591,7 @@ decodeLOH <- function(G, symmetric = TRUE) {
         CN[G >= 9 & G <= 11] <- 5
         CN[G >= 12 & G <= 15] <- 6
         CN[G >= 16 & G <= 19] <- 7
-        CN[G >= 20 & G <= 23] <- 8
+        CN[G >= 20 & G <= 24] <- 8
     } else {
         CN[HOMD] <- 0
         CN[DLOH] <- 1
@@ -562,7 +612,8 @@ decodeLOH <- function(G, symmetric = TRUE) {
 
 
 outputTitanResults <- function(data, convergeParams, 
-    optimalPath, filename = NULL, posteriorProbs = FALSE) {
+    optimalPath, filename = NULL, posteriorProbs = FALSE, 
+    subcloneProfiles = TRUE) {
     
     # check if useOutlierState is in convergeParams
     if (length(convergeParams$useOutlierState) == 0) {
@@ -598,9 +649,6 @@ outputTitanResults <- function(data, convergeParams,
     Sout[Zclust > 0 & !is.na(Zclust)] <- s[Zclust[Zclust > 
         0 & !is.na(Zclust)]]
     Sout[Zclust == 0] <- 0
-    data$chr[data$chr == 23] <- "X"
-    data$chr[data$chr == 24] <- "Y"
-    data$chr[data$chr == 25] <- "MT"
     clonalHeaderStr <- rep(NA, Z)
     for (j in 1:Z) {
         clonalHeaderStr[j] <- sprintf("pClust%d", j)
@@ -614,6 +662,15 @@ outputTitanResults <- function(data, convergeParams,
         CopyNumber = CN, TITANstate = G, TITANcall = Gcalls, 
         ClonalCluster = Zclust, CellularPrevalence = sprintf("%0.2f", 
             1 - Sout))
+   	
+   	## INCLUDE SUBCLONE PROFILES 
+   	if (subcloneProfiles & numClust <= 2){
+   		outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
+    	outmat <- getSubcloneProfiles(outmat)
+    }else{
+    	message("outputTitanResults: More than ", numClust, 
+    			"clusters. No subclone profiles returned.")
+    }
     if (posteriorProbs) {
         outmat <- cbind(outmat, format(round(rhoZ, 
             4), nsmall = 4, scientific = FALSE), format(round(rhoG, 
@@ -657,15 +714,13 @@ outputModelParameters <- function(convergeParams, results,
         musR_str <- sprintf("%0.2f ", convergeParams$muR[, 
             j, i])
         musR_str <- gsub(" ", "", musR_str)
-        outStr <- sprintf("Genotype binomial means for clonal cluster 
-                  Z=%d:\t%s", j, paste(musR_str, collapse = " "))
+        outStr <- sprintf("Genotype binomial means for clonal cluster Z=%d:\t%s", j, paste(musR_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
         musC_str <- sprintf("%0.2f ", log2(exp(convergeParams$muC[, j, i])))
         musC_str <- gsub(" ", "", musC_str)
-        outStr <- sprintf("Genotype Gaussian means for clonal cluster 
-            Z=%d:\t%s", j, paste(musC_str, collapse = " "))
+        outStr <- sprintf("Genotype Gaussian means for clonal cluster Z=%d:\t%s", j, paste(musC_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
@@ -710,3 +765,54 @@ outputModelParameters <- function(convergeParams, results,
     close(fc)
     
 } 
+
+getSubcloneProfiles <- function(titanResults){
+	if (is.character(titanResults)){
+		titanResults <- read.delim(titanResults, header = TRUE, 
+				stringsAsFactors = FALSE, sep = "\t")
+	}else if (!is.data.frame(titanResults)){
+		stop("getSubcloneProfiles: titanResults is not character or
+				data.frame.")
+	}
+	
+	numClones <- as.numeric(max(titanResults$ClonalCluster,
+			na.rm = TRUE))
+	cellPrev <- unique(cbind(Cluster = titanResults$ClonalCluster, 
+			Prevalence = titanResults$CellularPrevalence))
+			
+	if (numClones == 1){
+		subc1Prev <- cellPrev[which(cellPrev[, "Cluster"] == "1"), "Prevalence"]
+		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
+				TITANcall = titanResults$TITANcall,
+				Prevalence = as.numeric(subc1Prev)), stringsAsFactors = FALSE)
+	}
+	if (numClones == 2){
+		subc2Prev <- as.numeric(cellPrev[which(cellPrev[, "Cluster"] == "2"),
+				"Prevalence"])
+		subc1Prev <- as.numeric(cellPrev[which(cellPrev[, "Cluster"] == "1"),
+				"Prevalence"])
+		subc1Prev <- subc1Prev - subc2Prev
+		subc2 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
+			TITANcall = titanResults$TITANcall,
+			Prevalence = as.numeric(subc2Prev)), stringsAsFactors = FALSE)
+		mode(subc2[, 1]) <- "numeric"; mode(subc2[, 3]) <- "numeric"
+		subc1 <- subc2
+		ind <- which(titanResults$ClonalCluster == 2)
+		subc1[ind, c("CopyNumber", "TITANcall")] <- t(matrix(cbind(2, "HET"), 
+				ncol = length(ind), nrow = 2))
+		subc1[, "Prevalence"] <- subc1Prev
+	}
+	
+	## Add subclone 1, 2 and 3 if they are defined
+	if (exists("subc1")){
+		mode(subc1[, 1]) <- "numeric"; mode(subc1[, 3]) <- "numeric"	
+		outMat <- cbind(titanResults, Subclone1 = subc1, stringsAsFactors = FALSE)
+	}
+	if (exists("subc2")){
+		outMat <- cbind(outMat, Subclone2 = subc2, stringsAsFactors = FALSE)
+	}
+	#if (exists("subc3")){
+	#	outMat <- cbind(outMat, Subclone3 = subc3, stringsAsFactors = FALSE)
+	#}
+	return(as.data.frame(outMat, stringsAsFactors = FALSE))
+}

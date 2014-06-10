@@ -42,7 +42,7 @@ G. Ha, A. Roth, N. Melnyk, A. McPherson, L. M. Prentice, A. Bashashati, J. Ding,
 message('Running TITAN ...')
 #### LOAD DATA ####
 infile <- system.file("extdata", "test_alleleCounts_chr2.txt", package = "TitanCNA")
-data <- loadAlleleCountsFromFile(infile)
+data <- loadAlleleCounts(infile)
 
 #### LOAD PARAMETERS ####
 message('titan: Loading default parameters')
@@ -61,7 +61,7 @@ logR <- getPositionOverlap(data$chr, data$posn, cnData)
 data$logR <- log(2^logR) #transform to natural log
 
 #### FILTER DATA FOR DEPTH, MAPPABILITY, NA, etc ####
-data <- filterData(data, 1:24, minDepth = 10, maxDepth = 200, map = NULL)
+data <- filterData(data, c(1:22,"X"), minDepth = 10, maxDepth = 200, map = NULL)
 
 #### EM (FWD-BACK) TO TRAIN PARAMETERS ####
 #### Can use parallelization packages ####
@@ -82,17 +82,19 @@ optimalPath <- viterbiClonalCN(data, convergeParams)
 
 #### FORMAT RESULTS ####
 results <- outputTitanResults(data, convergeParams, optimalPath, 
-                              filename = NULL, posteriorProbs = FALSE)
+                              filename = NULL, posteriorProbs = FALSE,
+                              subcloneProfiles = TRUE)
 
 #### PLOT RESULTS ####
 norm <- tail(convergeParams$n, 1)
 ploidy <- tail(convergeParams$phi, 1)
 
-par(mfrow=c(3, 1))    
+par(mfrow=c(4, 1))    
 plotCNlogRByChr(results, chr = 2, ploidy = ploidy, geneAnnot = NULL, 
                 ylim = c(-2, 2), cex = 0.5, xlab = "", main = "Chr 2")
 plotAllelicRatio(results, chr = 2, geneAnnot = NULL, ylim = c(0, 1), cex = 0.5, 
                 xlab = "", main = "Chr 2")
 plotClonalFrequency(results, chr = 2, normal = norm, geneAnnot = NULL, 
                     ylim = c(0, 1), cex = 0.5, xlab = "", main = "Chr 2")
+plotSubcloneProfiles(results, chr = 2, cex = 2, main = "Chr 2")
 }

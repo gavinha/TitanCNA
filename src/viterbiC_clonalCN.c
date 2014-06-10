@@ -227,14 +227,6 @@ void initializeTxnV(double * transSlice, unsigned int K) {
 }
 
 
-/* logs each element in a K-by-K matrix, A */
-void logMatrixInPlace(double * A, unsigned int K) {
-    unsigned int i, j;
-    for (i=0;i<K;i++) /* rows */
-        for (j=0;j<K;j++) /* columns */
-            A[i + j*K] = log(A[i + j*K]);
-}
-
 /* Output matrix for debugging purposes */
 void outputMatrixV(double * A, unsigned int K) {
     unsigned int i, j;

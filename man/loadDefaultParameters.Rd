@@ -55,7 +55,7 @@
 }
 
 \seealso{
-  \code{\link{loadAlleleCountsFromFile}}
+  \code{\link{loadAlleleCounts}}
 }
 
 \examples{

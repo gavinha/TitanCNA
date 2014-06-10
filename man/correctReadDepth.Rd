@@ -8,7 +8,7 @@
   Correct GC content and mappability biases in tumour sequence read counts using Loess curve fitting. Wrapper for function in \pkg{HMMcopy}.
 }
 \usage{
-  correctReadDepth(tumWig, normWig, gcWig, mapWig, targetedSequence = NULL)
+  correctReadDepth(tumWig, normWig, gcWig, mapWig, genomeStyle = "NCBI", targetedSequence = NULL)
 }
 
 \arguments{
@@ -23,6 +23,9 @@
   }
   \item{mapWig}{
     File path to fixedStep WIG format file for the mappability scores computed on the specific reference genome used.
+  }
+  \item{genomeStyle}{
+  	The genome style to use for chromosomes by \pkg{TitanCNA}. Use one of \sQuote{NCBI} or \sQuote{UCSC}. It does not matter what style is found in \code{inCounts}, \code{genomeStyle} will be the style returned. 
   }
   \item{targetedSequence}{
     data.frame with 3 columns: chr, start position, stop position.  Use this argument for exome capture sequencing or targeted deep sequencing data. This is experimental and may not work as desired. 
@@ -45,7 +48,7 @@
 }
 
 \author{
-  Gavin Ha <gavinha@gmail.com>
+  Gavin Ha <gavinha@gmail.com>, Daniel Lai <jujubix@cs.ubc.ca>
 }
 
 \seealso{

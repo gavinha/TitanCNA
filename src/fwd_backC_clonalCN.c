@@ -4,12 +4,14 @@
  * 1) joint genotype and clonal states
  * 2) specific genotype and clonal transition probabilities treated as mega-variable
  *    i.e. state space is K*Z where K is number of genotypes and Z is number of clonal states
+ * Precondition:
+ * py and piGiZi must be in log space
  *
- * author: Gavin Ha <gha@bccrc.ca>
+ * author: Gavin Ha <gavinha@gmail.com>
  *          Dept of Molecular Oncolgy
  *          British Columbia Cancer Agency
  *          University of British Columbia
- * date  : November 8, 2012
+ * date  : June 4, 2014
  *
  **/
  
@@ -19,14 +21,20 @@
 #include <Rdefines.h>
 
 double normalizeInPlace(double *, unsigned int);
+double logSumNormalizeInPlace(double *, unsigned int);
 void multiplyInPlace(double *, double *, double *, unsigned int);
+void addInPlace(double *, double *, double *, unsigned int);
 void multiplyMatrixInPlace(double *, double *, double *, unsigned int);
+void logSumInPlace(double *, double *, double *, unsigned int);
+double logsumexp(double *, unsigned int);
+void logMatrixInPlace(double *, unsigned int);
 void transposeSquareInPlace(double *, double *, unsigned int);
 void outerProductUVInPlace(double *, double *, double *, unsigned int);
 void componentVectorMultiplyInPlace(double *, double *, double *, unsigned int);
-void preparePositionSpecificMatrix(double * transSlice, unsigned int, unsigned int, double * CT, double * ZS, double, double, unsigned int, unsigned int);
-void initializeTxn(double * transSlice, unsigned int K);
-void outputMatrix(double * A, unsigned int K);
+void preparePositionSpecificMatrix(double *, unsigned int, unsigned int, double *, double *, double, double, unsigned int, unsigned int);
+void initializeTxn(double *, unsigned int);
+void outputMatrix(double *, unsigned int);
+void outputVector(double *, unsigned int);
 double distanceTransitionFunction(double, double, double);
 
 SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, SEXP numClust, SEXP positions, SEXP zStrength, SEXP txnLen, SEXP useOutlier) {
@@ -102,9 +110,9 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
     
     /********* Forward. ********/
    t = 0;
-   multiplyInPlace(alpha + t*K, init_state_distrib, obslik + t*K, K);
-   /*mexPrintf("Normalize alpha at t=%d\n",t);*/
-   scale[t] = normalizeInPlace(alpha + t*K, K);
+   /*multiplyInPlace(alpha + t*K, init_state_distrib, obslik + t*K, K);*/
+   addInPlace(alpha + t*K, init_state_distrib, obslik + t*K, K);
+   scale[t] = logSumNormalizeInPlace(alpha + t*K, K);
     
    m = malloc(K*sizeof(double));
 
@@ -114,18 +122,25 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
     initializeTxn(transSlice, K);     
     /* modify transSlice inplace by adding position-specific probs */
     rhoG = 1.0 - distanceTransitionFunction(posn[t-1],posn[t],txnExpLen[0]);
-    rhoZ = 1.0 - distanceTransitionFunction(posn[t-1],posn[t],txnExpLen[0]*txnZstrength[0]);        
+    rhoZ = 1.0 - distanceTransitionFunction(posn[t-1],posn[t],txnZstrength[0]);        
     preparePositionSpecificMatrix(transSlice, K, numUnitStates, CT, ZS, rhoG, rhoZ, outlier[0], 0);   
     transposeSquareInPlace(transmatT, transSlice, K);
-    multiplyMatrixInPlace(m, transmatT, alpha + (t-1)*K, K);
-    multiplyInPlace(alpha + t*K, m, obslik + t*K, K); 
-    scale[t] = normalizeInPlace(alpha + t*K, K); 
-
+    logMatrixInPlace(transmatT, K);
+    /*multiplyMatrixInPlace(m, transmatT, alpha + (t-1)*K, K);*/
+    logSumInPlace(m, transmatT, alpha + (t-1)*K, K);
+    /*multiplyInPlace(alpha + t*K, m, obslik + t*K, K); */
+    addInPlace(alpha + t*K, m, obslik + t*K, K);
+    //printf("Forward t=%d\n",t);
+    //outputVector(alpha + t*K, K);
+    scale[t] = logSumNormalizeInPlace(alpha + t*K, K); 
+		//printf("Forward t=%d\tScale=%0.2f\n",t,scale[t]);
+    //outputVector(alpha + t*K, K);
   }
   
   loglik[0] = 0;
   for(t=0;t<T;++t)
-  loglik[0] += log(scale[t]);
+  	loglik[0] += scale[t]; /* Already in log space */
+  	/*loglik[0] += log(scale[t]);*/
 
   /********* Backward. ********/
   
@@ -133,7 +148,7 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
   t = T-1;
   /* I don't think we need to initialize beta to all zeros. */
   for(d=0;d<K;++d) {
-    beta[d + t*K] = 1;
+    beta[d + t*K] = 0;
     gamma[d + t*K] = alpha[d + t*K];
   }
   
@@ -142,7 +157,8 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
   
   for(t=(T-2);t>=0;--t) {        
     /* setting beta */
-    multiplyInPlace(b, beta + (t+1)*K, obslik + (t+1)*K, K);
+    /*multiplyInPlace(b, beta + (t+1)*K, obslik + (t+1)*K, K);*/
+    addInPlace(b, beta + (t+1)*K, obslik + (t+1)*K, K);
     /* Using "m" again instead of defining a new temporary variable.
      * We using a lot of lines to say
      * beta(:,t) = normalize(transmat * b);
@@ -152,15 +168,27 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
     rhoG = 1.0 - distanceTransitionFunction(posn[t],posn[t+1],txnExpLen[0]);
     rhoZ = 1.0 - distanceTransitionFunction(posn[t],posn[t+1],txnExpLen[0]*txnZstrength[0]);
     preparePositionSpecificMatrix(transSlice, K, numUnitStates, CT, ZS, rhoG, rhoZ, outlier[0], 0);        
-    multiplyMatrixInPlace(m, transSlice, b, K);
-    normalizeInPlace(m, K);
+    logMatrixInPlace(transSlice, K);
+    /*multiplyMatrixInPlace(m, transSlice, b, K);*/
+    logSumInPlace(m, transSlice, b, K);
+    //printf("Backward t=%d\n",t);
+    //outputVector(m, K);
+    logSumNormalizeInPlace(m, K);
+		//printf("Backward t=%d\tScale=%0.2f\n",t,sumBack);
+    //outputVector(m, K);
+    
     for(d=0;d<K;++d) { beta[d + t*K] = m[d]; }
     /* using "m" again as valueholder */   
     /* setting gamma */        
-    multiplyInPlace(m, alpha + t*K, beta + t*K, K);
-    normalizeInPlace(m, K);
+    /*multiplyInPlace(m, alpha + t*K, beta + t*K, K);*/
+    addInPlace(m, alpha + t*K, beta + t*K, K);
+    logSumNormalizeInPlace(m, K);
+    //printf("FWBK t=%d\tScale=%0.2f\n",t,sumBack);
+    //outputVector(m, K);
+    
     for(d=0;d<K;++d) { gamma[d + t*K] = m[d]; } 
-  
+  	//printf("GAMMA t=%d\n",t);
+    //outputVector(gamma + t*K, K);
   }
       
   free(b); free(m); 
@@ -224,7 +252,8 @@ void preparePositionSpecificMatrix(double * transSlice, unsigned int K, unsigned
 						} 
             //printf("i=%d\tj=%d\tz1=%f\tz2=%f\tZS[%d]=%f\tZS[%d]=%f\n",i,j,z1,z2,unitI,iZS,unitJ,jZS);
 						//transitions to same state or same zygosity status
-            if (i==j || (iZS==jZS)){
+            //if (i==j || (iZS==jZS)){
+            if ((iZS==jZS)){
                 transSlice[i + j*K] = rhoG; 
             }else{
 	              transSlice[i + j*K] = (1.0-rhoG)/((double)K-1.0); 
@@ -293,6 +322,16 @@ void outputMatrix(double * A, unsigned int K) {
     
 }
 
+/* Output vector for debugging purposes */
+void outputVector(double * A, unsigned int K) {
+    unsigned int i;
+    
+    for (i=0;i<K;i++) { /*rows*/        
+            //printf("%0.2f\t", A[i]);
+    }
+    //printf("\n");
+}
+
 /* Position specific distance used in transition matrix
  * returns double
  */
@@ -316,8 +355,7 @@ double normalizeInPlace(double * A, unsigned int N) {
 	          //printf("OurNegVal=%0.2e\n",A[n]);
             error("We don't want to normalize if A contains a negative value. This is a logical error.");
         }
-    }
-    
+    }    
     if (sum == 0)
         error("We are asked to normalize a section of a vector containing only zeros.");
     else {
@@ -327,11 +365,35 @@ double normalizeInPlace(double * A, unsigned int N) {
     return sum;
 }
 
+/* Returns the normalization constant used.
+ * Input vector is in log space; use logsumexp function
+ */
+double logSumNormalizeInPlace(double * A, unsigned int N) {
+	unsigned int i;
+	double sum = 0;
+	
+	sum = logsumexp(A,N);
+	for (i=0; i<N; i++){
+		A[i] -= sum;
+	}
+	
+	return sum;
+}
+
 void multiplyInPlace(double * result, double * u, double * v, unsigned int K) {
     unsigned int n;
     
     for(n=0;n<K;++n){
         result[n] = u[n] * v[n];
+    }
+    return;
+}
+
+void addInPlace(double * result, double * u, double * v, unsigned int K) {
+    unsigned int n;
+    
+    for(n=0;n<K;++n){
+        result[n] = u[n] + v[n];
     }
     return;
 }
@@ -347,6 +409,53 @@ void multiplyMatrixInPlace(double * result, double * trans, double * v, unsigned
         }
     }
     return;
+}
+
+void logSumInPlace(double * result, double * trans, double * v, unsigned int K) {
+    
+    unsigned int i, d;
+    
+    for(d=0;d<K;++d) {
+        result[d] = 0;
+        double * sums = malloc(K*sizeof(double)); /* keep track of trans+v */
+        for (i=0;i<K;++i){
+            sums[i] = trans[d + i*K] + v[i];
+        }
+        result[d] = logsumexp(sums, K);
+    }
+    return;
+}
+
+/** 
+	Computes the log of the sum of exponentials 
+	log(sum(exp(x))) = A + log(sum(exp(x-A))); where A=max(x) and x is vector to be summed
+	Code reference: http://stackoverflow.com/questions/4169981/logsumexp-implementation-in-c
+**/
+double logsumexp(double *x, unsigned int K) {
+	double max_x = x[0];
+	double sum = 0.0;
+	unsigned int i;
+	
+	/* Find max value of x*/
+	for (i=0; i<K; i++){
+		if (x[i] > max_x){
+			max_x = x[i];
+		}
+	}
+	/* compute sum(exp(x-max_x)) */
+	for (i=0; i<K; i++){
+		sum += exp(x[i] - max_x);
+	}	
+	/* return max_x+log(sum(exp(x-max_x))) */
+	return max_x + log(sum);
+}
+
+/* logs each element in a K-by-K matrix, A */
+void logMatrixInPlace(double * A, unsigned int K) {
+    unsigned int i, j;
+    for (i=0;i<K;i++) /* rows */
+        for (j=0;j<K;j++) /* columns */
+            A[i + j*K] = log(A[i + j*K]);
 }
 
 void transposeSquareInPlace(double * out, double * in, unsigned int K) {

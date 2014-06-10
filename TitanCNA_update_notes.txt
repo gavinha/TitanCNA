@@ -1,0 +1,24 @@
+Notes on TitanCNA version updates
+
+=================================================================================
+TitanCNA version 1.2.0 changes
+=================================================================================
+1) Added new functionality for extracting read counts from BAM files
+	- New function: extractAlleleReadCounts
+2) Added support for conversion between UCSC and NCBI chromosomes in input files
+	- Affected functions: loadAlleleCounts, correctReadDepth
+3) Changed default parameters
+	- Affected functions: loadDefaultParameters
+	- genotypeParams$rt now has a 0.08 logR noise scalar added to heterozygous states
+	- genotypeParams$alphaKHyper initialized to 5,000 prior counts for all states; extreme states (HOMD and 4 copies or higher) are initialized to 15,000.
+4) Forwards-Backwards Algorithm now computes the posterior in log space 
+	- Affects: runEMclonalCN, fwd_backC_clonalCN.c 
+	- Now enables users to use coarser segmentation settings (txnExpLen and txnZstrength arguments in runEMclonalCN)
+5) Added new functionality for interpreting subclone profiles
+	- Affects: outputTitanResults
+	- For 2 clonal cluster solutions, will return 2 subclone profiles appended to results data.frame
+	- New function: plotSubcloneProfiles
+	- Plots the 2 subclone profiles	
+6) Fixed bug for interpreting the final 24th state (when symmetric=TRUE)
+	- Affected functions (private): decodeLOH
+	

@@ -76,7 +76,7 @@ Load the provided text file for the allele counts for chromosome 2 of a breast c
 library(TitanCNA)
 infile <- system.file("extdata", "test_alleleCounts_chr2.txt", 
                       package = "TitanCNA")
-data <- loadAlleleCountsFromFile(infile)
+data <- loadAlleleCounts(infile)
 names(data)
 @
 
