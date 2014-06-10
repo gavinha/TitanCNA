@@ -1,7 +1,7 @@
 Notes on TitanCNA version updates
 
 =================================================================================
-TitanCNA version 1.2.0 changes
+TitanCNA version 1.2.0 changes (Committed revision 91120.)
 =================================================================================
 1) Added new functionality for extracting read counts from BAM files
 	- New function: extractAlleleReadCounts
