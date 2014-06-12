@@ -69,7 +69,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     genotypeParams$ZS <- ZS
     genotypeParams$ct <- ct
     genotypeParams$var_0 <- var_0
-    genotypeParams$alphaKHyper <- rep(5000, K)
+    genotypeParams$alphaKHyper <- rep(15000, K)
     varHyperHigh <- 15000
     genotypeParams$alphaKHyper[highStates] <- varHyperHigh  #AMP(11-15),HLAMP(16-21) states
     genotypeParams$betaKHyper <- rep(25, K)

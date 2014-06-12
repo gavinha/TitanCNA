@@ -1,5 +1,5 @@
 % \VignetteIndexEntry{TitanCNA}
-% \VignetteDepends{TitanCNA, HMMcopy, foreach}
+% \VignetteDepends{TitanCNA, foreach}
 % \VignetteKeywords{Subclonal copy number CNA LOH clonal genome sequencing tumours cancer}
 % \VignettePackage{HMMcopy}
 
@@ -118,7 +118,7 @@ params$ploidyParams$phi_0 <- 1.5
 
 \subsection{Correct GC content and mappability biases}
 
-Correct GC content and mappability biases using a wrapper function that calls \textit{HMMcopy} R-specific routines. Here, 4 wig files are required: tumour, normal, GC content, and mappability score. The wrapper will apply the correction sub-routines and compute the log ratio as log2(tumour/normal).
+Correct GC content and mappability biases using a wrapper function that calls uses a function similar to the \textit{HMMcopy} package R function, \textit{correctReadcount}. Here, 4 wig files are required: tumour, normal, GC content, and mappability score. The wrapper will apply the correction sub-routines and compute the log ratio as log2(tumour/normal).
 
 <<>>=
 tumWig <- system.file("extdata", "test_tum_chr2.wig", package = "TitanCNA")
