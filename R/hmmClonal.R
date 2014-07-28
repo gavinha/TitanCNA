@@ -155,7 +155,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     while (!converged && (i < (maxiter))) {
         # clear the previous iteration of rho and garbage
         # collect
-        rm(fwdBackPar, rhoZ, rhoG, musTmp, pyR, pyC, outRhoRow)
+        rm(fwdBackPar, rhoZ, rhoG, musTmp, pyR, pyC)
         gc(verbose = FALSE, reset = TRUE)
         ticId <- proc.time()
         i <- i + 1
