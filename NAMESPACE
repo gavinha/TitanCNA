@@ -1,6 +1,6 @@
 useDynLib(TitanCNA)
 import(IRanges,foreach,GenomeInfoDb,Rsamtools)
-export(loadAlleleCounts,loadDefaultParameters,
+export(loadAlleleCounts,loadDefaultParameters,extractAlleleReadCounts,
 		filterData,getPositionOverlap,wigToRangedData,
 		outputTitanResults,outputModelParameters,correctReadDepth,
 		runEMclonalCN, viterbiClonalCN,computeSDbwIndex,
