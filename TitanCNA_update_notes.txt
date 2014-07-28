@@ -21,4 +21,21 @@ TitanCNA version 1.2.0 changes (Committed revision 91120.)
 	- Plots the 2 subclone profiles	
 6) Fixed bug for interpreting the final 24th state (when symmetric=TRUE)
 	- Affected functions (private): decodeLOH
-	
+
+=================================================================================
+TitanCNA version 1.2.1 changes (Committed revision XXXXX.)
+=================================================================================
+1) Critical bug fix for memory usage
+	- Affected public functions: runEMclonalCN
+	- bug in memory management in C implementation of logsumexp for forwards-backwards algorithm
+2) Fixed bug for decoding TITAN state when symmetric = FALSE
+	- Affected public functions: loadAlleleCounts, runEMclonalCN, outputTitanResults
+	- loadDefaultParameters now returns list element "symmetric". This is then propagated to being a list element in the output of the runEMclonalCN function.  In turn, this output is required in the function outputTitanResults. outputTitanResults now requires "symmetric" element from convergeParams argument to determine whether the allelic ratio data was analyzed under symmetric mode.
+3) Changed default parameters
+	- Affected functions: loadDefaultParameters
+	- genotypeParams$alphaKHyper initialized to 15,000 prior counts for all states
+4) Updated Vignette with Subclone profile output
+	- Affected function: outputTitanResults
+	- Additional argument, "subcloneProfiles" to indicate whether to output subclone profiles. This only works for 1 or 2 clonal clusters in the solution
+	- New function: plotSubcloneProfiles
+	- Plots the copy number profile for the predicted subclones. Only works for 1 or 2 clonal clusters in the solution 

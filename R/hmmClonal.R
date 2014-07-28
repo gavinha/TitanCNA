@@ -5,7 +5,7 @@
 
 #### EM (FWD-BACK) Algorithm ####
 runEMclonalCN <- function(data, gParams, nParams, pParams, 
-    sParams, txnExpLen = 1e+15, txnZstrength = 1e+5, 
+    sParams, txnExpLen = 1e+15, txnZstrength = 5e+5, 
     maxiter = 15, maxiterUpdate = 1500, pseudoCounts = 1e-300, 
     normalEstimateMethod = "map", estimateS = TRUE, 
     estimatePloidy = TRUE, useOutlierState = FALSE, 
@@ -95,11 +95,13 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     rho <- NULL
     rhoZ <- NULL
     rhoG <- NULL
+    outRhoRow <- NULL
     fwdBackPar <- NULL  #marginal probs or responsibilities
     
     ## Set up ## set up the chromosome indicies and make
     ## cell array of chromosome indicies
     chrs <- unique(data$chr)
+    posn <- data$posn #assign positions to a new variable
     numChrs <- length(chrs)
     chrsI <- vector("list", numChrs)
     piZi <- vector("list", numChrs)
@@ -145,15 +147,15 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         py <- exp(rbind(pyO$R, pyR) 
         			+ rbind(pyO$C, pyC)) + pseudoCounts  #add the outlier state
     } else {
-        #py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
+        #joint likelihood between Binomial and Gaussian
         py <- pyR + pyC + pseudoCounts
     }
-    
+        
     ## EXPECTATION MAXIMIZATION
     while (!converged && (i < (maxiter))) {
         # clear the previous iteration of rho and garbage
         # collect
-        rm(fwdBackPar, rhoZ, rhoG, musTmp, pyR, pyC)
+        rm(fwdBackPar, rhoZ, rhoG, musTmp, pyR, pyC, outRhoRow)
         gc(verbose = FALSE, reset = TRUE)
         ticId <- proc.time()
         i <- i + 1
@@ -164,7 +166,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
             message("fwdBack: Iteration ", i - 1, " chr: ", 
                 appendLF = FALSE)
         }
-        # cFun <- getLoadedDLLs()[['Titan']][[2]]
+        # cFun <- getLoadedDLLs()[['TitanCNA']][[2]]
         
         piGiZi <- matrix(0, numChrs, Ktotal)
         for (c in 1:numChrs) {
@@ -180,17 +182,16 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         }
         gc(verbose = FALSE, reset = TRUE)
         ## PARALLELIZATION
-        fwdBackPar <- foreach(c = 1:numChrs, .combine = rbind) %dopar% 
+        fwdBackPar <- foreach(c = 1:numChrs, .combine = rbind, .noexport = c("bigPy","data")) %dopar% 
             {
                 ## Fwd-back returns rho (responsibilities) and
-                ## loglik (log-likelihood, p(Data|Params)) include
-                ## outlier state
+                ## loglik (log-likelihood, p(Data|Params)) include outlier state
                 if (verbose == TRUE) {
                   message(c, " ", appendLF = FALSE)
                 }
-                fwdBackOut <- .Call("fwd_backC_clonalCN", 
+                .Call("fwd_backC_clonalCN", 
                   log(piGiZi[c, ]), py[, chrsI[[c]]], gNoOUTStateParams$ct, 
-                  gNoOUTStateParams$ZS, Z, data$posn[chrsI[[c]]], 
+                  gNoOUTStateParams$ZS, Z, posn[chrsI[[c]]], 
                   txnZstrength, txnExpLen, O)
             }
         if (verbose == TRUE) {
@@ -258,7 +259,6 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
             #py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
             py <- pyR + pyC + pseudoCounts
         }
-        
         
         ## Compute log-likelihood and check converge
         priorS <- rep(0, Z)
@@ -367,6 +367,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     output$ploidyParams <- pParams
     output$normalParams <- nParams
     output$clonalParams <- sParams
+    output$symmetric <- gParams$symmetric
     return(output)
 }
 

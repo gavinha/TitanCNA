@@ -75,6 +75,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     genotypeParams$betaKHyper <- rep(25, K)
     genotypeParams$kappaGHyper <- kappaGHyper
     genotypeParams$outlierVar <- 10000
+    genotypeParams$symmetric <- symmetric
     ## NORMAL, n
     normalParams <- vector("list", 0)
     normalParams$n_0 <- 0.5
@@ -619,7 +620,12 @@ outputTitanResults <- function(data, convergeParams,
     if (length(convergeParams$useOutlierState) == 0) {
         stop("convergeParams does not contain element: useOutlierState.")
     }
-    useOutlierState <- convergeParams$useOutlierState
+     useOutlierState <- convergeParams$useOutlierState
+     # check if symmetric is in convergeParams
+    if (length(convergeParams$symmetric) == 0) {
+        stop("convergeParams does not contain element: symmetric.")
+    }
+   
     
     #### PROCESS HMM RESULTS ####
     numClust <- dim(convergeParams$s)[1]
@@ -640,7 +646,7 @@ outputTitanResults <- function(data, convergeParams,
     rhoZ <- t(convergeParams$rhoZ)
     
     ### OUTPUT RESULTS #### Output Z ##
-    Gdecode <- decodeLOH(G)
+    Gdecode <- decodeLOH(G, symmetric = convergeParams$symmetric)
     Gcalls <- Gdecode$G
     CN <- Gdecode$CN
     rhoZ <- rhoZ[, sortS$ix, drop = FALSE]
@@ -668,8 +674,7 @@ outputTitanResults <- function(data, convergeParams,
    		outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
     	outmat <- getSubcloneProfiles(outmat)
     }else{
-    	message("outputTitanResults: More than ", numClust, 
-    			"clusters. No subclone profiles returned.")
+    	message("outputTitanResults: More than 2 clusters. No subclone profiles returned.")
     }
     if (posteriorProbs) {
         outmat <- cbind(outmat, format(round(rhoZ, 

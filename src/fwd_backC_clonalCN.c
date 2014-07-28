@@ -422,7 +422,9 @@ void logSumInPlace(double * result, double * trans, double * v, unsigned int K) 
             sums[i] = trans[d + i*K] + v[i];
         }
         result[d] = logsumexp(sums, K);
+        free(sums);
     }
+    
     return;
 }
 

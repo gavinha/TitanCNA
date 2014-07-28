@@ -9,7 +9,7 @@
 }
 \usage{
 runEMclonalCN(data, gParams, nParams, pParams, sParams,
-              txnExpLen = 1e15, txnZstrength = 1e05, maxiter = 15,
+              txnExpLen = 1e15, txnZstrength = 5e05, maxiter = 15,
               maxiterUpdate = 1500, pseudoCounts = 1e-300,
               normalEstimateMethod = "map", estimateS = TRUE, 
               estimatePloidy = TRUE, useOutlierState = FALSE, verbose = TRUE)

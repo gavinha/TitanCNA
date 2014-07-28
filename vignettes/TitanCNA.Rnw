@@ -159,8 +159,8 @@ Here is a little more detail regarding some important arguments:
 \begin{itemize}
   \item \verb|maxiter|: maximum number of EM iterations allowed. In practice, users should set it at 20 since it does not exceed 20. For this vignette to finish in a shorter time, we use 3.
   \item \verb|maxiterUpdate|: maximum number of coordinate descent iterations during the M-step when parameters are estimated. In practice, 1500 iterations should be used.
-  \item \verb|txnExpLen|: influences prior probability of genotype transitions in the HMM. The smaller, the lower tendency to change state; however, too small and it produces underflow problems.
-  \item \verb|txnZstrength|: influences prior probability of clonal cluster transitions in the HMM. Smaller values means lower tendency to change clonal cluster state.
+  \item \verb|txnExpLen|: influences prior probability of genotype transitions in the HMM. The higher, the lower tendency to change state.
+  \item \verb|txnZstrength|: influences prior probability of clonal cluster transitions in the HMM. Larger values means lower tendency to change clonal cluster state.
   \item \verb|useOutlierState|: logical indicating whether an additional outlier state should be used. In practice, this usually is not necessary.
   \item \verb|normalEstimateMethod|: specifies how to handle normal proportion estimation. To estimate, use "map" which is maximum a posteriori. If you wish to not estimate this parameter, then use "fixed". This will default the normal proportion to whatever is specified in \verb|params$normalParams$n_0|. For example, if you know that this sample has absolutely no normal contamination, then use \verb|params$normalParams$n_0 <- 0| and set \verb|normalEstimateMethod="fixed"|.
   \item \verb|estimateS|: logical indicating whether to account for clonality and estimate subclonal events
@@ -173,8 +173,8 @@ convergeParams <- runEMclonalCN(data, gParams = params$genotypeParams,
                                 pParams = params$ploidyParams, 
                                 sParams = params$cellPrevParams, 
                                 maxiter = 3, maxiterUpdate = 50, 
-                                useOutlierState = FALSE, txnExpLen = 1e9, 
-                                txnZstrength = 1e9, 
+                                useOutlierState = FALSE, txnExpLen = 1e15, 
+                                txnZstrength = 5e5, 
                                 normalEstimateMethod = "map", 
                                 estimateS = TRUE, estimatePloidy = TRUE)
 names(convergeParams)
@@ -212,7 +212,8 @@ Position-specific results that includes genotype, clonal cluster, and cellular p
 
 <<>>=
 results <- outputTitanResults(data, convergeParams, optimalPath,
-                              filename = NULL, posteriorProbs = FALSE)
+                              filename = NULL, posteriorProbs = FALSE,
+                              subcloneProfiles = TRUE)
 head(results)
 @
 
@@ -230,6 +231,12 @@ The format of this output file and data.frame is the following:
   \item \verb|TITANcall|: interpretable TITAN state; string \{HOMD,DLOH,HET,NLOH,ALOH,ASCNA,BCNA,UBCNA\}, see supplementary table 2 in manuscript
   \item \verb|ClonalCluster|: predicted TITAN clonal cluster; lower cluster numbers represent clusters with higher cellular prevalence
   \item \verb|CellularPrevalence|: proportion of tumour cells containing event; not to be mistaken as proportion of sample (including normal)
+  \item \verb|Subclone1.CopyNumber|: Copy number profile for Subclone 1
+  \item \verb|Subclone1.TITANcall|: TITAN state for Subclone 1
+  \item \verb|Subclone1.Prevalence|: Subclonal prevalence for Subclone 1
+  \item \verb|Subclone2.CopyNumber|: Copy number profile for Subclone 2
+  \item \verb|Subclone2.TITANcall|: TITAN state for Subclone 2
+  \item \verb|Subclone2.Prevalence|: Subclonal prevalence for Subclone 2
 \end{enumerate}
 
 Model parameters and summary values such as the number of clonal clusters and their corresponding cellular prevalence, normal contamination, ploidy, and the S\_Dbw validity index for model selection later.
@@ -305,6 +312,14 @@ plotClonalFrequency(results, chr = 2, normal = norm, ylim = c(0, 1),
 The Y-axis is the cellular prevalence that includes the normal proportion. Therefore, the cellular prevalence here refers to the proportion in the sample (including normal). Lines are drawn for each data point indicating the cellular prevalence. Heterozygous diploid are not shown because it is a normal genotype and is not categorized as being subclonal (this means 100\% of cells are normal).
 The black horizontal line represents the tumour content labeled as "T". Each horizontal grey line represents the cellular prevalence of the clonal clusters labeled as Z1, Z2, etc.
 Colours are the sames for allelic ratio plots.
+
+\subsubsection{Subclone profiles}
+New since TitanCNA v1.2.0, users can plot the copy number profiles for the predicted subclones. This function only works for solutions containing 1 or 2 clonal clusters.  
+<<fig=TRUE, pdf=FALSE, eps=FALSE, png=TRUE, height=2>>=
+plotSubcloneProfiles(results, chr = 2, cex = 2, spacing = 6, main = "Chr 2")
+@
+
+Colours have the same definition as for the allelic ratio plots.
 
 \section{Session Information}
 

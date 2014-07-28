@@ -38,6 +38,8 @@ estimateClonalCNParamsMap <- function(x, N, l, rho,
         estimateS = estimateS, estimatePloidy = estimatePloidy, 
         maxiter = maxiter, verbose = verbose)
     
+    rm(a, b, c, d, e, g)
+    gc(verbose = FALSE, reset = TRUE)
     if (verbose == TRUE) {
         message("Using Coordinate Descent iteration ", 
             estimateOut$maxFind, " with Fval=", format(estimateOut$maxF, 
