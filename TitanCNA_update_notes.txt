@@ -1,6 +1,47 @@
 Notes on TitanCNA version updates
 
 =================================================================================
+TitanCNA version 1.3.0 changes (Committed revision XXXXX.)
+=================================================================================
+1) Changed default parameters
+	- Affected function: loadDefaultParameters
+		- genotypeParams$rt is changed from 0.08 to 0.05 logR noise scalar to heterozygous states
+2) Added new functionality and options to computation of S_Dbw validity index
+	- Affected public function: computeSDbwIndex 
+	- Added argument "data.type"
+		- data.type can be set to "LogRatio" (default) or "AllelicRatio"
+		- For samples that have stronger alteration signals in allelic ratio data compared to log ratio data can use "AllelicRatio" to compute S_Dbw index for model selection 
+	- Changed argument: 'method' to 'centroid.method'
+	- Added functionality of choosing between "Halkidi" or "Tong" S_Dbw method
+		- New argument 'S_Dbw.method' can be set to "Halkidi" or "Tong" (default)
+		- References: 
+			- Halkidi and Vazirgiannis (2001). Clustering Validity Assessment: Finding the Optimal Partition of a Data Set
+			- Tong and Tan (2009) Cluster validity based on the improved S_Dbw index
+	- Note that for Tong's method, the computation of SCAT(c) is likely incorrect.  This function uses ni/N instead of (N-ni)/N.
+3) Added and updated arguments to outputModelParameters() function
+	- Affected public function: outputModelParameters
+		- Added arguments S_Dbw.data.type (default 'LogRato'), S_Dbw.scale (default 1), S_Dbw.method (default "Tong").
+
+=================================================================================
+TitanCNA version 1.2.1 changes (Committed revision 92909.)
+=================================================================================
+1) Critical bug fix for memory usage
+	- Affected public functions: runEMclonalCN
+	- bug in memory management in C implementation of logsumexp for forwards-backwards algorithm
+2) Fixed bug for decoding TITAN state when symmetric = FALSE
+	- Affected public functions: loadAlleleCounts, runEMclonalCN, outputTitanResults
+	- loadDefaultParameters now returns list element "symmetric". This is then propagated to being a list element in the output of the runEMclonalCN function.  In turn, this output is required in the function outputTitanResults. outputTitanResults now requires "symmetric" element from convergeParams argument to determine whether the allelic ratio data was analyzed under symmetric mode.
+3) Changed default parameters
+	- Affected functions: loadDefaultParameters
+	- genotypeParams$alphaKHyper initialized to 15,000 prior counts for all states
+4) Updated Vignette with Subclone profile output
+	- Affected function: outputTitanResults
+	- Additional argument, "subcloneProfiles" to indicate whether to output subclone profiles. This only works for 1 or 2 clonal clusters in the solution
+	- New function: plotSubcloneProfiles
+	- Plots the copy number profile for the predicted subclones. Only works for 1 or 2 clonal clusters in the solution 
+
+
+=================================================================================
 TitanCNA version 1.2.0 changes (Committed revision 91120.)
 =================================================================================
 1) Added new functionality for extracting read counts from BAM files
@@ -22,20 +63,3 @@ TitanCNA version 1.2.0 changes (Committed revision 91120.)
 6) Fixed bug for interpreting the final 24th state (when symmetric=TRUE)
 	- Affected functions (private): decodeLOH
 
-=================================================================================
-TitanCNA version 1.2.1 changes (Committed revision XXXXX.)
-=================================================================================
-1) Critical bug fix for memory usage
-	- Affected public functions: runEMclonalCN
-	- bug in memory management in C implementation of logsumexp for forwards-backwards algorithm
-2) Fixed bug for decoding TITAN state when symmetric = FALSE
-	- Affected public functions: loadAlleleCounts, runEMclonalCN, outputTitanResults
-	- loadDefaultParameters now returns list element "symmetric". This is then propagated to being a list element in the output of the runEMclonalCN function.  In turn, this output is required in the function outputTitanResults. outputTitanResults now requires "symmetric" element from convergeParams argument to determine whether the allelic ratio data was analyzed under symmetric mode.
-3) Changed default parameters
-	- Affected functions: loadDefaultParameters
-	- genotypeParams$alphaKHyper initialized to 15,000 prior counts for all states
-4) Updated Vignette with Subclone profile output
-	- Affected function: outputTitanResults
-	- Additional argument, "subcloneProfiles" to indicate whether to output subclone profiles. This only works for 1 or 2 clonal clusters in the solution
-	- New function: plotSubcloneProfiles
-	- Plots the copy number profile for the predicted subclones. Only works for 1 or 2 clonal clusters in the solution 

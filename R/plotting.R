@@ -307,7 +307,7 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
             	points(dataByChr[, "Position"], val, col = lohCol[call], 
             		pch = 15, ...)
             	#lines(dataIn[, "Position"], val, col = lohCol[call], type = "l", lwd = 3, ...)
-               	mtext(text = paste("Subclone", i, "\n", cellPrev, sep = ""), 
+               	mtext(text = paste("Subclone", i, "\n", format(cellPrev, digits = 2), sep = ""), 
                		side = 2, las = 0, line = 3, 
                		at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = 0.75)
                	chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], "Position"])

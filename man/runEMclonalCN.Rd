@@ -1,6 +1,5 @@
 \name{runEMclonalCN}
 \alias{runEMclonalCN}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
   Function to run the Expectation Maximization Algorithm in \pkg{TitanCNA}.
 }

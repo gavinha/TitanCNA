@@ -12,7 +12,8 @@
 \usage{
   outputTitanResults(data, convergeParams, optimalPath, filename = NULL, 
       posteriorProbs = FALSE, subcloneProfiles = TRUE)
-  outputModelParameters(convergeParams, results, filename)
+  outputModelParameters(convergeParams, results, filename, 
+  		S_Dbw.data.type = "LogRatio", S_Dbw.scale = 1, S_Dbw.method = "Tong")
 }
 
 %- maybe also 'usage' for other objects documented here.
@@ -37,6 +38,15 @@
   }
   \item{subcloneProfiles}{
   	\code{Logical TRUE} to include the subclone profiles to the output \code{data.frame}. Currently, this only works for 1 or 2 clonal clusters.
+  }
+  \item{S_Dbw.data.type}{
+  	Compute S_Dbw validity index based on copy number (use '\code{LogRatio}') or allelic ratio (use '\code{AllelicRatio}'). See \code{\link{computeSDbwIndex}}.
+  }
+  \item{S_Dbw.scale}{
+  	The S_Dbw validity index can be adjusted to account for differences between datasets. \code{SDbw.scale} can be used to penalize the S_Dbw \code{dens.bw} component.  The default is 1.
+  }
+  \item{S_Dbw.method}{
+  	Compute S_Dbw validity index using \code{Halkidi} or \code{Tong} method. See \code{\link{computeSDbwIndex}}.
   }
 }
 \details{

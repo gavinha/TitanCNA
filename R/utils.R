@@ -21,7 +21,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         rt[rt > 1] <- 1
         rt[rt < (rn + skew)] <- rn + skew
         ## shift heterozygous states to account for noise
-        rt[c(4, 9, 25)] <- rt[c(4, 9, 25)] + 0.08
+        rt[c(4, 9, 25)] <- rt[c(4, 9, 25)] + 0.05
         ZS = 0:24
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
@@ -419,27 +419,53 @@ computeBIC <- function(maxLoglik, M, N) {
     return(bic)
 }
 
-computeSDbwIndex <- function(x, method = "median") {
+computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRatio", 
+						S_Dbw.method = "Halkidi", symmetric = TRUE) {
     ## input x: Titan results dataframe from
     ## 'outputTitanResults()' S_Dbw Validity Index
     ## Halkidi and Vazirgiannis (2001). Clustering
     ## Validity Assessment: Finding the Optimal
-    ## Partitional of a Data Set
+    ## Partition of a Data Set
+    ## AND
+    ## Tong and Tan (2009) Cluster validity based on the 
+    ## improved S_Dbw index
     
-    ## flatten copynumber-clonalclusters to single
-    ## vector
-    cn <- as.numeric(x[, "CopyNumber"])
-    flatState <- (as.numeric(x[, "ClonalCluster"]) - 
-        1) * (max(cn, na.rm = TRUE) + 1) + cn
-    flatState[is.na(flatState)] <- 2
-    x <- as.matrix(cbind(as.numeric(flatState), as.numeric(x[, "LogRatio"])))
+    if (!data.type %in% c("LogRatio", "AllelicRatio")){
+    	stop("computeSDbwIndex: data.type must be either 'LogRatio' or 'AllelicRatio'")
+    }
+    
+      if (!S_Dbw.method %in% c("Halkidi", "Tong")){
+    	stop("computeSDbwIndex: S_Dbw.method must be either 'Halkidi' or 'Tong'")
+    }
+    
+    ## flatten copynumber-clonalclusters to single vector
+    if (data.type=="LogRatio"){
+    	cn <- as.numeric(x[, "CopyNumber"]) + 1
+		cn[cn == 3] <- NA  ## remove all CN=2 positions
+    	flatState <- (as.numeric(x[, "ClonalCluster"]) - 1) * (max(cn, na.rm = TRUE)) + cn
+    	flatState[is.na(flatState)] <- 3 ### assign all the CN=2 positions to cluster 3
+    	x <- as.matrix(cbind(as.numeric(flatState), as.numeric(x[, data.type])))
+    }else if (data.type=="AllelicRatio"){
+    	st <- as.numeric(x[, "TITANstate"]) + 1
+    	st[x[, "TITANcall"] == "HET"] <- NA
+    	flatState <- (as.numeric(x[, "ClonalCluster"]) - 1) * (max(st, na.rm = TRUE)) + st
+    	if (symmetric){
+    		flatState[is.na(flatState)] <- 4
+    	}else{
+    		flatState[is.na(flatState)] <- 5
+    	}
+    	## for allelic ratios, compute the symmetric allelic ratio
+    	ARdata <- as.numeric(x[, data.type])
+    	ARdata <- apply(cbind(ARdata, 1 - ARdata), 1, max, na.rm = TRUE)
+    	x <- as.matrix(cbind(as.numeric(flatState), ARdata))
+    	rm(ARdata)
+    }
     
     clust <- sort(unique(x[, 1]))
     K <- length(clust)
     N <- nrow(x)
     
-    ## find average standard deviation and scatter
-    ## (compactness)
+    ## find average standard deviation and scatter (compactness)
     stdev <- rep(NA, K)
     scat.Ci <- rep(NA, K)
     for (i in 1:K) {
@@ -451,53 +477,63 @@ computeSDbwIndex <- function(x, method = "median") {
         ## of a cluster (compactness)
         var.Ci <- var(x[ind.i, 2], na.rm = TRUE)
         var.D <- var(x[, 2], na.rm = TRUE)
-        scat.Ci[i] <- var.Ci/var.D
+        if (S_Dbw.method == "Halkidi"){
+        	scat.Ci[i] <- var.Ci/var.D
+        }else if (S_Dbw.method == "Tong"){
+        	###### NOTE #######
+        	## The authors originally used ((N-ni)/N), but this is incorrect ##
+        	## We want a weighted-sum ##
+        	scat.Ci[i] <- ((ni) / N) * (var.Ci/var.D)
+        }
     }
     avgStdev <- sqrt(sum(stdev, na.rm = TRUE))/K
     
     ## compute density between clusters (separation)
     sumDensityDiff <- matrix(NA, nrow = K, ncol = K)
     for (i in 1:K) {
-        # cat('Calculating S_Dbw for cluster
-        # ',clust[i],'\n')
+        # cat('Calculating S_Dbw for cluster # ',clust[i],'\n')
         ind.i <- x[, 1] == clust[i]
+        ni <- sum(ind.i)
         xci <- x[ind.i, 2]
-        if (method == "median") {
-            ci <- median(xci, na.rm = TRUE)  #centroid of cluster Ci
-        } else if (method == "mean") {
-            ci <- mean(xci, na.rm = TRUE)  #centroid of cluster Ci
-        }
-        sumDiff.xci <- sum(abs(xci - ci) <= avgStdev, 
-            na.rm = TRUE)  #density of Ci
-        # sumDiff.xci <- sum(abs(xci-ci),na.rm=TRUE)
+
+        #density of Ci
+        sumDiff.xci <- sdbw.density(xci, avgStdev, method = S_Dbw.method, 
+        					centroid.method = centroid.method)
         
         for (j in 1:K) {
             if (i == j) {
                 next
             }
             ind.j <- x[, 1] == clust[j]
+            nj <- sum(ind.j)
             xcj <- x[ind.j, 2]
-            if (method == "median") {
-                cj <- median(xcj, na.rm = TRUE)  #centroid of cluster Cj
-            } else if (method == "mean") {
-                cj <- mean(xcj, na.rm = TRUE)  #centroid of cluster Cj
-            }
-            sumDiff.xcj <- sum(abs(xcj - cj) <= avgStdev, 
-                na.rm = TRUE)  #density of Cj
-            # sumDiff.xcj <- sum(abs(xcj-cj),na.rm=TRUE)
+
+            #density of Cj
+            sumDiff.xcj <- sdbw.density(xcj, avgStdev, method = S_Dbw.method, 
+        					centroid.method = centroid.method)
             
-            ## union of both clusters
+            ## union and midpoint of both clusters
             x.ci.cj <- union(xci, xcj)
-            cij <- (ci + cj)/2
-            if (method == "median") {
-                cij <- median(x.ci.cj, na.rm = TRUE)
-            } else if (method == "mean") {
-                cij <- mean(x.ci.cj, na.rm = TRUE)
+            ci <- median(xci, na.rm = TRUE)  #centroid of cluster Ci
+            cj <- median(xcj, na.rm = TRUE)  #centroid of cluster Cj
+            nij <- ni + nj
+            stdCiCj <- (sd(xci) + sd(xcj)) / 2
+            if (S_Dbw.method == "Halkidi"){
+            	cij <- (ci + cj)/2
+            	#cij <- median(x.ci.cj, na.rm = TRUE)
+            }else if (S_Dbw.method == "Tong"){
+            	lambda <- 0.7
+            	cij <- lambda * ((nj * ci + ni * cj) / nij) + (1 - lambda) * 
+            		(sumDiff.xci * ci + sumDiff.xcj * cj) /
+            		(sumDiff.xci + sumDiff.xcj) 
             }
-            sumDiff.xci.xcj <- sum(abs(x.ci.cj - cij) <= 
-                avgStdev, na.rm = TRUE)  #density of mid-point
-            # sumDiff.xci.xcj <-
-            # sum(abs(x.ci.cj-cij),na.rm=TRUE)
+            
+            
+            #density of union of both clusters using special centroid
+            sumDiff.xci.xcj <- sdbw.density(x.ci.cj, avgStdev, stDev = stdCiCj, 
+            				method = S_Dbw.method, centroid = cij, 
+            				centroid.method = centroid.method)            
+            
             maxDiff <- max(sumDiff.xci, sumDiff.xcj)
             if (maxDiff == 0) {
                 maxDiff <- 0.1
@@ -505,13 +541,40 @@ computeSDbwIndex <- function(x, method = "median") {
             sumDensityDiff[i, j] <- sumDiff.xci.xcj/maxDiff
         }
     }
-    scat <- sum(scat.Ci, na.rm = TRUE)/(K)
-    dens.bw <- sum(sumDensityDiff, na.rm = TRUE)/(K * 
-        (K - 1))
+    
+    if (S_Dbw.method == "Halkidi"){
+        scat <- sum(scat.Ci, na.rm = TRUE)/(K)
+    }else if (S_Dbw.method == "Tong"){
+   		scat <- sum(scat.Ci, na.rm = TRUE)/(K - 1)
+    }    
+    dens.bw <- sum(sumDensityDiff, na.rm = TRUE)/(K * (K - 1))
+    
     S_DbwIndex <- scat + dens.bw
     # return(S_DbwIndex)
-    return(list(S_DbwIndex = S_DbwIndex, dens.bw = dens.bw, 
-        scat = scat))
+    return(list(S_DbwIndex = S_DbwIndex, dens.bw = dens.bw, scat = scat))
+}
+
+
+sdbw.density <- function(x, avgStdev, stDev = NULL, method = "Halkidi", 
+					centroid = NULL, centroid.method = "median"){
+	if (is.null(centroid)){
+		if (centroid.method == "median") {
+        	centroid <- median(x, na.rm = TRUE)  #centroid of cluster Cj
+    	} else if (centroid.method == "mean") {
+        	centroid <- mean(x, na.rm = TRUE)  #centroid of cluster Cj
+    	}
+    }
+	#density of Ci
+    if (method == "Halkidi"){
+        sumDiff <- sum(abs(x - centroid) <= avgStdev, na.rm = TRUE) 
+    }else if (method == "Tong"){
+    	if (is.null(stDev)){
+    		stDev <- sd(x, na.rm = TRUE)
+    	}
+        conf.int <- 1.96 * (stDev / sqrt(length(x)))
+        sumDiff <- sum(abs(x - centroid) <= conf.int, na.rm = TRUE)  
+    }
+    return(sumDiff)
 }
 
 
@@ -689,8 +752,8 @@ outputTitanResults <- function(data, convergeParams,
     return(as.data.frame(outmat, stringsAsFactors = FALSE))
 }
 
-outputModelParameters <- function(convergeParams, results, 
-    filename) {
+outputModelParameters <- function(convergeParams, results, filename, 
+		S_Dbw.data.type = "LogRatio", S_Dbw.scale = 1, S_Dbw.method = "Tong") {
     message("titan: Saving parameters to ", filename)
     Z <- dim(convergeParams$s)[1]
     i <- dim(convergeParams$s)[2]  #iteration of training to use (last iteration)
@@ -701,23 +764,19 @@ outputModelParameters <- function(convergeParams, results,
     norm_str <- sprintf("Normal contamination estimate:\t%0.2f", 
         convergeParams$n[i])
     write.table(norm_str, file = fc, col.names = FALSE, 
-        row.names = FALSE, quote = FALSE, sep = "", 
-        append = TRUE)
+        row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
     ploid_str <- sprintf("Average tumour ploidy estimate:\t%0.2f", 
         convergeParams$phi[i])
     write.table(ploid_str, file = fc, col.names = FALSE, 
-        row.names = FALSE, quote = FALSE, sep = "", 
-        append = TRUE)
+        row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
     s_str <- sprintf("%0.4f ", 1 - s)
     s_str <- gsub(" ", "", s_str)
     outStr <- sprintf("Clonal cluster cellular prevalence Z=%d:\t%s", 
         Z, paste(s_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
-        row.names = FALSE, quote = FALSE, sep = "", 
-        append = TRUE)
+        row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
     for (j in 1:Z) {
-        musR_str <- sprintf("%0.2f ", convergeParams$muR[, 
-            j, i])
+        musR_str <- sprintf("%0.2f ", convergeParams$muR[, j, i])
         musR_str <- gsub(" ", "", musR_str)
         outStr <- sprintf("Genotype binomial means for clonal cluster Z=%d:\t%s", j, paste(musR_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
@@ -730,8 +789,7 @@ outputModelParameters <- function(convergeParams, results,
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
     }
-    var_str <- sprintf("%0.4f ", convergeParams$var[, 
-        i])
+    var_str <- sprintf("%0.4f ", convergeParams$var[, i])
     var_str <- gsub(" ", "", var_str)
     outStr <- sprintf("Genotype Gaussian variance:\t%s", 
         paste(var_str, collapse = " "))
@@ -752,7 +810,10 @@ outputModelParameters <- function(convergeParams, results,
         append = TRUE)
     
     # compute SDbw_index
-    sdbw <- computeSDbwIndex(results, method = "median")
+    sdbw <- computeSDbwIndex(results, centroid.method = "median", 
+    					data.type = S_Dbw.data.type, 
+    					S_Dbw.method = S_Dbw.method,
+    					symmetric = convergeParams$symmetric)
     sdbw_str <- sprintf("S_Dbw dens.bw:\t%0.4f ", sdbw$dens.bw)
     write.table(sdbw_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
@@ -762,7 +823,7 @@ outputModelParameters <- function(convergeParams, results,
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
     sdbw_str <- sprintf("S_Dbw validity index:\t%0.4f ", 
-        25 * sdbw$dens.bw + sdbw$scat)
+        S_Dbw.scale * sdbw$dens.bw + sdbw$scat)
     write.table(sdbw_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
