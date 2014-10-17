@@ -10,7 +10,7 @@
 }
 
 \usage{
-  loadAlleleCounts(inCounts, symmetric = TRUE, genomeStyle = "NCBI", sep = "\t")
+  loadAlleleCounts(inCounts, symmetric = TRUE, genomeStyle = "NCBI", sep = "\t", header = TRUE)
 }
 
 \arguments{
@@ -25,6 +25,9 @@
   }
   \item{sep}{
     Character indicating the delimiter used for the columns for \code{infile}. Default is tab-delimited, "\\t".
+  }
+  \item{header}{
+  	\code{logical} to indicate if the input tumour counts file contains a header line.
   }
 }
 
@@ -55,7 +58,7 @@ Ha, G., Roth, A., Khattra, J., Ho, J., Yap, D., Prentice, L. M., Melnyk, N., McP
                         package = "TitanCNA")
   #### LOAD DATA FROM TEXT FILE ####
   data <- loadAlleleCounts(infile, symmetric = TRUE, 
-  		genomeStyle = "NCBI")
+  		genomeStyle = "NCBI", header = TRUE)
   
   \dontrun{
 	countsDF <- extractAlleleReadCounts(tumBam, tumBamIndex, 

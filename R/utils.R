@@ -103,12 +103,17 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
 
 
 loadAlleleCounts <- function(inCounts, symmetric = TRUE, 
-			genomeStyle = "NCBI", sep = "\t") {
+			genomeStyle = "NCBI", sep = "\t", header = TRUE) {
 	if (is.character(inCounts)){
     #### LOAD INPUT READ COUNT DATA ####
     	message("titan: Loading data ", inCounts)
-    	data <- read.delim(inCounts, header = TRUE, stringsAsFactors = FALSE, 
+    	data <- read.delim(inCounts, header = header, stringsAsFactors = FALSE, 
         		sep = sep)
+        if (typeof(data[,2])!="integer" || typeof(data[,4])!="integer" || 
+        		typeof(data[,6])!="integer"){
+        	stop("loadAlleleCounts: Input counts file format does not 
+        		match required specifications.")		
+        }
     }else if (is.data.frame(inCounts)){  #inCounts is a data.frame
     	data <- inCounts
     }else{
@@ -145,7 +150,6 @@ loadAlleleCounts <- function(inCounts, symmetric = TRUE,
         refOriginal = refOriginal, nonRef = nonRef, 
         tumDepth = tumDepth))
 }
-
 
 extractAlleleReadCounts <- function(bamFile, bamIndex, 
 			positions, outputFilename = NULL, 

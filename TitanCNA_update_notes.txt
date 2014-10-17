@@ -1,7 +1,19 @@
 Notes on TitanCNA version updates
 
 =================================================================================
-TitanCNA version 1.3.0 changes (Committed revision XXXXX.)
+TitanCNA version 1.5.1 changes (Committed revision XXXXX.)
+=================================================================================
+Note: Bioconductor v3.1 (development)
+1) Added parameter arguments
+	- Affected function: loadAlleleCounts
+		- argument "header" added so users can indicated if input counts file contains a header line
+2) Error checking
+	- Affected function: loadAlleleCounts
+		- Added file format checking to ensure chromosome coordinates and read counts are integers. (note chromosomes are still characters to accommodate X and Y)
+	
+	
+=================================================================================
+TitanCNA version 1.3.0 changes (Committed revision 95439.)
 =================================================================================
 1) Changed default parameters
 	- Affected function: loadDefaultParameters
