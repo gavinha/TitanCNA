@@ -1,7 +1,7 @@
 Notes on TitanCNA version updates
 
 =================================================================================
-TitanCNA version 1.5.2 changes (Committed revision XXXXX.)
+TitanCNA version 1.5.2 changes (Committed revision 95883.)
 =================================================================================
 Note: Bioconductor v3.1 (development)
 1) Modified functions
