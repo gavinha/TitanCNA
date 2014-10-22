@@ -271,32 +271,47 @@ excludeGarbageState <- function(params, K) {
     return(newParams)
 }
 
-getPositionOverlap <- function(chr, posn, cnData) {
-    cnChr <- cnData[, 1]
-    cnStart <- as.numeric(cnData[, 2])
-    cnStop <- as.numeric(cnData[, 3])
-    cnVal <- as.numeric(cnData[, 4])
+getPositionOverlap <- function(chr, posn, dataVal) {
+# use RangedData to perform overlap
+    dataIR <- RangedData(space = dataVal[, 1], 
+    				IRanges(start = dataVal[, 2], end = dataVal[, 3]),
+    				val = as.numeric(dataVal[, 4]))
     
-    N = length(posn)
-    valByPosn = rep(NA, N)
+    chrIR <- RangedData(space = chr, IRanges(start = posn, end = posn))
     
-    for (c in unique(chr)) {
-        indData <- chr == c
-        indCN <- cnChr == c
-        cnStartC <- cnStart[indCN]
-        cnStopC <- cnStop[indCN]
-        cnValC <- cnVal[indCN]
-        posnC <- posn[indData]
-        cnInd <- .Call("getPositionOverlapC", posnC, 
-            cnStartC, cnStopC)
-        if (sum(cnInd > 0) > 0) {
-            cnValToUse <- rep(NA, length(cnInd))
-            cnValToUse[which(cnInd > 0)] <- cnValC[cnInd]
-            valByPosn[indData] <- cnValToUse
-        }
-    }
+    hits <- findOverlaps(query = chrIR, subject = dataIR)
+    hitVal<- dataIR$val[subjectHits(hits)]
+    ## reorder to match input chr and posn arguments
+    chrDF <- as.data.frame(chrIR)
+    indReorder <- order(match(chrDF[, 1], chr))
+    return(hitVal[indReorder])
+	  
+ 
+    #cnChr <- cnData[, 1]
+    #cnStart <- as.numeric(cnData[, 2])
+    #cnStop <- as.numeric(cnData[, 3])
+    #cnVal <- as.numeric(cnData[, 4])
     
-    return(as.numeric(valByPosn))
+    #N = length(posn)
+    #valByPosn = rep(NA, N)
+    
+    #for (c in unique(chr)) {
+    #    indData <- chr == c
+    #    indCN <- cnChr == c
+    #    cnStartC <- cnStart[indCN]
+    #    cnStopC <- cnStop[indCN]
+    #    cnValC <- cnVal[indCN]
+    #    posnC <- posn[indData]
+    #    cnInd <- .Call("getPositionOverlapC", posnC, 
+    #        cnStartC, cnStopC)
+    #    if (sum(cnInd > 0) > 0) {
+    #        cnValToUse <- rep(NA, length(cnInd))
+    #        cnValToUse[which(cnInd > 0)] <- cnValC[cnInd]
+    #        valByPosn[indData] <- cnValToUse
+    #    }
+    #}
+    
+    #return(as.numeric(valByPosn))
 }
 
 correctReadDepth <- function(tumWig, normWig, gcWig, mapWig, 

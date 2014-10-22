@@ -1,7 +1,16 @@
 Notes on TitanCNA version updates
 
 =================================================================================
-TitanCNA version 1.5.1 changes (Committed revision XXXXX.)
+TitanCNA version 1.5.2 changes (Committed revision XXXXX.)
+=================================================================================
+Note: Bioconductor v3.1 (development)
+1) Modified functions
+	- Affected function: getPositionOverlap
+	- Now uses RangedData objects and findOverlaps utility function internally
+	- getPositionOverlap is now much faster than before 
+
+=================================================================================
+TitanCNA version 1.5.1 changes (Committed revision 95701.)
 =================================================================================
 Note: Bioconductor v3.1 (development)
 1) Added parameter arguments
