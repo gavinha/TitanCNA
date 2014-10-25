@@ -10,7 +10,7 @@
 }
 
 \usage{
-  getPositionOverlap(chr, posn, cnData)
+  getPositionOverlap(chr, posn, dataVal)
 }
 
 \arguments{
@@ -20,7 +20,7 @@
   \item{posn}{
     \code{Numeric \link[base:array]{array}} denoting the position in the chromosome for a list of positions. Must have the same number of elements as \code{chr}.
   }
-  \item{cnData}{
+  \item{dataVal}{
     \code{\link[base:data.frame]{data.frame}} containing a list of segments described with 4 columns: chromosome, start coordinate, end coordinate, value of interest (e.g. log ratio). Chromosome can be all numeric or chrX and chrY can use \sQuote{X} and \sQuote{Y}.
   }
 }
