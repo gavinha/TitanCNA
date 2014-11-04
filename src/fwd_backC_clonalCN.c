@@ -166,7 +166,7 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
     initializeTxn(transSlice, K);
     /* modify transSlice inplace by adding position-specific probs */
     rhoG = 1.0 - distanceTransitionFunction(posn[t],posn[t+1],txnExpLen[0]);
-    rhoZ = 1.0 - distanceTransitionFunction(posn[t],posn[t+1],txnExpLen[0]*txnZstrength[0]);
+    rhoZ = 1.0 - distanceTransitionFunction(posn[t],posn[t+1],txnZstrength[0]);
     preparePositionSpecificMatrix(transSlice, K, numUnitStates, CT, ZS, rhoG, rhoZ, outlier[0], 0);        
     logMatrixInPlace(transSlice, K);
     /*multiplyMatrixInPlace(m, transSlice, b, K);*/

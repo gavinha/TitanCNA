@@ -142,7 +142,7 @@ data$logR <- log(2^logR)  #transform the log ratio to natural logs
 Filter the data for low and high depth positions and positions with NA's. For ease of analysis, TITAN converts chromosome X->23 and Y->24. Do not worry, in the final output, "X" and "Y" will be in the output. Optionally, a data.frame containing a list of positions can be passed as an argument, specifying which positions to use.
 
 <<>>=
-data <- filterData(data, 1:24, minDepth = 10, maxDepth = 200, 
+data <- filterData(data, c(1:22, "X", "Y"), minDepth = 10, maxDepth = 200, 
                    positionList = NULL)
 @
 

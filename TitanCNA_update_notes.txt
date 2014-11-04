@@ -1,6 +1,22 @@
 Notes on TitanCNA version updates
 
 =================================================================================
+TitanCNA version 1.5.3 changes (Committed revision XXXXX.)
+=================================================================================
+Note: This is the development version
+1) Minor implementation change
+	- Affected function: viterbiClonalCN, runEMclonalCN
+	- Probabilities for transitioning into different clonal clusters was originally txnZstrength*txnExpLen and specified in the C code.  It is now decoupled in the C code and specified in the R code, instead. 
+
+2) Vignette correction
+	- Under section "Filter the data", changed to:
+	- data <- filterData(data, c(1:22, "X", "Y"),...
+
+3) Bug fixes
+	- Affected function: plotSubcloneProfiles
+	- Whole genome profile plots of subclones (using chr=NULL) was not working properly.
+
+=================================================================================
 TitanCNA version 1.5.2 changes (Committed revision 95883.)
 =================================================================================
 Note: Bioconductor v3.1 (development)

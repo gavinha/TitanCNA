@@ -192,7 +192,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
                 .Call("fwd_backC_clonalCN", 
                   log(piGiZi[c, ]), py[, chrsI[[c]]], gNoOUTStateParams$ct, 
                   gNoOUTStateParams$ZS, Z, posn[chrsI[[c]]], 
-                  txnZstrength, txnExpLen, O)
+                  txnZstrength * txnExpLen, txnExpLen, O)
             }
         if (verbose == TRUE) {
             message("")
@@ -472,8 +472,8 @@ viterbiClonalCN <- function(data, convergeParams, genotypeParams = NULL) {
             viterbiOut <- .Call("viterbiC_clonalCN", 
                 log(piGiZi[c, ]), py[, chrsI[[c]]], 
                 genotypeParams$ct, genotypeParams$ZS, 
-                Z, data$posn[chrsI[[c]]], txnZstrength, 
-                txnExpLen, O)
+                Z, data$posn[chrsI[[c]]], 
+                txnZstrength * txnExpLen, txnExpLen, O)
         }
     return(G)
 }

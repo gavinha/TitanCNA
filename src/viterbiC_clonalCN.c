@@ -101,7 +101,7 @@ SEXP viterbiC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, 
       initializeTxnV(transSlice, K);
       /* modify transSlice inplace by adding position-specific probs */
       rhoG = 1.0 - distanceTransitionFunctionV(posn[t-1],posn[t],txnExpLen[0]);    
-      rhoZ = 1.0 - distanceTransitionFunctionV(posn[t-1],posn[t],txnExpLen[0]*txnZstrength[0]);
+      rhoZ = 1.0 - distanceTransitionFunctionV(posn[t-1],posn[t],txnZstrength[0]);
       preparePositionSpecificMatrixV(transSlice, K, numUnitStates, CT, ZS, rhoG, rhoZ, outlier[0], 0);   
       logMatrixInPlace(transSlice, K);        
       for(j=0;j<K;++j) { /* column */          

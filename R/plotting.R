@@ -324,31 +324,31 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
         # plot genome-wide
         coord <- getGenomeWidePositions(dataIn[, "Chr"], dataIn[, "Position"])
         # setup plot to include X number of clones (numClones)
-            maxCN <- max(as.numeric(dataIn$CopyNumber)) + 1
-            ylim <- c(0, numClones * (maxCN + 2) - 1)
-            xlim <- as.numeric(c(1, coord$posns[length(coord$posns)]))
-            plot(0, type = "n", xaxt = "n", ylab = "", xlim = xlim, 
-            	ylim = ylim, yaxt = "n", ...)
-            axis(2, at = seq(ylim[1], ylim[2], 1), las = 1,
-            	labels = rep(c(0:maxCN, "---"), numClones))
-            for (i in 1:numClones){
-            	val <- dataIn[, paste("Subclone", i, ".CopyNumber", sep = "")]
-            	if (i > 1){
-            		# shift values up for each subclone
-            		val <- val + (numClones - 1) * (maxCN + 2)
-            	}
-            	call <- dataIn[, paste("Subclone", i, ".TITANcall", sep = "")]
-            	points(dataIn[, "Position"], val, col = lohCol[call], 
-            		pch = 15, ...)
-               	mtext(text = paste("Subclone", i, sep = ""), side = 2, las = 0, line = 2,
-            		at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = 0.75)
-            		chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], "Position"])
-                lines(c(1 - chrLen * 0.035, chrLen * 
-                  1.035), rep(i * (maxCN + 2) - 1, 2), type = "l", 
-                  col = "black", lwd = 1.5)
-            }
-        plotChrLines(unique(dataIn[, "Chr"]), coord$chrBkpt, c(-0.1, 1.1))
-      }
+		maxCN <- max(as.numeric(dataIn$CopyNumber)) + 1
+		ylim <- c(0, numClones * (maxCN + 2) - 1)
+		xlim <- as.numeric(c(1, coord$posns[length(coord$posns)]))
+		plot(0, type = "n", xaxt = "n", bty = "n", ylab = "", xlim = xlim, 
+			ylim = ylim, yaxt = "n", ...)
+		axis(2, at = seq(ylim[1], ylim[2], 1), las = 1,
+			labels = rep(c(0:maxCN, "---"), numClones))
+		for (i in 1:numClones){
+			val <- as.numeric(dataIn[, paste("Subclone", i, ".CopyNumber", sep = "")])
+			if (i > 1){
+				# shift values up for each subclone
+				val <- val + (numClones - 1) * (maxCN + 2)
+			}
+			call <- dataIn[, paste("Subclone", i, ".TITANcall", sep = "")]
+			points(coord$posns, val, col = lohCol[call], 
+				pch = 15, ...)
+			mtext(text = paste("Subclone", i, sep = ""), side = 2, las = 0, 
+					line = 2, at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = 0.75)
+				chrLen <- xlim[2]
+			lines(c(1 - chrLen * 0.035, chrLen * 
+			  1.035), rep(i * (maxCN + 2) - 1, 2), type = "l", 
+			  col = "black", lwd = 1.5)
+		}
+        plotChrLines(unique(dataIn[, "Chr"]), coord$chrBkpt, ylim)
+    }
     
 }
 

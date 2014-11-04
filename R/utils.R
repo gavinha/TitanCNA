@@ -724,14 +724,11 @@ outputTitanResults <- function(data, convergeParams,
     s <- sortS$x
     Zclust <- partGZ$Z  #assign analyzed points
     Zclust <- sortS$ix[Zclust]  #reassign sorted cluster membership
-    rhoG <- t(convergeParams$rhoG)
-    rhoZ <- t(convergeParams$rhoZ)
     
     ### OUTPUT RESULTS #### Output Z ##
     Gdecode <- decodeLOH(G, symmetric = convergeParams$symmetric)
     Gcalls <- Gdecode$G
     CN <- Gdecode$CN
-    rhoZ <- rhoZ[, sortS$ix, drop = FALSE]
     Zclust[Gcalls == "HET" & CN == 2] <- NA  #diploid HET positions do not have clusters
     Sout <- rep(NA, length(Zclust))  #output cluster frequencies
     Sout[Zclust > 0 & !is.na(Zclust)] <- s[Zclust[Zclust > 
@@ -741,7 +738,7 @@ outputTitanResults <- function(data, convergeParams,
     for (j in 1:Z) {
         clonalHeaderStr[j] <- sprintf("pClust%d", j)
     }
-    colnames(rhoZ) <- clonalHeaderStr
+    
     outmat <- cbind(Chr = data$chr, Position = data$posn, 
         RefCount = data$refOriginal, NRefCount = data$tumDepth - 
             data$refOriginal, Depth = data$tumDepth, 
@@ -759,6 +756,10 @@ outputTitanResults <- function(data, convergeParams,
     	message("outputTitanResults: More than 2 clusters. No subclone profiles returned.")
     }
     if (posteriorProbs) {
+    	rhoG <- t(convergeParams$rhoG)
+    	rhoZ <- t(convergeParams$rhoZ)
+    	rhoZ <- rhoZ[, sortS$ix, drop = FALSE]
+   		colnames(rhoZ) <- clonalHeaderStr
         outmat <- cbind(outmat, format(round(rhoZ, 
             4), nsmall = 4, scientific = FALSE), format(round(rhoG, 
             4), nsmall = 4, scientific = FALSE))
