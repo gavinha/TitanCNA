@@ -96,7 +96,7 @@ runEMclonalCN(data, gParams, nParams, pParams, sParams,
 }
 
 \references{
-Ha, G., Roth, A., Khattra, J., Ho, J., Yap, D., Prentice, L. M., Melnyk, N., McPherson, A., Bashashati, A., Laks, E., Biele, J., Ding, J., Le, A., Rosner, J., Shumansky, K., Marra, M. A., Huntsman, D. G., McAlpine, J. N., Aparicio, S. A. J. R., and Shah, S. P. (2014). TITAN: Inference of copy number architectures in clonal cell populations from tumour whole genome sequence data. Genome Research, Published in advance July 24 2014. (PMID: 25060187)
+Ha, G., Roth, A., Khattra, J., Ho, J., Yap, D., Prentice, L. M., Melnyk, N., McPherson, A., Bashashati, A., Laks, E., Biele, J., Ding, J., Le, A., Rosner, J., Shumansky, K., Marra, M. A., Huntsman, D. G., McAlpine, J. N., Aparicio, S. A. J. R., and Shah, S. P. (2014). TITAN: Inference of copy number architectures in clonal cell populations from tumour whole genome sequence data. Genome Research, 24: 1881-1893. (PMID: 25060187)
 }
 
 \author{
@@ -143,7 +143,7 @@ convergeParams <- runEMclonalCN(data, gParams = params$genotypeParams,
                                 pParams = params$ploidyParams, 
                                 sParams = params$cellPrevParams, 
                                 maxiter = 3, maxiterUpdate = 500, 
-                                txnExpLen = 1e9, txnZstrength = 1e9, 
+                                txnExpLen = 1e15, txnZstrength = 5e5, 
                                 useOutlierState = FALSE, 
                                 normalEstimateMethod = "map", 
                                 estimateS = TRUE, estimatePloidy = TRUE)

@@ -773,7 +773,7 @@ outputTitanResults <- function(data, convergeParams,
 }
 
 outputModelParameters <- function(convergeParams, results, filename, 
-		S_Dbw.data.type = "LogRatio", S_Dbw.scale = 1, S_Dbw.method = "Tong") {
+		S_Dbw.data.type = "Both", S_Dbw.scale = 1, S_Dbw.method = "Tong") {
     message("titan: Saving parameters to ", filename)
     Z <- dim(convergeParams$s)[1]
     i <- dim(convergeParams$s)[2]  #iteration of training to use (last iteration)
@@ -830,10 +830,29 @@ outputModelParameters <- function(convergeParams, results, filename,
         append = TRUE)
     
     # compute SDbw_index
-    sdbw <- computeSDbwIndex(results, centroid.method = "median", 
+    message("titan: Compute S_Dbw validity index using ", S_Dbw.data.type,
+    			" datatype.")
+    if (S_Dbw.data.type %in% c("AllelicRatio","LogRatio")){
+    	sdbw <- computeSDbwIndex(results, centroid.method = "median", 
     					data.type = S_Dbw.data.type, 
     					S_Dbw.method = S_Dbw.method,
     					symmetric = convergeParams$symmetric)
+    }else if (S_Dbw.data.type == "Both"){
+    ## add the values for allelicRatio and logRatio
+    	sdbw.LR <- computeSDbwIndex(results, centroid.method = "median", 
+    					data.type = "LogRatio", 
+    					S_Dbw.method = S_Dbw.method,
+    					symmetric = convergeParams$symmetric)
+    	sdbw.AR <- computeSDbwIndex(results, centroid.method = "median", 
+    					data.type = "AllelicRatio", 
+    					S_Dbw.method = S_Dbw.method,
+    					symmetric = convergeParams$symmetric)
+    	## element-wise addition -> returns list
+    	sdbw <- mapply('+', sdbw.LR, sdbw.AR, SIMPLIFY = FALSE)
+    }else{
+    	stop("outputModelParameters: S_Dbw.data.type must be \"AllelicRatio\", \"LogRatio\", or \"Both\".")
+    }
+    		
     sdbw_str <- sprintf("S_Dbw dens.bw:\t%0.4f ", sdbw$dens.bw)
     write.table(sdbw_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
@@ -842,13 +861,16 @@ outputModelParameters <- function(convergeParams, results, filename,
     write.table(sdbw_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
-    sdbw_str <- sprintf("S_Dbw validity index:\t%0.4f ", 
-        S_Dbw.scale * sdbw$dens.bw + sdbw$scat)
+    sdbw_str <- sprintf("S_Dbw validity index (%s):\t%0.4f ", 
+        S_Dbw.data.type, S_Dbw.scale * sdbw$dens.bw + sdbw$scat)
     write.table(sdbw_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
     
     close(fc)
+    
+    return(list(dens.bw = sdbw$dens.bw, scat = sdbw$scat, 
+    			S_Dbw = S_Dbw.scale * sdbw$dens.bw + sdbw$scat))
     
 } 
 

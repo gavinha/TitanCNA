@@ -21,7 +21,7 @@
     \code{median} or \code{mean} method to compute cluster centroids during internal cluster validation.
   }
   \item{data.type}{
-  	Compute S_Dbw validity index based on copy number (use \sQuote{\code{LogRatio}}) or allelic ratio (use \sQuote{\code{AllelicRatio}}).
+  	Compute S_Dbw validity index based on copy number (use \sQuote{\code{LogRatio}}) or allelic ratio (use \sQuote{\code{AllelicRatio}}). 
   }
   \item{symmetric}{
   	\code{TRUE} if the TITAN analysis was carried out using symmetric genotypes.  See \code{\link{loadAlleleCounts}}.
@@ -33,7 +33,7 @@
 \details{
 S_Dbw Validity Index is an internal clustering evaluation that is used for model selection (Halkidi et al. 2002). It attempts to choose the model that minimizes within cluster variances (scat) and maximizes density-based cluster separation (Dens). Then, S_Dbw(|c_{T}|x z)=Dens(|c_{T}|x z)+scat(|c_{T}|x z). 
 
-In the context of \pkg{TitanCNA}, if \code{data.type}=\sQuote{\code{LogRatio}}, then the S_Dbw internal data consists of copy number log ratios, and the resulting joint states of copy number (c_{T}, forall c_{T} in \{0 : max.copy.number\}) and clonal cluster (z) make up the clusters in the internal evaluation. If \code{data.type}=\sQuote{\code{AllelicRatio}}, then the S_Dbw internal data consists of the allelic ratios. The optimal \pkg{TitanCNA} run is chosen as the run with the minimum S_Dbw. 
+In the context of \pkg{TitanCNA}, if \code{data.type}=\sQuote{\code{LogRatio}}, then the S_Dbw internal data consists of copy number log ratios, and the resulting joint states of copy number (c_{T}, forall c_{T} in \{0 : max.copy.number\}) and clonal cluster (z) make up the clusters in the internal evaluation. If \code{data.type}=\sQuote{\code{AllelicRatio}}, then the S_Dbw internal data consists of the allelic ratios. The optimal \pkg{TitanCNA} run is chosen as the run with the minimum S_Dbw. If \code{data.type}=\sQuote{\code{Both}}, then the sum of the S_Dbw for \sQuote{\code{LogRatio}} and \sQuote{\code{AllelicRatio}} are added together. This helps account for both data types when choosing the optimal solution.
 
 Note that for \code{S_Dbw.method}, the \code{Tong} method has an incorrect formulation of the \code{scat(c)} function. The function should be a weighted sum, but that is not the formulation shown in the publication. \code{computeSDbwIndex} uses \code{(ni/N)} instead of \code{(N-ni)/N} in the \code{scat} formula, where \code{ni} is the number of datapoints in cluster \code{i} and \code{N} is the total number of datapoints.
 }
@@ -49,7 +49,7 @@ Note that for \code{S_Dbw.method}, the \code{Tong} method has an incorrect formu
   
 	Tong, J. and Tan, H. Clustering validity based on the improved S_Dbw* index. (2009). Journal of Electronics (China), Volume 26, Issue 2, pp 258-264.
 
-	Ha, G., Roth, A., Khattra, J., Ho, J., Yap, D., Prentice, L. M., Melnyk, N., McPherson, A., Bashashati, A., Laks, E., Biele, J., Ding, J., Le, A., Rosner, J., Shumansky, K., Marra, M. A., Huntsman, D. G., McAlpine, J. N., Aparicio, S. A. J. R., and Shah, S. P. (2014). TITAN: Inference of copy number architectures in clonal cell populations from tumour whole genome sequence data. Genome Research, Published in advance July 24 2014. (PMID: 25060187)
+	Ha, G., Roth, A., Khattra, J., Ho, J., Yap, D., Prentice, L. M., Melnyk, N., McPherson, A., Bashashati, A., Laks, E., Biele, J., Ding, J., Le, A., Rosner, J., Shumansky, K., Marra, M. A., Huntsman, D. G., McAlpine, J. N., Aparicio, S. A. J. R., and Shah, S. P. (2014). TITAN: Inference of copy number architectures in clonal cell populations from tumour whole genome sequence data. Genome Research, 24: 1881-1893. (PMID: 25060187)
 }
 \author{
   Gavin Ha <gavinha@gmail.com>

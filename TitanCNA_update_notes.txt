@@ -1,21 +1,39 @@
 Notes on TitanCNA version updates
 
 =================================================================================
-TitanCNA version 1.5.3 changes (Committed revision XXXXX.)
+TitanCNA version 1.5.4 changes (Committed revision XXXXX.)
+=================================================================================
+2) Model selection default changed
+	- Affected function: outputModelParameters
+	- New value can be used for argument: S_Dbw.data.type = "Both"
+	- "Both" will sum the S_Dbw index for "AllelicRatio" and "LogRatio"; this will account for both datatypes when selecting the best solution
+	- outputModelParameters() will now return the S_Dbw information
+	
+2) Vignette additions
+	- Under section "Format and print results to file"
+		- added instructions for using S_Dbw scale to penalize higher number of clonal clusters
+		
+3) Updated references in manual pages
+	- Ha et al. (2014). Genome Research, 24: 1881-1893.
+	
+=================================================================================
+TitanCNA version 1.5.3 changes (Committed revision 96468.)
 =================================================================================
 Note: This is the development version
 1) Minor implementation change
 	- Affected function: viterbiClonalCN, runEMclonalCN
-	- Probabilities for transitioning into different clonal clusters was originally txnZstrength*txnExpLen and specified in the C code.  It is now decoupled in the C code and specified in the R code, instead. 
+	- Probabilities for transitioning into different clonal clusters was originally txnZstrength*txnExpLen and specified in the C code.  It is now decoupled from the C code and specified in the R code, instead. 
 
-2) Vignette correction
+2) Vignette correction/additions
 	- Under section "Filter the data", changed to:
-	- data <- filterData(data, c(1:22, "X", "Y"),...
+		- data <- filterData(data, c(1:22, "X", "Y"),...
+	- Under section "Format and print results to file"
+		- added instructions for using S_Dbw scale to penalize higher number of clonal clusters
 
 3) Bug fixes
 	- Affected function: plotSubcloneProfiles
-	- Whole genome profile plots of subclones (using chr=NULL) was not working properly.
-
+	- Whole genome profile plots of subclones (using chr=NULL) was not working properly, previously.
+	
 =================================================================================
 TitanCNA version 1.5.2 changes (Committed revision 95883.)
 =================================================================================

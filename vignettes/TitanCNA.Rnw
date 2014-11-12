@@ -243,7 +243,7 @@ Model parameters and summary values such as the number of clonal clusters and th
 
 <<eval=FALSE>>=
 outparam <- paste("test_cluster02_params.txt", sep = "")
-outputModelParameters(convergeParams, results, outparam)
+outputModelParameters(convergeParams, results, outparam, S_Dbw.scale = 1)
 @
 
 The format of the parameter output file is the following:
@@ -260,6 +260,12 @@ The format of the parameter output file is the following:
   \item S\_Dbw scat: scatter component of S\_Dbw index
   \item S\_Dbw validity index: used for model selection; choose run with optimal number of clusters based on lowest S\_Dbw index
 \end{enumerate}
+
+Users may alter the \verb|S_Dbw.scale| argument to penalize higher number of clonal clusters.
+
+<<eval=FALSE>>=
+outputModelParameters(convergeParams, results, outparam, S_Dbw.scale = 10)
+@
 
 \subsection{Plotting the results}
 
