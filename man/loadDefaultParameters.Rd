@@ -11,7 +11,7 @@
 
 \usage{
   loadDefaultParameters(copyNumber = 5, numberClonalClusters = 1, skew = 0,
-      symmetric = TRUE)
+      symmetric = TRUE, data = NULL)
 }
 
 \arguments{
@@ -26,6 +26,9 @@
   }
   \item{symmetric}{
   	\code{logical}; if \code{TRUE}, then treat genotypes as symmetric. See Details.
+  }
+  \item{data}{
+  	\code{data} is the output of function \code{\link{loadAlleleCounts}}. If provided, then it will use compute the median allelic ratio to use as the baseline for heterozygous genotypes; otherwise, the baseline will default to 0.55 (reference/depth) if \code{data=NULL}. 
   }
 }
 

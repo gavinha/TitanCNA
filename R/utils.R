@@ -4,7 +4,7 @@
 # March 2, 2014
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
-    skew = 0, symmetric = TRUE) {
+    skew = 0, symmetric = TRUE, data = NULL) {
     if (copyNumber < 3 || copyNumber > 8) {
         stop("loadDefaultParameters: Fewer than 3 or more than 8 copies are 
              being specified. Please use minimum 3 or maximum 8 'copyNumber'.")
@@ -20,8 +20,13 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         rt = rt + skew
         rt[rt > 1] <- 1
         rt[rt < (rn + skew)] <- rn + skew
-        ## shift heterozygous states to account for noise
-        rt[c(4, 9, 25)] <- rt[c(4, 9, 25)] + 0.05
+        ## shift heterozygous states to account for noise 
+        ##   when using symmetric = TRUE
+        hetARshift <- 0.55
+        if (!is.null(data)){
+        	hetARshift <- median(data$ref / data$tumDepth, na.rm = TRUE)
+        }
+        rt[c(4, 9, 25)] <- hetARshift
         ZS = 0:24
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
@@ -773,7 +778,7 @@ outputTitanResults <- function(data, convergeParams,
 }
 
 outputModelParameters <- function(convergeParams, results, filename, 
-		S_Dbw.data.type = "Both", S_Dbw.scale = 1, S_Dbw.method = "Tong") {
+		S_Dbw.scale = 1, S_Dbw.method = "Tong") {
     message("titan: Saving parameters to ", filename)
     Z <- dim(convergeParams$s)[1]
     i <- dim(convergeParams$s)[2]  #iteration of training to use (last iteration)
@@ -830,49 +835,46 @@ outputModelParameters <- function(convergeParams, results, filename,
         append = TRUE)
     
     # compute SDbw_index
-    message("titan: Compute S_Dbw validity index using ", S_Dbw.data.type,
-    			" datatype.")
-    if (S_Dbw.data.type %in% c("AllelicRatio","LogRatio")){
-    	sdbw <- computeSDbwIndex(results, centroid.method = "median", 
-    					data.type = S_Dbw.data.type, 
-    					S_Dbw.method = S_Dbw.method,
-    					symmetric = convergeParams$symmetric)
-    }else if (S_Dbw.data.type == "Both"){
-    ## add the values for allelicRatio and logRatio
-    	sdbw.LR <- computeSDbwIndex(results, centroid.method = "median", 
+    sdbw.LR <- computeSDbwIndex(results, centroid.method = "median", 
     					data.type = "LogRatio", 
     					S_Dbw.method = S_Dbw.method,
     					symmetric = convergeParams$symmetric)
-    	sdbw.AR <- computeSDbwIndex(results, centroid.method = "median", 
+    sdbw.AR <- computeSDbwIndex(results, centroid.method = "median", 
     					data.type = "AllelicRatio", 
     					S_Dbw.method = S_Dbw.method,
     					symmetric = convergeParams$symmetric)
-    	## element-wise addition -> returns list
-    	sdbw <- mapply('+', sdbw.LR, sdbw.AR, SIMPLIFY = FALSE)
-    }else{
-    	stop("outputModelParameters: S_Dbw.data.type must be \"AllelicRatio\", \"LogRatio\", or \"Both\".")
-    }
-    		
-    sdbw_str <- sprintf("S_Dbw dens.bw:\t%0.4f ", sdbw$dens.bw)
-    write.table(sdbw_str, file = fc, col.names = FALSE, 
-        row.names = FALSE, quote = FALSE, sep = "", 
-        append = TRUE)
-    sdbw_str <- sprintf("S_Dbw scat:\t%0.4f ", sdbw$scat)
-    write.table(sdbw_str, file = fc, col.names = FALSE, 
-        row.names = FALSE, quote = FALSE, sep = "", 
-        append = TRUE)
-    sdbw_str <- sprintf("S_Dbw validity index (%s):\t%0.4f ", 
-        S_Dbw.data.type, S_Dbw.scale * sdbw$dens.bw + sdbw$scat)
-    write.table(sdbw_str, file = fc, col.names = FALSE, 
-        row.names = FALSE, quote = FALSE, sep = "", 
-        append = TRUE)
+    ## element-wise addition -> returns list
+    ## add the values for allelicRatio and logRatio
+    sdbw <- mapply('+', sdbw.LR, sdbw.AR, SIMPLIFY = FALSE)        
     
+    ## print out combined S_Dbw ##
+	printSDbw(sdbw.LR, fc, S_Dbw.scale, "LogRatio")
+    printSDbw(sdbw.AR, fc, S_Dbw.scale, "AllelicRatio")
+    printSDbw(sdbw, fc, S_Dbw.scale, "Both")
     close(fc)
     
     return(list(dens.bw = sdbw$dens.bw, scat = sdbw$scat, 
     			S_Dbw = S_Dbw.scale * sdbw$dens.bw + sdbw$scat))
     
 } 
+
+
+printSDbw <- function(sdbw, fc, scale, data.type = ""){
+	sdbw_str <- sprintf("S_Dbw dens.bw (%s):\t%0.4f ", data.type, sdbw$dens.bw)
+    write.table(sdbw_str, file = fc, col.names = FALSE, 
+        row.names = FALSE, quote = FALSE, sep = "", 
+        append = TRUE)
+    sdbw_str <- sprintf("S_Dbw scat (%s):\t%0.4f ", data.type, sdbw$scat)
+    write.table(sdbw_str, file = fc, col.names = FALSE, 
+        row.names = FALSE, quote = FALSE, sep = "", 
+        append = TRUE)
+    sdbw_str <- sprintf("S_Dbw validity index (%s):\t%0.4f ", 
+        data.type, scale * sdbw$dens.bw + sdbw$scat)
+    write.table(sdbw_str, file = fc, col.names = FALSE, 
+        row.names = FALSE, quote = FALSE, sep = "", 
+        append = TRUE)
+}
+
 
 getSubcloneProfiles <- function(titanResults){
 	if (is.character(titanResults)){

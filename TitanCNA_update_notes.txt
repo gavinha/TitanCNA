@@ -1,9 +1,25 @@
 Notes on TitanCNA version updates
 
+
 =================================================================================
-TitanCNA version 1.5.4 changes (Committed revision XXXXX.)
+TitanCNA version 1.5.5 changes (Committed revision XXXXX.)
 =================================================================================
-2) Model selection default changed
+1) Modified function
+	- Affected function: loadDefaultParameters
+	- Added argument: data
+	- For symmetric=TRUE, the heterozygous states (4,9,25) are set to the median allelic ratio of the entire genome if data is given
+	- data is the output from loadAlleleCounts()
+	
+2) Modified function
+	- Affected function: outputModelParameters
+	- Argument removed: S_Dbw.data.type
+	- Will output S_Dbw for datatypes: LogRatio, AllelicRatio, and Both
+	- "Both" refers to the sum of both datatypes (LogRatio and AllelicRatio) for each of the dens.bw and scat components 
+
+=================================================================================
+TitanCNA version 1.5.4 changes (Committed revision 96687.)
+=================================================================================
+1) Model selection default changed
 	- Affected function: outputModelParameters
 	- New value can be used for argument: S_Dbw.data.type = "Both"
 	- "Both" will sum the S_Dbw index for "AllelicRatio" and "LogRatio"; this will account for both datatypes when selecting the best solution

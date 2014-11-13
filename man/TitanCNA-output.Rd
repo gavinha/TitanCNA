@@ -13,7 +13,7 @@
   outputTitanResults(data, convergeParams, optimalPath, filename = NULL, 
       posteriorProbs = FALSE, subcloneProfiles = TRUE)
   outputModelParameters(convergeParams, results, filename, 
-  		S_Dbw.data.type = "Both", S_Dbw.scale = 1, S_Dbw.method = "Tong")
+  		S_Dbw.scale = 1, S_Dbw.method = "Tong")
 }
 
 %- maybe also 'usage' for other objects documented here.
@@ -38,9 +38,6 @@
   }
   \item{subcloneProfiles}{
   	\code{Logical TRUE} to include the subclone profiles to the output \code{data.frame}. Currently, this only works for 1 or 2 clonal clusters.
-  }
-  \item{S_Dbw.data.type}{
-  	Compute S_Dbw validity index based on copy number (use '\code{LogRatio}') or allelic ratio (use '\code{AllelicRatio}'). To compute the S_Dbw using both data types, which is more robust, use '\code{Both}'. See \code{\link{computeSDbwIndex}}.
   }
   \item{S_Dbw.scale}{
   	The S_Dbw validity index can be adjusted to account for differences between datasets. \code{SDbw.scale} can be used to penalize the S_Dbw \code{dens.bw} component.  The default is 1.
@@ -73,7 +70,9 @@
 10) S_Dbw scat - scatter component of S_Dbw index; see \code{\link{computeSDbwIndex}}
 
 11) S_Dbw validity index - used for model selection where the run with optimal number of clusters based on lowest S_Dbw index. This value is slightly modified from that computed from \code{\link{computeSDbwIndex}}. It is computed as S_Dbw= S_Dbw.scale * dens.bw + scat
-  
+
+12) S_Dbw dens.bw, scat, validity index is computed for \code{LogRatio} and \code{AllelicRatio} datatypes, as well as the combination of \code{Both}. For \code{Both}, the values are summed for both datatypes.
+
   \code{\link{outputTitanResults}} outputs a file that has the similar format described in \sQuote{Value} section.
 }
 
