@@ -1,7 +1,8 @@
-# file : hmmClonal.R author: Gavin Ha
-# <gha@bccrc.ca> Dept of Molecular Oncolgy British
-# Columbia Cancer Agency University of British
-# Columbia date : March 3, 2014
+# author: Gavin Ha 
+# 		  Dana-Farber Cancer Institute
+#		  Broad Institute
+# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+# date:	  November 13, 2014
 
 #### EM (FWD-BACK) Algorithm ####
 runEMclonalCN <- function(data, gParams, nParams, pParams, 
@@ -182,7 +183,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         }
         gc(verbose = FALSE, reset = TRUE)
         ## PARALLELIZATION
-        fwdBackPar <- foreach(c = 1:numChrs, .combine = rbind, .noexport = c("bigPy","data")) %dopar% 
+        fwdBackPar <- foreach(c = 1:numChrs, .combine = rbind, .noexport = c("data")) %dopar% 
             {
                 ## Fwd-back returns rho (responsibilities) and
                 ## loglik (log-likelihood, p(Data|Params)) include outlier state

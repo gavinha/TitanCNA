@@ -1,14 +1,37 @@
-Notes on TitanCNA version updates
-
+# file:   README - Notes on TitanCNA version updates
+# author: Gavin Ha 
+# 		  Dana-Farber Cancer Institute
+#		  Broad Institute
+# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+# date:	  January 7, 2015
+# description: TitanCNA is a probabilistic framework for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome sequencing of tumours. The main software is implemented as a R Bioconductor package with preprocessing tools implemented in Python and BAMtools (C++). The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
 
 =================================================================================
-TitanCNA version 1.5.5 changes (Committed revision XXXXX.)
+TitanCNA version 1.5.6 changes (Committed revision XXXXX.)
+=================================================================================
+1) Fixed bug in getPositionOverlap
+	- Affected function: getPositionOverlap
+	- This function should return log ratio values based on overlap of SNPs ("chr" & "posn") with the input list of regions "dataVal". The bug causes the return of values that are incorrectly matched to the input coordinates. This bug is more prominent when using targeted sequencing (i.e. exome) data. In some cases, this can lead to missing data and/or chromosomes in the final result. This has been fixed.
+
+2) Added option to remove SNPs near centromeres
+	- Affected function: filterData
+	- This function can now remove SNPs at and/or near centromeres. The "centromeres" argument (default NULL) accepts a data.frame with 3 columns: chromosome, start, stop.  Argument "centromere.flankLength" (default 0) accepts an integer specifying the length of region to the left and right of the centromere to also exclude overlapping SNPs.
+	
+3) Updated vignette to include latest changes from v1.5.5. The modification of loadDefaultParameters to include the loaded data from loadAllelicCounts to inform the baseline allelic ratio parameters.
+
+4) Modified documentation manuals
+	- Affected man page: loadDefaultParameters
+	- Fixed language and grammar, and improved clarity
+
+=================================================================================
+TitanCNA version 1.5.5 changes (Committed revision 96727.)
 =================================================================================
 1) Modified function
 	- Affected function: loadDefaultParameters
 	- Added argument: data
 	- For symmetric=TRUE, the heterozygous states (4,9,25) are set to the median allelic ratio of the entire genome if data is given
 	- data is the output from loadAlleleCounts()
+	- This corrects the issue where the entire genome is mostly copy neutral LOH (NLOH) when it should most likely be copy neutral heterozygous (HET).
 	
 2) Modified function
 	- Affected function: outputModelParameters

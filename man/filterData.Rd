@@ -10,7 +10,8 @@
 
 \usage{
 filterData(data ,chrs = NULL, minDepth = 10, maxDepth = 200, 
-    positionList = NULL, map = NULL, mapThres = 0.9)
+    positionList = NULL, map = NULL, mapThres = 0.9,
+    centromeres = NULL, centromere.flankLength = 0)
 }
 
 
@@ -35,6 +36,12 @@ filterData(data ,chrs = NULL, minDepth = 10, maxDepth = 200,
   }
   \item{mapThres}{
     \code{Numeric float} specifying the mappability score threshold. Only applies if \code{map} is specified. \code{map} scores >= \code{mapThres} are kept.
+  }
+  \item{centromeres}{
+  	data.frame containing list of centromere regions. This should contain 3 columns: chr, start, and end. If this argument is used, then data at and flanking the centromeres will be removed.
+  }
+  \item{centromere.flankLength}{
+  	Integer indicating the length (in base pairs) to the left and to the right of the centromere designated for removal of data.
   }
 }
 

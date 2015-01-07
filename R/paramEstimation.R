@@ -1,7 +1,8 @@
-# file : paramEstimation.R author: Gavin Ha
-# <gha@bccrc.ca> Dept of Molecular Oncolgy British
-# Columbia Cancer Agency University of British
-# Columbia date : March 3, 2014
+# author: Gavin Ha 
+# 		  Dana-Farber Cancer Institute
+#		  Broad Institute
+# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+# date:	  November 13, 2014
 
 ## wrapper that makes subroutine calls to
 ## updateParameters based on the normal estimate

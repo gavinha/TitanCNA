@@ -1,7 +1,8 @@
-# file : plotting.R author: Gavin Ha <gha@bccrc.ca>
-# Dept of Molecular Oncolgy British Columbia Cancer
-# Agency University of British Columbia date :
-# November 7, 2012
+# author: Gavin Ha 
+# 		  Dana-Farber Cancer Institute
+#		  Broad Institute
+# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+# date:	  November 13, 2014
 
 # data is the output format of TITAN cytoBand = {T,
 # F} alphaVal = [0,1] geneAnnot is a dataframe with
@@ -240,8 +241,7 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL,
                   "CopyNumber"])], pch = 16, xaxt = "n", 
                 las = 1, ylab = "Copy Number (log ratio)", 
                 xlim = xlim, ...)
-            lines(c(1, as.numeric(dataByChr[dim(dataByChr)[1], 
-                "Position"])), rep(0, 2), type = "l", 
+            lines(xlim, rep(0, 2), type = "l", 
                 col = "grey", lwd = 0.75)
             
             if (!is.null(geneAnnot)) {
@@ -350,6 +350,94 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
         plotChrLines(unique(dataIn[, "Chr"]), coord$chrBkpt, ylim)
     }
     
+}
+
+plotSegmentMedians <- function(dataIn, resultType = "LogRatio", chr = NULL, 
+		geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, 
+		plot.new = FALSE, ...){
+
+	## check for the possible resultType to plot ##
+	if (!resultType %in% c("LogRatio", "AllelicRatio")){
+		stop("plotSegmentMedians: resultType must be 'LogRatio' or 'AllelicRatio'")
+	}
+	dataType <- c("Median_logR", "Median_Ratio")
+	names(dataType) <- c("LogRatio", "AllelicRatio")
+	axisName <- c("Copy Number (log ratio)", "Allelic Ratio")
+	names(axisName) <- c("LogRatio", "AllelicRatio")
+	colName <- c("Copy_Number","TITAN_call")
+	names(colName) <- c("LogRatio", "AllelicRatio")
+	
+	# color coding
+    alphaVal <- ceiling(alphaVal * 255)
+    class(alphaVal) = "hexmode"
+    
+    if (resultType == "LogRatio"){
+		cnCol <- c("#00FF00", "#006400", "#0000FF", "#880000", 
+			"#BB0000", "#CC0000", "#DD0000", "#EE0000", "#FF0000")
+		cnCol <- paste(cnCol, alphaVal, sep = "")
+		# cnCol <-
+		# col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
+		names(cnCol) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
+	}else if (resultType == "AllelicRatio"){
+		cnCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000", 
+        	"#006400", "#BEBEBE", "#FF0000", "#BEBEBE", "#FF0000")
+    # lohCol <- paste(lohCol,alphaVal,sep='') lohCol <-
+    # col2rgb(c('green','darkgreen','blue','darkgreen','grey','red'))
+    names(cnCol) <- c("HOMD", "DLOH", "NLOH", "GAIN", 
+        "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
+	}
+    
+    ## adjust logR values for ploidy ##
+    if (!is.null(ploidy) && resultType == "LogRatio") {
+        dataIn[, dataType[resultType]] <- as.numeric(dataIn[, dataType[resultType]]) + log2(ploidy/2)
+    }
+    
+    # plot for specified chromosomes #
+	if (!is.null(chr)) {
+    	for (i in chr) {
+    		dataByChr <- dataIn[dataIn[, "Chromosome"] == i, ]
+        	dataByChr <- dataByChr[dataByChr[, "TITAN_call"] != "OUT", ]
+            # plot the data 
+            par(mar = c(spacing, 8, 2, 2))
+            if (missing(xlim)) {
+                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), "End_Position.bp."]))
+            }
+            col <- cnCol[as.character(dataByChr[, colName[resultType]])]
+            coord <- dataByChr[, c("Start_Position.bp.","End_Position.bp.")]
+            value <- as.numeric(dataByChr[, dataType[resultType]])
+            if (plot.new){
+            	plot(0, type = "n", col = col, xaxt = "n", las = 1, 
+            		ylab = axisName[resultType], xlim = xlim, ...)
+            }
+            tmp <- apply(cbind(coord, value, col), 1, function(x){
+            	lines(x[1:2], rep(x[3], 2), col = x[4], lwd = 2)
+            	})
+            lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
+            
+            if (!is.null(geneAnnot)) {
+                plotGeneAnnotation(geneAnnot, i)
+            }
+        }
+    } else {
+        # plot for all chromosomes        
+        coordEnd <- getGenomeWidePositions(dataIn[, "Chromosome"], 
+        				dataIn[, "End_Position.bp."])
+    	coordStart <- coordEnd$posns - dataIn[, "Length.bp."]
+        xlim <- as.numeric(c(1, coordEnd$posns[length(coordEnd$posns)]))
+    	col <- cnCol[as.character(dataIn[, colName[resultType]])]
+        value <- as.numeric(dataIn[, dataType[resultType]])
+        mat <- as.data.frame(cbind(coordStart, coordEnd$posns, value, col))
+        rownames(mat) <- 1:nrow(mat)
+        if (plot.new){
+        	plot(0, type = "n", col = col, xaxt = "n", las = 1, 
+           		ylab = axisName[resultType], xlim = xlim, ...)
+        }
+        tmp <- apply(mat, 1, function(x){
+          		lines(x[1:2], rep(x[3], 2), col = x[4], lwd = 2)
+        	})
+        lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 2)
+        plotChrLines(dataIn[, "Chr"], coordEnd$chrBkpt, par("yaxp")[1:2])
+    }
 }
 
 plotGeneAnnotation <- function(geneAnnot, chr = 1, ...) {

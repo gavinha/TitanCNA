@@ -19,7 +19,7 @@
     Maximum number of absolute copies to account for in the model. Default (and recommended) is 5.
   }
   \item{numberClonalClusters}{
-    Number of clonal clusters to use. Using \sQuote{1} represents more tumour subclonality. \sQuote{2} or higher treats the tumour data as being subclonal. 
+    Number of clonal clusters to use in the analysis. Each cluster represents a potential clone. Using \sQuote{1} treats the sample as being clonal (no subclonality). \sQuote{2} or higher treats the tumour data as being subclonal.  
   }
   \item{skew}{
     \code{numeric} float indicating the heterozygous baseline shift for the allelic ratios towards 1. This is may be required for SOLiD data, but for most cases, this argument can be omitted.
@@ -28,7 +28,7 @@
   	\code{logical}; if \code{TRUE}, then treat genotypes as symmetric. See Details.
   }
   \item{data}{
-  	\code{data} is the output of function \code{\link{loadAlleleCounts}}. If provided, then it will use compute the median allelic ratio to use as the baseline for heterozygous genotypes; otherwise, the baseline will default to 0.55 (reference/depth) if \code{data=NULL}. 
+  	\code{data} is the output of function \code{\link{loadAlleleCounts}}. If provided and \code{symmetric=TRUE}, then it will compute the median allelic ratio to use as the baseline for heterozygous genotypes; otherwise, the baseline will default to 0.55 (reference/depth) if \code{data=NULL}. If \code{symmetric=FALSE}, this argument will not be used.
   }
 }
 

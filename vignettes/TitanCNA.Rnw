@@ -83,12 +83,13 @@ names(data)
 \subsection{Loading the initial parameters}
 
 Load the default parameters using a specified maximum copy number \textit{TITAN} will consider. Here, 5 is used but up to 8 copies can be specified, however, running time and memory performance hits will be incurred. Here, you will also specify the number of clonal clusters to use for the TITAN run. This is where the number of clusters will be specified when running for 1,2,3,4, or 5 clonal cluster for real data. In general, the default parameters will work well with real, full datasets of whole genome sequencing of tumour samples.
-
+Including the loaded \verb|data| from the previous step will help inform the baseline allelic ratio parameters; this is recommended when using \verb|symmetric| genotypes.
 
 <<>>=
 numClusters <- 2
 params <- loadDefaultParameters(copyNumber = 5, 
-                                numberClonalClusters = numClusters)
+                                numberClonalClusters = numClusters,
+                                symmetric = TRUE, data = data)
 params
 @
 

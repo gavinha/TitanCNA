@@ -50,7 +50,7 @@ Ha, G., Roth, A., Khattra, J., Ho, J., Yap, D., Prentice, L. M., Melnyk, N., McP
 }
 
 \author{
-  Gavin Ha <gavinha@gmail.com>, Daniel Lai <jujubix@cs.ubc.ca>
+  Gavin Ha <gavinha@gmail.com>, Daniel Lai <jujubix@cs.ubc.ca>, Yikan Wang <ykwang@bccrc.ca>
 }
 
 \seealso{

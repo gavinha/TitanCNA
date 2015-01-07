@@ -1,7 +1,8 @@
-# file : utils.R author: Gavin Ha <gha@bccrc.ca>
-# Dept of Molecular Oncolgy British Columbia Cancer
-# Agency University of British Columbia date :
-# March 2, 2014
+# author: Gavin Ha 
+# 		  Dana-Farber Cancer Institute
+#		  Broad Institute
+# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+# date:	  November 13, 2014
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
     skew = 0, symmetric = TRUE, data = NULL) {
@@ -26,12 +27,13 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         if (!is.null(data)){
         	hetARshift <- median(data$ref / data$tumDepth, na.rm = TRUE)
         }
-        rt[c(4, 9, 25)] <- hetARshift
+        hetState <- c(4)#,9,16,25)
+        rt[hetState] <- hetARshift
         ZS = 0:24
+        ZS[hetState] = -1
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
         highStates <- c(1,10:length(rt))
-        hetState <- 4
     } else {
         rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
             1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
@@ -42,17 +44,19 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         rt = rt + skew
         rt[rt > 1] <- 1
         rt[rt < 0] <- 1e-05
+        hetState <- c(5)#,13,25,41)
         ZS = c(0, 1, 1, 2, 3, 2, 4, 5, 5, 4, 6, 7, 
             8, 7, 6, 9, 10, 11, 11, 10, 9, 12, 13, 
             14, 15, 14, 13, 12, 16, 17, 18, 19, 19, 
             18, 17, 16, 20, 21, 22, 23, 24, 23, 22, 
             21, 20)
+        ZS[hetState] = -1
         ct = c(0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 
             4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 
             6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
             8, 8, 8, 8, 8, 8, 8)
-        highStates <- c(1,16:length(rt))
-        hetState <- 5
+        highStates <- c(1,16:length(rt))     
+        
     }
     rn = rn + skew
     ind <- ct <= copyNumber
@@ -234,7 +238,7 @@ extractAlleleReadCounts <- function(bamFile, bamIndex,
 ## data: ref, depth, logR, etc.  
 filterData <- function(data, chrs = NULL, minDepth = 10, 
     maxDepth = 200, positionList = NULL, map = NULL, 
-    mapThres = 0.9) {
+    mapThres = 0.9, centromeres = NULL, centromere.flankLength = 0) {
     if (!is.null(map)) {
         keepMap <- map >= mapThres
     } else {
@@ -263,8 +267,36 @@ filterData <- function(data, chrs = NULL, minDepth = 10,
         }
         
     }
+    ## remove centromere SNPs ##
+    if (!is.null(centromeres)){
+    	colnames(centromeres)[1:3] <- c("space", "start", "ends") 
+    	data <- removeCentromere(data, centromeres, flankLength = centromere.flankLength)
+    }
     return(data)
 }
+
+## input: 
+# 1) data object output by loadAlleleCounts(); 6 element list: chr, posn, ref, refOriginal, nonRef, tumDepth)
+# 2) data.frame containing coordinates of centromeres; 4 columns: Chr, Start, End, arbitrary
+##
+removeCentromere <- function(data, centromere, flankLength = 0){
+	keepInd <- !logical(length = length(data$chr))
+	for (c in 1:nrow(centromere)){
+		ind <- which((data$chr == centromere[c, "Chr"]) &
+				(data$posn >= (centromere[c, "Start"] - flankLength)) &
+				(data$posn <= (centromere[c, "End"] + flankLength)))
+		keepInd[ind] <- FALSE			
+	}	
+	message("Removed ", sum(!keepInd), " centromeric positions")
+		## remove positions in all elements of list
+	for (i in 1:length(data)) {
+        if (!is.null(data[[i]])) {
+            data[[i]] <- data[[i]][keepInd]
+        }        
+    }
+    return(data)
+}
+
 
 excludeGarbageState <- function(params, K) {
     newParams <- params
@@ -281,16 +313,23 @@ getPositionOverlap <- function(chr, posn, dataVal) {
     dataIR <- RangedData(space = dataVal[, 1], 
     				IRanges(start = dataVal[, 2], end = dataVal[, 3]),
     				val = as.numeric(dataVal[, 4]))
-    
-    chrIR <- RangedData(space = chr, IRanges(start = posn, end = posn))
+    				
+    ## load chr/posn as data.frame first to use proper chr ordering by factors/levels
+    chrDF <- data.frame(space=chr,start=posn,end=posn)
+    chrDF$space <- factor(chrDF$space, levels = unique(chr))    
+    chrIR <- as(chrDF, "RangedData")
     
     hits <- findOverlaps(query = chrIR, subject = dataIR)
-    hitVal<- dataIR$val[subjectHits(hits)]
+    
+    ## create full dataval list ##
+    hitVal <- rep(NA, length = length(chr))
+    hitVal[queryHits(hits)] <- dataIR$val[subjectHits(hits)]
+    #chrIR$hitVal <- hitVal
     ## reorder to match input chr and posn arguments
-    chrDF <- as.data.frame(chrIR)
-    indReorder <- order(match(chrDF[, 1], chr))
-    return(hitVal[indReorder])
-	  
+    #chrDF <- as.data.frame(chrIR)
+    #indReorder <- order(match(chrDF[, 1], chr))
+    #return(hitVal[indReorder])
+	return(hitVal) 
  
     #cnChr <- cnData[, 1]
     #cnStart <- as.numeric(cnData[, 2])
@@ -363,9 +402,10 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
         message("Analyzing targeted regions...")
         targetIR <- RangedData(ranges = IRanges(start = targetedSequence[, 2], 
                     end = targetedSequence[, 3]), space = targetedSequence[, 1])
-        keepInd <- unlist(as.list(findOverlaps(tumour_reads, 
-            targetIR, select = "first")))
+        keepInd <- unlist(as.list(findOverlaps(tumour_reads, targetIR, select = "first")))
         keepInd <- !is.na(keepInd)
+        #hits <- findOverlaps(query = tumour_reads, subject = targetIR)
+        #keepInd <- queryHits(hits)      
         
         # ind <- tumour_reads$value>10 &
         # normal_reads$value>10 tumThres <-
@@ -468,7 +508,8 @@ computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRati
 		cn[cn == 3] <- NA  ## remove all CN=2 positions
     	flatState <- (as.numeric(x[, "ClonalCluster"]) - 1) * (max(cn, na.rm = TRUE)) + cn
     	flatState[is.na(flatState)] <- 3 ### assign all the CN=2 positions to cluster 3
-    	x <- as.matrix(cbind(as.numeric(flatState), as.numeric(x[, data.type])))
+    	CNdata <- scale(as.numeric(x[, data.type]))
+    	x <- as.matrix(cbind(as.numeric(flatState), CNdata))
     }else if (data.type=="AllelicRatio"){
     	st <- as.numeric(x[, "TITANstate"]) + 1
     	st[x[, "TITANcall"] == "HET"] <- NA
@@ -481,6 +522,7 @@ computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRati
     	## for allelic ratios, compute the symmetric allelic ratio
     	ARdata <- as.numeric(x[, data.type])
     	ARdata <- apply(cbind(ARdata, 1 - ARdata), 1, max, na.rm = TRUE)
+    	ARdata <- scale(ARdata)
     	x <- as.matrix(cbind(as.numeric(flatState), ARdata))
     	rm(ARdata)
     }
