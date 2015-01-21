@@ -1,0 +1,166 @@
+# file:   README - Notes on TitanCNA version updates
+# author: Gavin Ha 
+# 		  Dana-Farber Cancer Institute
+#		  Broad Institute
+# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+# date:	  January 20, 2015
+# description: TitanCNA is a probabilistic framework for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome sequencing of tumours. The main software is implemented as a R Bioconductor package with preprocessing tools implemented in Python and BAMtools (C++). The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
+
+=================================================================================
+TitanCNA version 1.5.7 changes (Committed revision XXXXX.)
+=================================================================================
+1) Fixed bug in utils.R, src/fwd_backC_clonalCN.c, and src/viterbiC_clonalCN.c
+	- unfinished changes were accidentally committed in v1.5.6.
+	- rolled "loadDefaultParameters" back to v1.5.5
+
+=================================================================================
+TitanCNA version 1.5.6 changes (Committed revision 98115.)
+=================================================================================
+1) Fixed bug in getPositionOverlap
+	- Affected function: getPositionOverlap
+	- This function should return log ratio values based on overlap of SNPs ("chr" & "posn") with the input list of regions "dataVal". The bug causes the return of values that are incorrectly matched to the input coordinates. This bug is more prominent when using targeted sequencing (i.e. exome) data. In some cases, this can lead to missing data and/or chromosomes in the final result. This has been fixed.
+
+2) Added option to remove SNPs near centromeres
+	- Affected function: filterData
+	- This function can now remove SNPs at and/or near centromeres. The "centromeres" argument (default NULL) accepts a data.frame with 3 columns: chromosome, start, stop.  Argument "centromere.flankLength" (default 0) accepts an integer specifying the length of region to the left and right of the centromere to also exclude overlapping SNPs.
+	
+3) Updated vignette to include latest changes from v1.5.5. The modification of loadDefaultParameters to include the loaded data from loadAllelicCounts to inform the baseline allelic ratio parameters.
+
+4) Modified documentation manuals
+	- Affected man page: loadDefaultParameters
+	- Fixed language and grammar, and improved clarity
+
+=================================================================================
+TitanCNA version 1.5.5 changes (Committed revision 96727.)
+=================================================================================
+1) Modified function
+	- Affected function: loadDefaultParameters
+	- Added argument: data
+	- For symmetric=TRUE, the heterozygous states (4,9,25) are set to the median allelic ratio of the entire genome if data is given
+	- data is the output from loadAlleleCounts()
+	- This corrects the issue where the entire genome is mostly copy neutral LOH (NLOH) when it should most likely be copy neutral heterozygous (HET).
+	
+2) Modified function
+	- Affected function: outputModelParameters
+	- Argument removed: S_Dbw.data.type
+	- Will output S_Dbw for datatypes: LogRatio, AllelicRatio, and Both
+	- "Both" refers to the sum of both datatypes (LogRatio and AllelicRatio) for each of the dens.bw and scat components 
+
+=================================================================================
+TitanCNA version 1.5.4 changes (Committed revision 96687.)
+=================================================================================
+1) Model selection default changed
+	- Affected function: outputModelParameters
+	- New value can be used for argument: S_Dbw.data.type = "Both"
+	- "Both" will sum the S_Dbw index for "AllelicRatio" and "LogRatio"; this will account for both datatypes when selecting the best solution
+	- outputModelParameters() will now return the S_Dbw information
+	
+2) Vignette additions
+	- Under section "Format and print results to file"
+		- added instructions for using S_Dbw scale to penalize higher number of clonal clusters
+		
+3) Updated references in manual pages
+	- Ha et al. (2014). Genome Research, 24: 1881-1893.
+	
+=================================================================================
+TitanCNA version 1.5.3 changes (Committed revision 96468.)
+=================================================================================
+Note: This is the development version
+1) Minor implementation change
+	- Affected function: viterbiClonalCN, runEMclonalCN
+	- Probabilities for transitioning into different clonal clusters was originally txnZstrength*txnExpLen and specified in the C code.  It is now decoupled from the C code and specified in the R code, instead. 
+
+2) Vignette correction/additions
+	- Under section "Filter the data", changed to:
+		- data <- filterData(data, c(1:22, "X", "Y"),...
+	- Under section "Format and print results to file"
+		- added instructions for using S_Dbw scale to penalize higher number of clonal clusters
+
+3) Bug fixes
+	- Affected function: plotSubcloneProfiles
+	- Whole genome profile plots of subclones (using chr=NULL) was not working properly, previously.
+	
+=================================================================================
+TitanCNA version 1.5.2 changes (Committed revision 95883.)
+=================================================================================
+Note: Bioconductor v3.1 (development)
+1) Modified functions
+	- Affected function: getPositionOverlap
+	- Now uses RangedData objects and findOverlaps utility function internally
+	- getPositionOverlap is now much faster than before 
+
+=================================================================================
+TitanCNA version 1.5.1 changes (Committed revision 95701.)
+=================================================================================
+Note: Bioconductor v3.1 (development)
+1) Added parameter arguments
+	- Affected function: loadAlleleCounts
+		- argument "header" added so users can indicated if input counts file contains a header line
+2) Error checking
+	- Affected function: loadAlleleCounts
+		- Added file format checking to ensure chromosome coordinates and read counts are integers. (note chromosomes are still characters to accommodate X and Y)
+	
+	
+=================================================================================
+TitanCNA version 1.3.0 changes (Committed revision 95439.)
+=================================================================================
+1) Changed default parameters
+	- Affected function: loadDefaultParameters
+		- genotypeParams$rt is changed from 0.08 to 0.05 logR noise scalar to heterozygous states
+2) Added new functionality and options to computation of S_Dbw validity index
+	- Affected public function: computeSDbwIndex 
+	- Added argument "data.type"
+		- data.type can be set to "LogRatio" (default) or "AllelicRatio"
+		- For samples that have stronger alteration signals in allelic ratio data compared to log ratio data can use "AllelicRatio" to compute S_Dbw index for model selection 
+	- Changed argument: 'method' to 'centroid.method'
+	- Added functionality of choosing between "Halkidi" or "Tong" S_Dbw method
+		- New argument 'S_Dbw.method' can be set to "Halkidi" or "Tong" (default)
+		- References: 
+			- Halkidi and Vazirgiannis (2001). Clustering Validity Assessment: Finding the Optimal Partition of a Data Set
+			- Tong and Tan (2009) Cluster validity based on the improved S_Dbw index
+	- Note that for Tong's method, the computation of SCAT(c) is likely incorrect.  This function uses ni/N instead of (N-ni)/N.
+3) Added and updated arguments to outputModelParameters() function
+	- Affected public function: outputModelParameters
+		- Added arguments S_Dbw.data.type (default 'LogRato'), S_Dbw.scale (default 1), S_Dbw.method (default "Tong").
+
+=================================================================================
+TitanCNA version 1.2.1 changes (Committed revision 92909.)
+=================================================================================
+1) Critical bug fix for memory usage
+	- Affected public functions: runEMclonalCN
+	- bug in memory management in C implementation of logsumexp for forwards-backwards algorithm
+2) Fixed bug for decoding TITAN state when symmetric = FALSE
+	- Affected public functions: loadAlleleCounts, runEMclonalCN, outputTitanResults
+	- loadDefaultParameters now returns list element "symmetric". This is then propagated to being a list element in the output of the runEMclonalCN function.  In turn, this output is required in the function outputTitanResults. outputTitanResults now requires "symmetric" element from convergeParams argument to determine whether the allelic ratio data was analyzed under symmetric mode.
+3) Changed default parameters
+	- Affected functions: loadDefaultParameters
+	- genotypeParams$alphaKHyper initialized to 15,000 prior counts for all states
+4) Updated Vignette with Subclone profile output
+	- Affected function: outputTitanResults
+	- Additional argument, "subcloneProfiles" to indicate whether to output subclone profiles. This only works for 1 or 2 clonal clusters in the solution
+	- New function: plotSubcloneProfiles
+	- Plots the copy number profile for the predicted subclones. Only works for 1 or 2 clonal clusters in the solution 
+
+
+=================================================================================
+TitanCNA version 1.2.0 changes (Committed revision 91120.)
+=================================================================================
+1) Added new functionality for extracting read counts from BAM files
+	- New function: extractAlleleReadCounts
+2) Added support for conversion between UCSC and NCBI chromosomes in input files
+	- Affected functions: loadAlleleCounts, correctReadDepth
+3) Changed default parameters
+	- Affected functions: loadDefaultParameters
+	- genotypeParams$rt now has a 0.08 logR noise scalar added to heterozygous states
+	- genotypeParams$alphaKHyper initialized to 5,000 prior counts for all states; extreme states (HOMD and 4 copies or higher) are initialized to 15,000.
+4) Forwards-Backwards Algorithm now computes the posterior in log space 
+	- Affects: runEMclonalCN, fwd_backC_clonalCN.c 
+	- Now enables users to use coarser segmentation settings (txnExpLen and txnZstrength arguments in runEMclonalCN)
+5) Added new functionality for interpreting subclone profiles
+	- Affects: outputTitanResults
+	- For 2 clonal cluster solutions, will return 2 subclone profiles appended to results data.frame
+	- New function: plotSubcloneProfiles
+	- Plots the 2 subclone profiles	
+6) Fixed bug for interpreting the final 24th state (when symmetric=TRUE)
+	- Affected functions (private): decodeLOH
+
