@@ -2,7 +2,7 @@
 # 		  Dana-Farber Cancer Institute
 #		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-# date:	  November 13, 2014
+# date:	  January 20, 2015
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
     skew = 0, symmetric = TRUE, data = NULL) {
@@ -27,13 +27,12 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         if (!is.null(data)){
         	hetARshift <- median(data$ref / data$tumDepth, na.rm = TRUE)
         }
-        hetState <- c(4)#,9,16,25)
-        rt[hetState] <- hetARshift
+        rt[c(4, 9, 25)] <- hetARshift
         ZS = 0:24
-        ZS[hetState] = -1
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
         highStates <- c(1,10:length(rt))
+        hetState <- 4
     } else {
         rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
             1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
@@ -44,19 +43,17 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         rt = rt + skew
         rt[rt > 1] <- 1
         rt[rt < 0] <- 1e-05
-        hetState <- c(5)#,13,25,41)
         ZS = c(0, 1, 1, 2, 3, 2, 4, 5, 5, 4, 6, 7, 
             8, 7, 6, 9, 10, 11, 11, 10, 9, 12, 13, 
             14, 15, 14, 13, 12, 16, 17, 18, 19, 19, 
             18, 17, 16, 20, 21, 22, 23, 24, 23, 22, 
             21, 20)
-        ZS[hetState] = -1
         ct = c(0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 
             4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 
             6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
             8, 8, 8, 8, 8, 8, 8)
-        highStates <- c(1,16:length(rt))     
-        
+        highStates <- c(1,16:length(rt))
+        hetState <- 5
     }
     rn = rn + skew
     ind <- ct <= copyNumber

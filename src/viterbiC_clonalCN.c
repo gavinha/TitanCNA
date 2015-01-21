@@ -26,7 +26,10 @@ void addVectors(double *, double *, double *, unsigned int);
 void setVectorToValue(double *, double, unsigned int);
 void setVectorToValue_int(int *, int, unsigned int);
 void maxVectorInPlace(double *, int *, double *, unsigned int);
+void initializeTxnV(double * transSlice, unsigned int K);
 void logMatrixInPlace(double * A, unsigned int K);
+void outputMatrixV(double * A, unsigned int K);
+double distanceTransitionFunctionV(double, double, double);
 
 SEXP viterbiC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, SEXP numClust, SEXP positions, SEXP zStrength, SEXP txnLen, SEXP useOutlier) {
   double * prior, * obslik, * transSlice;
@@ -46,7 +49,7 @@ SEXP viterbiC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, 
   PROTECT(positions = AS_NUMERIC(positions)); // T-by-1
   PROTECT(zStrength = AS_NUMERIC(zStrength)); // scalar
   PROTECT(txnLen = AS_NUMERIC(txnLen)); // scalar
-  PROTECT(useOutlier = AS_NUMERIC(useOutlier)); //scalar
+	PROTECT(useOutlier = AS_NUMERIC(useOutlier)); //scalar
   prior = NUMERIC_POINTER(piGiZi); 
   obslik = NUMERIC_POINTER(py); 
   CT = NUMERIC_POINTER(copyNumKey);
@@ -55,7 +58,7 @@ SEXP viterbiC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, 
   posn = NUMERIC_POINTER(positions); 
   txnZstrength = NUMERIC_POINTER(zStrength); 
   txnExpLen = NUMERIC_POINTER(txnLen); 
-  outlier = NUMERIC_POINTER(useOutlier); 
+	outlier = NUMERIC_POINTER(useOutlier); 
     
   /* Check size of initial state distribution */
   K = GET_LENGTH(piGiZi);
@@ -94,10 +97,10 @@ SEXP viterbiC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, 
   for(t=1;t<T;++t) { /* position */
       /* Each iteration, we overwrite transSlice with transmat
        * to start over when at a new probe */
-      initializeTxn(transSlice, K);
+      initializeTxnV(transSlice, K);
       /* modify transSlice inplace by adding position-specific probs */
-      rhoG = 1.0 - distanceTransitionFunction(posn[t-1],posn[t],txnExpLen[0]);    
-      rhoZ = 1.0 - distanceTransitionFunction(posn[t-1],posn[t],txnZstrength[0]);
+      rhoG = 1.0 - distanceTransitionFunctionV(posn[t-1],posn[t],txnExpLen[0]);    
+      rhoZ = 1.0 - distanceTransitionFunctionV(posn[t-1],posn[t],txnZstrength[0]);
       preparePositionSpecificMatrix(transSlice, K, numUnitStates, CT, ZS, rhoG, rhoZ, outlier[0], 0);   
       logMatrixInPlace(transSlice, K);        
       for(j=0;j<K;++j) { /* column */          
@@ -130,6 +133,40 @@ SEXP viterbiC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, 
 }
 
 
+
+/* Position specific distance used in transition matrix
+ * returns double
+ */
+double distanceTransitionFunctionV(double prevPosn, double curPosn, double L) {
+    double distance = 0;
+    double rho = 0;
+    distance = curPosn - prevPosn + 1.0; /* won't encounter next chr */
+    rho = (1.0/2.0)*(1.0-exp(-distance/(2.0*L)));
+    return rho;
+}
+
+/* Method to make a deep copy of a K-by-K matrix */
+void initializeTxnV(double * transSlice, unsigned int K) {
+    unsigned int i, j;
+    
+    /* deep copy transmat to transSlice */
+    for (i=0;i<K;i++) /* rows */
+        for (j=0;j<K;j++) /* columns */
+            transSlice[i + j*K] = 0;
+}
+
+
+/* Output matrix for debugging purposes */
+void outputMatrixV(double * A, unsigned int K) {
+    unsigned int i, j;
+    
+    for (i=0;i<K;i++) { /*rows*/
+        for (j=0;j<K;j++) { /*cols*/
+            //printf("%f\t", A[K*j+i]);
+        }
+        //printf("\n");
+    }
+}
 
 void copyVectorC(double * Out, double * In, unsigned int L) {
     unsigned int i;

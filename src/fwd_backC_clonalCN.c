@@ -219,7 +219,7 @@ void preparePositionSpecificMatrix(double * transSlice, unsigned int K, unsigned
     /* Add the distance to our output matrix, in place 
      * Also multiple by copy number values */       
     for (i = 0; i < K; i++){ /* rows */
-        //lots of code to figure out what the zygosity status of the states are based on whether we 
+        //lots of code to figure out what the zygosity status of the states are based on whethe we 
         // are using the outlier state
         if (OUTLIERSTATE==1){
 					if (i==0){//garbage state 
@@ -252,14 +252,15 @@ void preparePositionSpecificMatrix(double * transSlice, unsigned int K, unsigned
 						} 
             //printf("i=%d\tj=%d\tz1=%f\tz2=%f\tZS[%d]=%f\tZS[%d]=%f\n",i,j,z1,z2,unitI,iZS,unitJ,jZS);
 						//transitions to same state or same zygosity status
-            if (i==j || (iZS==jZS)){
+            //if (i==j || (iZS==jZS)){
+            if ((iZS==jZS)){
                 transSlice[i + j*K] = rhoG; 
             }else{
 	              transSlice[i + j*K] = (1.0-rhoG)/((double)K-1.0); 
             }
 
-	    			//same cluster or going into HET state
-            if((z1 == z2) || (jZS==-1)){ // HET state is -1  
+	    			//same cluster
+            if(z1 == z2){ //|| CT[unitJ]==2 && ZS[unitJ]==3){  
                 transSlice[i + j*K] = transSlice[i + j*K] * rhoZ;
             }else{  //different cluster (except for diploid HET)
                 transSlice[i + j*K] = transSlice[i + j*K] * (1.0-rhoZ);
