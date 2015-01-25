@@ -15,3 +15,4 @@ License: file LICENSE
 biocViews: Sequencing, WholeGenome, DNASeq, ExomeSeq,
         StatisticalMethod, CopyNumberVariation, HiddenMarkovModel,
         Genetics, GenomicVariation
+URL: https://github.com/gavinha/TitanCNA
