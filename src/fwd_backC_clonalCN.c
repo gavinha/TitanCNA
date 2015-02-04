@@ -260,7 +260,7 @@ void preparePositionSpecificMatrix(double * transSlice, unsigned int K, unsigned
             }
 
 	    			//same cluster
-            if(z1 == z2){ //|| CT[unitJ]==2 && ZS[unitJ]==3){  
+            if(z1 == z2 || jZS==-1){  
                 transSlice[i + j*K] = transSlice[i + j*K] * rhoZ;
             }else{  //different cluster (except for diploid HET)
                 transSlice[i + j*K] = transSlice[i + j*K] * (1.0-rhoZ);

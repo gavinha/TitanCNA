@@ -32,7 +32,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
         highStates <- c(1,10:length(rt))
-        hetState <- 4
+        hetState <- c(4, 9, 16, 25)
     } else {
         rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
             1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
@@ -53,8 +53,9 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
             6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
             8, 8, 8, 8, 8, 8, 8)
         highStates <- c(1,16:length(rt))
-        hetState <- 5
+        hetState <- c(5, 13, 25, 41)
     }
+    ZS[hetState] <- -1
     rn = rn + skew
     ind <- ct <= copyNumber
     rt <- rt[ind]
@@ -66,7 +67,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     ## Dirichlet hyperparameter for initial state
     ## distribution, kappaG
     kappaGHyper = rep(1, K) + 1
-    kappaGHyper[hetState] = 5
+    kappaGHyper[hetState[hetState %in% 1:K]] = 5
     ## Gather all genotype related parameters into a
     ## list
     genotypeParams <- vector("list", 0)
@@ -128,8 +129,9 @@ loadAlleleCounts <- function(inCounts, symmetric = TRUE,
     }
     ## use GenomeInfoDb
     #require(GenomeInfoDb)
-    if (seqlevelsStyle(as.character(data[, 1])) != genomeStyle){
-    	data[, 1] <- mapSeqlevels(as.character(data[, 1]), genomeStyle)
+    if (genomeStyle %in% seqlevelsStyle(as.character(data[, 1]))){
+    	data[, 1] <- suppressWarnings(mapSeqlevels(as.character(data[, 1]), 
+    						genomeStyle, drop = FALSE)[1,])
     }
     autoSexMChr <- extractSeqlevelsByGroup(species = "Homo sapiens", 
     		style = genomeStyle, group = "all")
@@ -399,6 +401,11 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
         message("Analyzing targeted regions...")
         targetIR <- RangedData(ranges = IRanges(start = targetedSequence[, 2], 
                     end = targetedSequence[, 3]), space = targetedSequence[, 1])
+                    
+    	#######################################
+    	## BUG WITH USE OF FINDOVERLAPS #######
+    	## unlist indices are for each space ##
+    	#######################################
         keepInd <- unlist(as.list(findOverlaps(tumour_reads, targetIR, select = "first")))
         keepInd <- !is.na(keepInd)
         #hits <- findOverlaps(query = tumour_reads, subject = targetIR)

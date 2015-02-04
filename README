@@ -9,6 +9,14 @@
 # description: TitanCNA is a probabilistic framework for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome sequencing of tumours. The main software is implemented as a R Bioconductor package with preprocessing tools implemented in Python and BAMtools (C++). The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
 
 =================================================================================
+TitanCNA version 1.5.8 changes (Committed revision XXXXX.)
+=================================================================================
+1) Updated functions to align with dependent package updates.
+	- Affected function: loadAlleleCounts
+	- Adjusted function to accommodate GenomeInfoDb v1.1.3 -> v1.2.4
+	- Usage of this function remains unchanged.
+
+=================================================================================
 TitanCNA version 1.5.7 changes (Committed revision 98539.)
 =================================================================================
 1) Fixed bug in utils.R, src/fwd_backC_clonalCN.c, and src/viterbiC_clonalCN.c
