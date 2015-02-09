@@ -55,7 +55,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         highStates <- c(1,16:length(rt))
         hetState <- c(5, 13, 25, 41)
     }
-    ZS[hetState] <- -1
+    ZS[hetState[1]] <- -1
     rn = rn + skew
     ind <- ct <= copyNumber
     rt <- rt[ind]
@@ -406,10 +406,10 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
     	## BUG WITH USE OF FINDOVERLAPS #######
     	## unlist indices are for each space ##
     	#######################################
-        keepInd <- unlist(as.list(findOverlaps(tumour_reads, targetIR, select = "first")))
-        keepInd <- !is.na(keepInd)
-        #hits <- findOverlaps(query = tumour_reads, subject = targetIR)
-        #keepInd <- queryHits(hits)      
+        #keepInd <- unlist(as.list(findOverlaps(tumour_reads, targetIR, select = "first")))
+        #keepInd <- !is.na(keepInd)
+        hits <- findOverlaps(query = tumour_reads, subject = targetIR)
+        keepInd <- unique(queryHits(hits))    
         
         # ind <- tumour_reads$value>10 &
         # normal_reads$value>10 tumThres <-
