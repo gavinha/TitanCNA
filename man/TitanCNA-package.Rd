@@ -14,8 +14,8 @@ TITAN: Subclonal copy number and LOH prediction whole genome sequencing of tumou
 \tabular{ll}{
 Package: \tab TitanCNA\cr
 Type: \tab Package\cr
-Version: \tab 1.5.8\cr
-Date: \tab 2015-04-14\cr
+Version: \tab 1.7.1\cr
+Date: \tab 2015-04-28\cr
 License: \tab see LICENSE\cr
 }
 
