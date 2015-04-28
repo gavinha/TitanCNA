@@ -32,7 +32,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
         highStates <- c(1,10:length(rt))
-        hetState <- 4
+        hetState <- c(4, 9, 16, 25)
     } else {
         rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
             1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
@@ -53,8 +53,9 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
             6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
             8, 8, 8, 8, 8, 8, 8)
         highStates <- c(1,16:length(rt))
-        hetState <- 5
+        hetState <- c(5, 13, 25, 41)
     }
+    ZS[hetState[1]] <- -1
     rn = rn + skew
     ind <- ct <= copyNumber
     rt <- rt[ind]
@@ -66,7 +67,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     ## Dirichlet hyperparameter for initial state
     ## distribution, kappaG
     kappaGHyper = rep(1, K) + 1
-    kappaGHyper[hetState] = 5
+    kappaGHyper[hetState[hetState %in% 1:K]] = 5
     ## Gather all genotype related parameters into a
     ## list
     genotypeParams <- vector("list", 0)
@@ -128,12 +129,9 @@ loadAlleleCounts <- function(inCounts, symmetric = TRUE,
     }
     ## use GenomeInfoDb
     #require(GenomeInfoDb)
-    if (seqlevelsStyle(as.character(data[, 1])) != genomeStyle){
-    	data[, 1] <- mapSeqlevels(as.character(data[, 1]), genomeStyle)
-    }
-    autoSexMChr <- extractSeqlevelsByGroup(species = "Homo sapiens", 
-    		style = genomeStyle, group = "all")
-    data <- data[data[, 1] %in% autoSexMChr, ]
+    # convert to desired genomeStyle and only include autosomes, sex chromosomes
+    data[, 1] <- setGenomeStyle(data[, 1], genomeStyle)
+   
     ## sort chromosomes
 	indChr <- orderSeqlevels(as.character(data[, 1]), X.is.sexchrom = TRUE)
 	data <- data[indChr, ]
@@ -355,6 +353,19 @@ getPositionOverlap <- function(chr, posn, dataVal) {
     #return(as.numeric(valByPosn))
 }
 
+setGenomeStyle <- function(x, genomeStyle = "NCBI", species = "Homo_sapiens"){
+	#chrs <- genomeStyles(species)[c("NCBI","UCSC")]
+	if (!genomeStyle %in% seqlevelsStyle(as.character(x))){
+    	x <- suppressWarnings(mapSeqlevels(as.character(x), 
+    					genomeStyle, drop = FALSE)[1,])
+    }
+    
+    autoSexMChr <- extractSeqlevelsByGroup(species = species, 
+    				style = genomeStyle, group = "all")
+    x <- x[x %in% autoSexMChr]
+    return(x)
+}
+
 correctReadDepth <- function(tumWig, normWig, gcWig, mapWig, 
 	genomeStyle = "NCBI", targetedSequence = NULL) {
     #require(HMMcopy)
@@ -371,18 +382,10 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
     
     ### set the genomeStyle: NCBI or UCSC
     #require(GenomeInfoDb)
-    if (seqlevelsStyle(names(gc)) != genomeStyle){
-    	names(gc) <- mapSeqlevels(names(gc), genomeStyle)
-    }
-    if (seqlevelsStyle(names(map)) != genomeStyle){
-    	names(map) <- mapSeqlevels(names(map), genomeStyle)
-    }
-    if (seqlevelsStyle(names(tumour_reads)) != genomeStyle){
-    	names(tumour_reads) <- mapSeqlevels(names(tumour_reads), genomeStyle)
-    }
-    if (seqlevelsStyle(names(normal_reads)) != genomeStyle){
-    	names(normal_reads) <- mapSeqlevels(names(normal_reads), genomeStyle)
-    }
+	names(gc) <- setGenomeStyle(names(gc), genomeStyle)
+	names(map) <- setGenomeStyle(names(map), genomeStyle)
+	names(tumour_reads) <- setGenomeStyle(names(tumour_reads), genomeStyle)
+	names(normal_reads) <- setGenomeStyle(names(normal_reads), genomeStyle)
     
     ### make sure tumour wig and gc/map wigs have same
     ### chromosomes
@@ -399,10 +402,11 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
         message("Analyzing targeted regions...")
         targetIR <- RangedData(ranges = IRanges(start = targetedSequence[, 2], 
                     end = targetedSequence[, 3]), space = targetedSequence[, 1])
-        keepInd <- unlist(as.list(findOverlaps(tumour_reads, targetIR, select = "first")))
-        keepInd <- !is.na(keepInd)
-        #hits <- findOverlaps(query = tumour_reads, subject = targetIR)
-        #keepInd <- queryHits(hits)      
+                    
+        #keepInd <- unlist(as.list(findOverlaps(tumour_reads, targetIR, select = "first")))
+        #keepInd <- !is.na(keepInd)
+        hits <- findOverlaps(query = tumour_reads, subject = targetIR)
+        keepInd <- unique(queryHits(hits))    
         
         # ind <- tumour_reads$value>10 &
         # normal_reads$value>10 tumThres <-
@@ -795,9 +799,9 @@ outputTitanResults <- function(data, convergeParams,
    	## INCLUDE SUBCLONE PROFILES 
    	if (subcloneProfiles & numClust <= 2){
    		outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
-    	outmat <- getSubcloneProfiles(outmat)
+    	outmat <- cbind(outmat, getSubcloneProfiles(outmat))
     }else{
-    	message("outputTitanResults: More than 2 clusters. No subclone profiles returned.")
+    	message("outputTitanResults: More than 2 clusters or subclone profiles not requested.")
     }
     if (posteriorProbs) {
     	rhoG <- t(convergeParams$rhoG)
@@ -926,9 +930,15 @@ getSubcloneProfiles <- function(titanResults){
 	
 	numClones <- as.numeric(max(titanResults$ClonalCluster,
 			na.rm = TRUE))
+	if (is.na(numClones)){ numClones <- 0 }
 	cellPrev <- unique(cbind(Cluster = titanResults$ClonalCluster, 
 			Prevalence = titanResults$CellularPrevalence))
-			
+	
+	if (numClones == 0){
+		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
+				TITANcall = titanResults$TITANcall,
+				Prevalence = "NA"), stringsAsFactors = FALSE)
+	}
 	if (numClones == 1){
 		subc1Prev <- cellPrev[which(cellPrev[, "Cluster"] == "1"), "Prevalence"]
 		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
@@ -953,12 +963,9 @@ getSubcloneProfiles <- function(titanResults){
 	}
 	
 	## Add subclone 1, 2 and 3 if they are defined
-	if (exists("subc1")){
-		mode(subc1[, 1]) <- "numeric"; mode(subc1[, 3]) <- "numeric"	
-		outMat <- cbind(titanResults, Subclone1 = subc1, stringsAsFactors = FALSE)
-	}
+	outMat <- cbind(Subclone1 = subc1)
 	if (exists("subc2")){
-		outMat <- cbind(outMat, Subclone2 = subc2, stringsAsFactors = FALSE)
+		outMat <- cbind(outMat, Subclone2 = subc2)
 	}
 	#if (exists("subc3")){
 	#	outMat <- cbind(outMat, Subclone3 = subc3, stringsAsFactors = FALSE)

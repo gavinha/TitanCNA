@@ -5,8 +5,28 @@
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 # TitanCNA website: http://compbio.bccrc.ca/software/titan/
 # Google Groups: https://groups.google.com/forum/#!forum/titancna 
-# date:	  January 20, 2015
+# date:	  April 9, 2015
 # description: TitanCNA is a probabilistic framework for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome sequencing of tumours. The main software is implemented as a R Bioconductor package with preprocessing tools implemented in Python and BAMtools (C++). The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
+
+=================================================================================
+TitanCNA version 1.5.8/1.7.1 changes (Committed revisions 977c48a.)
+=================================================================================
+1) Updated functions to align with dependent package updates.
+	- Affected function: loadAlleleCounts, correctReadDepth
+	- Adjusted function to accommodate GenomeInfoDb v1.1.3 -> v1.2.4
+	- Usage of this function remains unchanged.
+
+2) Minor bug fix in function
+	- Affected function: correctReadDepth
+	- Issue with findOverlaps() usage fixed
+
+3) Bug fix
+	- Affected function: outputTitanResults, plotClonalFrequency, plotSubcloneProfiles
+	- Fixed bug when error is thrown trying to output results for genome that is predicted to be completely diploid HET.
+
+4) Modified internal functionality
+	- Affected function: runEMclonalCN, viterbiClonalCN
+	- The C code (src/fwd_backC_clonalCN.c & src/viterbiC_clonalCN.c) have been modified such that the transition probabilities between clonal clusters for HET (diploid) states are equal.  This may help prevent situations when normal contamination is 0 for more than 1 clonal cluster solutions.
 
 =================================================================================
 TitanCNA version 1.5.7 changes (Committed revision 98539.)

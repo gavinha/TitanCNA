@@ -14,8 +14,8 @@ TITAN: Subclonal copy number and LOH prediction whole genome sequencing of tumou
 \tabular{ll}{
 Package: \tab TitanCNA\cr
 Type: \tab Package\cr
-Version: \tab 1.5.5\cr
-Date: \tab 2014-11-13\cr
+Version: \tab 1.7.1\cr
+Date: \tab 2015-04-28\cr
 License: \tab see LICENSE\cr
 }
 
@@ -27,7 +27,7 @@ License: \tab see LICENSE\cr
 
 \author{
 Gavin Ha, Sohrab P Shah
-Maintainer: Gavin Ha <gavinha@gmail.com>
+Maintainer: Gavin Ha <gavinha@broadinstitute.org>
 }
 
 \references{

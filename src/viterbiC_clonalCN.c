@@ -30,6 +30,7 @@ void initializeTxnV(double * transSlice, unsigned int K);
 void logMatrixInPlace(double * A, unsigned int K);
 void outputMatrixV(double * A, unsigned int K);
 double distanceTransitionFunctionV(double, double, double);
+void preparePositionSpecificMatrix(double *, unsigned int, unsigned int, double *, double *, double, double, unsigned int, unsigned int);
 
 SEXP viterbiC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, SEXP numClust, SEXP positions, SEXP zStrength, SEXP txnLen, SEXP useOutlier) {
   double * prior, * obslik, * transSlice;

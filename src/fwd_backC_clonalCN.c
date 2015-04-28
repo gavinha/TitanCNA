@@ -224,7 +224,7 @@ void preparePositionSpecificMatrix(double * transSlice, unsigned int K, unsigned
         if (OUTLIERSTATE==1){
 					if (i==0){//garbage state 
 						z1 = 0;  unitI = -1;
-						iZS = -1;
+						iZS = -100;
 					}else{
 						z1 = ceil(((double)i)/numUnitStates); /* cluster number */
 						unitI = (int)(i-1)%(numUnitStates); /* unit state */
@@ -239,7 +239,7 @@ void preparePositionSpecificMatrix(double * transSlice, unsigned int K, unsigned
           	if (OUTLIERSTATE==1){
 							if (j==0){//garbage state 
 								z2 = 0;  unitJ = -1;
-								jZS = -1;
+								jZS = -100;
 							}else{
 								z2 = ceil(((double)j)/numUnitStates); /* cluster number */
 								unitJ = (int)(j-1)%(numUnitStates); /* unit state */
@@ -252,19 +252,23 @@ void preparePositionSpecificMatrix(double * transSlice, unsigned int K, unsigned
 						} 
             //printf("i=%d\tj=%d\tz1=%f\tz2=%f\tZS[%d]=%f\tZS[%d]=%f\n",i,j,z1,z2,unitI,iZS,unitJ,jZS);
 						//transitions to same state or same zygosity status
-            //if (i==j || (iZS==jZS)){
+						
+            /** GENOTYPE TRANSITION **/
             if ((iZS==jZS)){
                 transSlice[i + j*K] = rhoG; 
             }else{
 	              transSlice[i + j*K] = (1.0-rhoG)/((double)K-1.0); 
             }
 
-	    			//same cluster
-            if(z1 == z2){ //|| CT[unitJ]==2 && ZS[unitJ]==3){  
-                transSlice[i + j*K] = transSlice[i + j*K] * rhoZ;
-            }else{  //different cluster (except for diploid HET)
-                transSlice[i + j*K] = transSlice[i + j*K] * (1.0-rhoZ);
-            }
+			/** CLONAL CLUSTER TRANSITION **/
+			//if (K > numUnitStates){ //only use if more than 1 cluster
+	    	//same clust or het (-1) 
+				if(z1 == z2 || jZS == -1){ // || CT[unitJ] >= 4){  
+					transSlice[i + j*K] = transSlice[i + j*K] * rhoZ;
+				}else{  //different cluster (except for diploid HET)
+					transSlice[i + j*K] = transSlice[i + j*K] * (1.0-rhoZ);
+				}
+			//}
         }
     }          
    
