@@ -129,13 +129,9 @@ loadAlleleCounts <- function(inCounts, symmetric = TRUE,
     }
     ## use GenomeInfoDb
     #require(GenomeInfoDb)
-    if (genomeStyle %in% seqlevelsStyle(as.character(data[, 1]))){
-    	data[, 1] <- suppressWarnings(mapSeqlevels(as.character(data[, 1]), 
-    						genomeStyle, drop = FALSE)[1,])
-    }
-    autoSexMChr <- extractSeqlevelsByGroup(species = "Homo sapiens", 
-    		style = genomeStyle, group = "all")
-    data <- data[data[, 1] %in% autoSexMChr, ]
+    # convert to desired genomeStyle and only include autosomes, sex chromosomes
+    data[, 1] <- setGenomeStyle(data[, 1], genomeStyle)
+   
     ## sort chromosomes
 	indChr <- orderSeqlevels(as.character(data[, 1]), X.is.sexchrom = TRUE)
 	data <- data[indChr, ]
@@ -357,6 +353,19 @@ getPositionOverlap <- function(chr, posn, dataVal) {
     #return(as.numeric(valByPosn))
 }
 
+setGenomeStyle <- function(x, genomeStyle = "NCBI", species = "Homo_sapiens"){
+	#chrs <- genomeStyles(species)[c("NCBI","UCSC")]
+	if (!genomeStyle %in% seqlevelsStyle(as.character(x))){
+    	x <- suppressWarnings(mapSeqlevels(as.character(x), 
+    					genomeStyle, drop = FALSE)[1,])
+    }
+    
+    autoSexMChr <- extractSeqlevelsByGroup(species = species, 
+    				style = genomeStyle, group = "all")
+    x <- x[x %in% autoSexMChr]
+    return(x)
+}
+
 correctReadDepth <- function(tumWig, normWig, gcWig, mapWig, 
 	genomeStyle = "NCBI", targetedSequence = NULL) {
     #require(HMMcopy)
@@ -373,18 +382,10 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
     
     ### set the genomeStyle: NCBI or UCSC
     #require(GenomeInfoDb)
-    if (seqlevelsStyle(names(gc)) != genomeStyle){
-    	names(gc) <- mapSeqlevels(names(gc), genomeStyle)
-    }
-    if (seqlevelsStyle(names(map)) != genomeStyle){
-    	names(map) <- mapSeqlevels(names(map), genomeStyle)
-    }
-    if (seqlevelsStyle(names(tumour_reads)) != genomeStyle){
-    	names(tumour_reads) <- mapSeqlevels(names(tumour_reads), genomeStyle)
-    }
-    if (seqlevelsStyle(names(normal_reads)) != genomeStyle){
-    	names(normal_reads) <- mapSeqlevels(names(normal_reads), genomeStyle)
-    }
+	names(gc) <- setGenomeStyle(names(gc), genomeStyle)
+	names(map) <- setGenomeStyle(names(map), genomeStyle)
+	names(tumour_reads) <- setGenomeStyle(names(tumour_reads), genomeStyle)
+	names(normal_reads) <- setGenomeStyle(names(normal_reads), genomeStyle)
     
     ### make sure tumour wig and gc/map wigs have same
     ### chromosomes
@@ -402,10 +403,6 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
         targetIR <- RangedData(ranges = IRanges(start = targetedSequence[, 2], 
                     end = targetedSequence[, 3]), space = targetedSequence[, 1])
                     
-    	#######################################
-    	## BUG WITH USE OF FINDOVERLAPS #######
-    	## unlist indices are for each space ##
-    	#######################################
         #keepInd <- unlist(as.list(findOverlaps(tumour_reads, targetIR, select = "first")))
         #keepInd <- !is.na(keepInd)
         hits <- findOverlaps(query = tumour_reads, subject = targetIR)
@@ -802,9 +799,9 @@ outputTitanResults <- function(data, convergeParams,
    	## INCLUDE SUBCLONE PROFILES 
    	if (subcloneProfiles & numClust <= 2){
    		outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
-    	outmat <- getSubcloneProfiles(outmat)
+    	outmat <- cbind(outmat, getSubcloneProfiles(outmat))
     }else{
-    	message("outputTitanResults: More than 2 clusters. No subclone profiles returned.")
+    	message("outputTitanResults: More than 2 clusters or subclone profiles not requested.")
     }
     if (posteriorProbs) {
     	rhoG <- t(convergeParams$rhoG)
@@ -933,9 +930,15 @@ getSubcloneProfiles <- function(titanResults){
 	
 	numClones <- as.numeric(max(titanResults$ClonalCluster,
 			na.rm = TRUE))
+	if (is.na(numClones)){ numClones <- 0 }
 	cellPrev <- unique(cbind(Cluster = titanResults$ClonalCluster, 
 			Prevalence = titanResults$CellularPrevalence))
-			
+	
+	if (numClones == 0){
+		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
+				TITANcall = titanResults$TITANcall,
+				Prevalence = "NA"), stringsAsFactors = FALSE)
+	}
 	if (numClones == 1){
 		subc1Prev <- cellPrev[which(cellPrev[, "Cluster"] == "1"), "Prevalence"]
 		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
@@ -960,12 +963,9 @@ getSubcloneProfiles <- function(titanResults){
 	}
 	
 	## Add subclone 1, 2 and 3 if they are defined
-	if (exists("subc1")){
-		mode(subc1[, 1]) <- "numeric"; mode(subc1[, 3]) <- "numeric"	
-		outMat <- cbind(titanResults, Subclone1 = subc1, stringsAsFactors = FALSE)
-	}
+	outMat <- cbind(Subclone1 = subc1)
 	if (exists("subc2")){
-		outMat <- cbind(outMat, Subclone2 = subc2, stringsAsFactors = FALSE)
+		outMat <- cbind(outMat, Subclone2 = subc2)
 	}
 	#if (exists("subc3")){
 	#	outMat <- cbind(outMat, Subclone3 = subc3, stringsAsFactors = FALSE)

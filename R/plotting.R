@@ -126,21 +126,23 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
                 ...)
             
             # plot cluster lines and labels
-            for (j in 1:length(clusters[, 1])) {
-                chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], 
-                  "Position"])
-                lines(c(1 - chrLen * 0.02, chrLen * 
-                  1.02), rep(clusters[j, 2], 2), type = "l", 
-                  col = "grey", lwd = 3)
-                mtext(side = 4, at = clusters[j, 2], 
-                  text = paste("Z", clusters[j, 1], 
-                    "", sep = ""), cex = 1, padj = 0.5, 
-                  adj = 1, las = 2, outer = FALSE)
-                mtext(side = 2, at = clusters[j, 2], 
-                  text = paste("Z", clusters[j, 1], 
-                    "", sep = ""), cex = 1, padj = 0.5, 
-                  adj = 0, las = 2, outer = FALSE)
-            }
+            if (nrow(clusters) > 0){
+				for (j in 1:length(clusters[, 1])) {
+					chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], 
+					  "Position"])
+					lines(c(1 - chrLen * 0.02, chrLen * 
+					  1.02), rep(clusters[j, 2], 2), type = "l", 
+					  col = "grey", lwd = 3)
+					mtext(side = 4, at = clusters[j, 2], 
+					  text = paste("Z", clusters[j, 1], 
+						"", sep = ""), cex = 1, padj = 0.5, 
+					  adj = 1, las = 2, outer = FALSE)
+					mtext(side = 2, at = clusters[j, 2], 
+					  text = paste("Z", clusters[j, 1], 
+						"", sep = ""), cex = 1, padj = 0.5, 
+					  adj = 0, las = 2, outer = FALSE)
+				}
+			}
             
             if (!is.null(normal)) {
                 chrLen <- as.numeric(dataByChr[nrow(dataByChr), 
@@ -273,32 +275,40 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
     names(lohCol) <- c("HOMD", "DLOH", "NLOH", "GAIN", 
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
         
+    ## pull out params from dots ##
+    if (!is.null(args$cex.axis)) cex.axis <- args$cex.axis else cex.axis <- 0.75
+    if (!is.null(args$cex.lab)) cex.lab <- args$cex.lab else cex.lab <- 0.75
+            
     numClones <- sum(!is.na(unique(as.numeric(dataIn$ClonalCluster))))
+    if (numClones == 0){ numClones <- 1 }
          # plot per chromosome
     if (!is.null(chr)) {
         for (i in chr) {
             ind <- dataIn[, "Chr"] == as.character(i)
             dataByChr <- dataIn[ind, ]
             
+            ## find x domain #
+            if (missing(xlim)) {
+    			xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), "Position"]))
+    		}
+            
             # plot the data
             par(mar = c(spacing, 8, 2, 2), xpd = NA)
           
             # PLOT SUBCLONE PROFILES
-            if (missing(xlim)) {
-                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), 
-                  "Position"]))
-            }
-            
             # setup plot to include X number of clones (numClones)
             maxCN <- max(as.numeric(dataByChr$CopyNumber)) + 1
             ylim <- c(0, numClones * (maxCN + 2) - 1)
             plot(0, type = "n", xaxt = "n", ylab = "", xlab = "", 
             	xlim = xlim, ylim = ylim, yaxt = "n", ...)
             axis(2, at = seq(ylim[1], ylim[2], 1), las = 1,
-            	labels = rep(c(0:maxCN, "---"), numClones))
+            	labels = rep(c(0:maxCN, "---"), numClones), cex.axis=cex.axis)
             for (i in 1:numClones){
             	val <- dataByChr[, paste("Subclone", i, ".CopyNumber", sep = "")]
-            	cellPrev <- dataByChr[1, paste("Subclone", i, ".Prevalence", sep = "")]
+            	cellPrev <- suppressWarnings(as.numeric(unique(dataByChr[, 
+            					paste0("Subclone", i, ".Prevalence")])))
+            	cellPrev <- cellPrev[!is.na(cellPrev)] ## remove NA prevalence, leave subclonal prev
+            	if (length(cellPrev) == 0){ cellPrev <- 0.0 } ## if only NA, then assign 0 prev
             	if (i > 1){
             		# shift values up for each subclone
             		val <- val + (numClones - 1) * (maxCN + 2)
@@ -309,7 +319,7 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
             	#lines(dataIn[, "Position"], val, col = lohCol[call], type = "l", lwd = 3, ...)
                	mtext(text = paste("Subclone", i, "\n", format(cellPrev, digits = 2), sep = ""), 
                		side = 2, las = 0, line = 3, 
-               		at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = 0.75)
+               		at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = cex.lab)
                	chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], "Position"])
                 lines(c(1 - chrLen * 0.035, chrLen * 
                   1.035), rep(i * (maxCN + 2) - 1, 2), type = "l", 

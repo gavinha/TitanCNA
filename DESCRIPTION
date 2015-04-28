@@ -3,9 +3,9 @@ Type: Package
 Title: Subclonal copy number and LOH prediction from whole genome sequencing
         of tumours
 Version: 1.5.8
-Date: 2015-02-03
+Date: 2015-04-23
 Author: Gavin Ha, Sohrab P Shah
-Maintainer: Gavin Ha <gavinha@gmail.com>, Sohrab P Shah <sshah@bccrc.ca>
+Maintainer: Gavin Ha <gavinha@broadinstitute.org>, Sohrab P Shah <sshah@bccrc.ca>
 Depends: R (>= 3.1.0), foreach (>= 1.4.0), IRanges (>= 1.99.1), Rsamtools (>= 1.17.11), GenomeInfoDb (>= 1.2.4)
 Description: Hidden Markov model to segment and predict regions of
         subclonal copy number alterations (CNA) and loss of
