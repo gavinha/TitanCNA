@@ -918,6 +918,52 @@ printSDbw <- function(sdbw, fc, scale, data.type = ""){
         append = TRUE)
 }
 
+## TODO: Add documentation
+removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0.001){
+	clust <- 1:nrow(convergeParams$s)
+	names(clust) <- clust
+	#newClust <- clust #original clusters
+	for (cl in clust){
+		ind <- which(results$ClonalCluster == cl)
+		if (length(ind) / nrow(results) < proportionThreshold){
+			#newClust <- newClust[-which(names(newClust) == cl)]
+			clust[cl] <- NA #assign cluster without sufficient data with NA
+		}
+	}
+	k <- ncol(convergeParams$s)
+	# if there is at least 1 cluster with sufficient data
+	if (length(which(clust > 0)) > 0){
+		#set new normal estimate as cluster 1
+		#purity <- as.numeric(unique(results$CellularPrevalence[which(results$ClonalCluster == which(!is.na(clust))[1])]))
+		purity <- (1 - convergeParams$s[which(!is.na(clust))[1], k]) * (1 -  convergeParams$n[k])
+		convergeParams$n[k] <- 1 - purity
+		#set new cellular prevalence using new clusters and renormalize to new cluster 1		
+		convergeParams$s <- convergeParams$s[which(!is.na(clust)), , drop = FALSE]
+		convergeParams$s[, k] <- 1 - (1 - convergeParams$s[, k]) / (1 - convergeParams$s[1, k])
+		#names(newClust) <- 1:length(newClust)
+		clust[!is.na(clust)] <- 1:sum(!is.na(clust))
+
+		#set new cellular prevalence and clonal cluster in results file	
+		for (cl in 1:length(clust)){
+			# assign data in removed in cluster cl to next non-NA cluster
+			if (is.na(clust[cl])){
+				results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[!is.na(clust) & names(clust) > cl], k]
+				results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[which(!is.na(clust) & names(clust) > cl)]
+			}else{ # update cluster and cellPrev info for kept clusters
+				results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[cl], k]
+				results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[cl]		
+			}
+		}
+	}else{ # no clusters with sufficient data
+		#set normal contamination to 100%
+		convergeParams$n[k] <- 1.0 
+		# set all clusters to 1 and all cellular prevalence to 1.0
+		results[which(results$ClonalCluster %in% clust), "CellularPrevalence"] <- 1
+		results[which(results$ClonalCluster %in% clust), "ClonalCluster"] <- 1
+	}	
+	
+	return(list(convergeParams = convergeParams, results = results))
+}
 
 getSubcloneProfiles <- function(titanResults){
 	if (is.character(titanResults)){
