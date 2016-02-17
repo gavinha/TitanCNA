@@ -95,10 +95,11 @@ params
 
 \verb|params| is a list object containing 4 sets of parameters, each as a component: 
 \begin{itemize}
-  \item genotypeParams: Parameters for copy number and allelic ratios genotype states
-  \item normalParams: Parameters for normal contamination
-  \item ploidyParams: Parameters for average tumour ploidy
-  \item sParams: Parameters for modeling subclonality: clonal clusters and cellular prevalence
+  \item \verb|genotypeParams|: Parameters for copy number and allelic ratios genotype states
+  \item \verb|normalParams|: Parameters for normal contamination
+  \item \verb|ploidyParams|: Parameters for average tumour ploidy
+  \item \verb|sParams|: Parameters for modeling subclonality: clonal clusters and cellular prevalence
+  \item \verb|data|: Input data frame to help determine the prior diploid heterozygous baseline allelic ratio noise 
 \end{itemize}
 
 Analysis of copy number by \textit{TITAN} is subject to tumour ploidy. TITAN attempts to estimate this value globally and is accurate in most cases. However, the issue is that, from the signals observed in the data, \textit{TITAN} cannot distinguish between diploid (2 global copies) and tetraploidy (4 global copies) because the data can explain both situations. Therefore, in general, if the user is aware that a sample is ployploid, then TITAN should be run with the ploidy initialization of 2 and also for initialization of 4. If the user is unaware of the ploidy status of the sample, then inspection of a TITAN run at ploidy initialization of 2 can help. If this run has many large, prominent regions of inferred homozygous deletions, then it is likely that this sample is triploid or tetraploid.
@@ -132,7 +133,7 @@ head(cnData)
 
 For real data, users can use the genome-wide GC content and mappability score for 1kb windows. The two files can be found compressed in data/GRCh37-lite.tar.gz of the git repository. These WIG files were generated from the reference GRCh37-lite.fasta; the tumour and normal BAM files used for generating the tumour and normal WIG files in the preprocessing steps MUST also use this same reference. Otherwise, new GC and map wig files will need to be created as per instructions on \url{http://compbio.bccrc.ca/software/hmmcopy/}
 
-Then, find the log ratio at each position of interest (germline heterozygous SNPs) given in the object "data". Then transform the log ratios to natural logs instead of log base 2. Remove "logR" and "cnData" objects to save memory.
+Then, find the log ratio at each position of interest (germline heterozygous SNPs) given in the object "data". Then transform the log ratios to natural logs instead of log base 2. Remove \verb|logR| and \verb|cnData| objects to save memory.
 
 <<>>=
 logR <- getPositionOverlap(data$chr, data$posn, cnData)
@@ -140,11 +141,15 @@ data$logR <- log(2^logR)  #transform the log ratio to natural logs
 @
 
 \subsection{Filter the data}
-Filter the data for low and high depth positions and positions with NA's. For ease of analysis, TITAN converts chromosome X->23 and Y->24. Do not worry, in the final output, "X" and "Y" will be in the output. Optionally, a data.frame containing a list of positions can be passed as an argument, specifying which positions to use.
-
+Filter the data for low and high depth positions and positions with NA's. For ease of analysis, TITAN converts chromosome X->23 and Y->24. Do not worry, in the final output, "X" and "Y" will be in the output. Optionally, 
+\begin{itemize}
+	\item \verb|positionList|: data.frame containing a list of positions can be passed as an argument, specifying which positions to use.
+	\item \verb|centromeres|: data.frame with 3 columns - chr, start, stop that correspond to centromere regions.  This argument can actually accept any regions that you wish to exclude.
+	\item \verb|centromere.flankLength|: the number of base pairs to the left and right of each region in \verb|centromeres| that you which to further exclude.
+\end{itemize}
 <<>>=
 data <- filterData(data, c(1:22, "X", "Y"), minDepth = 10, maxDepth = 200, 
-                   positionList = NULL)
+                   positionList = NULL, centromere = NULL, centromere.flankLength = 10000)
 @
 
 \subsection{Model training and parameter estimation}
@@ -153,7 +158,7 @@ Parameter estimation in \textit{TITAN} uses the Expectation Maximization algorit
 
 <<echo=TRUE,eval=FALSE>>=
 library(doMC)
-registerDoMC(cores = 10) #use 10 cores on a single machine
+registerDoMC(cores = 4) #use 4 cores on a single machine
 @
 
 Here is a little more detail regarding some important arguments:
@@ -240,6 +245,15 @@ The format of this output file and data.frame is the following:
   \item \verb|Subclone2.Prevalence|: Subclonal prevalence for Subclone 2
 \end{enumerate}
 
+New in version 1.8.1, users can post-process the results to exclude clonal clusters that have fewer genomic alterations.  Users can specify the minimum proportion of the genome altered for any subclonal cluster using \verb|proportionThreshold| and the minimum proportion of clonal events for the clonal (highest cellular prevalence) cluster using \verb|proportionThresholdClonal|.  The function returns the post-processed \verb|convergeParams| and \verb|results| objects in a 2 element list.
+
+<<eval=FALSE>>=
+corrResults <- removeEmptyClusters(convergeParams, results, proportionThreshold = 0.001, 
+																	 proportionThresholdClonal = 0.3)
+convergeParams <- corrResults$convergeParams
+results <- corrResults$results
+@
+
 Model parameters and summary values such as the number of clonal clusters and their corresponding cellular prevalence, normal contamination, ploidy, and the S\_Dbw validity index for model selection later.
 
 <<eval=FALSE>>=
@@ -278,8 +292,10 @@ Generate the figure of copy number alteration results by plotting the log ratios
 <<fig=TRUE, pdf=FALSE, eps=FALSE, png=TRUE, height=2>>=
 ploidy <- tail(convergeParams$phi, 1)
 ploidy
-plotCNlogRByChr(results, chr = 2, ploidy = ploidy, ylim = c(-2, 2), cex = 0.25, 
-                xlab = "", main = "Chr 2")
+normal <- tail(convergeParams$n, 1)
+normal
+plotCNlogRByChr(results, chr = 2, ploidy = ploidy, normal = normal, 
+		ylim = c(-2, 2), cex = 0.25, xlab = "", main = "Chr 2")
 @
 
 The Y-axis is based on log ratios. Log ratios are computed ratios between normalized tumour and normal read depths. Data points close to 0 represent diploid, above 0 are copy gains, below 0 are deletions.
@@ -323,7 +339,7 @@ Colours are the sames for allelic ratio plots.
 \subsubsection{Subclone profiles}
 New since TitanCNA v1.2.0, users can plot the copy number profiles for the predicted subclones. This function only works for solutions containing 1 or 2 clonal clusters.  
 <<fig=TRUE, pdf=FALSE, eps=FALSE, png=TRUE, height=2>>=
-plotSubcloneProfiles(results, chr = 2, cex = 2, spacing = 6, main = "Chr 2")
+plotSubcloneProfiles(results, chr = 2, cex = 1, spacing = 2, main = "Chr 2")
 @
 
 Colours have the same definition as for the allelic ratio plots.

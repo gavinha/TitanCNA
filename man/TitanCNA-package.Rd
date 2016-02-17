@@ -14,8 +14,8 @@ TITAN: Subclonal copy number and LOH prediction whole genome sequencing of tumou
 \tabular{ll}{
 Package: \tab TitanCNA\cr
 Type: \tab Package\cr
-Version: \tab 1.7.1\cr
-Date: \tab 2015-04-28\cr
+Version: \tab 1.9.0\cr
+Date: \tab 2016-02-17\cr
 License: \tab see LICENSE\cr
 }
 
@@ -84,13 +84,19 @@ optimalPath <- viterbiClonalCN(data, convergeParams)
 results <- outputTitanResults(data, convergeParams, optimalPath, 
                               filename = NULL, posteriorProbs = FALSE,
                               subcloneProfiles = TRUE)
+                              
+#### REMOVE EMPTY CLUSTERS ####
+corrResults <- removeEmptyClusters(convergeParams, results, proportionThreshold = 0.001,
+																		proportionThresholdClonal = 0.3)
+convergeParams <- corrResults$convergeParams
+results <- corrResults$results
 
 #### PLOT RESULTS ####
 norm <- tail(convergeParams$n, 1)
 ploidy <- tail(convergeParams$phi, 1)
 
 par(mfrow=c(4, 1))    
-plotCNlogRByChr(results, chr = 2, ploidy = ploidy, geneAnnot = NULL, 
+plotCNlogRByChr(results, chr = 2, ploidy = ploidy, normal = norm, geneAnnot = NULL, 
                 ylim = c(-2, 2), cex = 0.5, xlab = "", main = "Chr 2")
 plotAllelicRatio(results, chr = 2, geneAnnot = NULL, ylim = c(0, 1), cex = 0.5, 
                 xlab = "", main = "Chr 2")

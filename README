@@ -1,15 +1,30 @@
 # file:   README - Notes on TitanCNA version updates
 # author: Gavin Ha 
 # 		  Dana-Farber Cancer Institute
-#		  Broad Institute
+#		 	  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 # TitanCNA website: http://compbio.bccrc.ca/software/titan/
 # Google Groups: https://groups.google.com/forum/#!forum/titancna 
-# date:	  April 9, 2015
+# date:	  Feb 17, 2016
 # description: TitanCNA is a probabilistic framework for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome sequencing of tumours. The main software is implemented as a R Bioconductor package with preprocessing tools implemented in Python and BAMtools (C++). The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
 
 =================================================================================
-TitanCNA version 1.5.8/1.7.1 changes (Committed revisions 977c48a.)
+TitanCNA version 1.7.2 changes (Committed revisions )
+Merged to master as v1.9.0 to match Bioconductor versioning
+=================================================================================
+1) New function to remove clonal clusters with few or no data
+	- removeEmptyClusters(): This function can help prune down the number of clonal clusters for which there are few alterations. 
+2) Updated functions
+	- plotCNlogRByChr(): added segment plotting when given list of segments 
+	- plotCNlogRByChr(): accepts normal contamination estimate so that the average tumor ploidy adjustment is correctly tumor-specific.  
+3) Updated dependencies
+	- R (>= 3.2.0), foreach (>= 1.4.2), IRanges (>= 2.2.4), Rsamtools (>= 1.20.4), GenomeInfoDb (>= 1.4.0)
+4) New dependencies
+	- GenomicRanges (>= 1.20.4)
+
+=================================================================================
+TitanCNA version 1.5.8 changes (Committed revisions 977c48a,5fe5acc.)
+Merged to master as v1.7.1 (a5bf4f3)
 =================================================================================
 1) Updated functions to align with dependent package updates.
 	- Affected function: loadAlleleCounts, correctReadDepth
