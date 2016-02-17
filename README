@@ -11,7 +11,7 @@
 NEW IN VERSION 1.9.0 - February 17, 2016
 The license for the R Bioconductor package is now open source under GPLv3.  This applies to the v1.9.0 and all subsequent versions within and obtained from Bioconductor.  
 Because the Bioconductor SVN is bridged to the GitHub TitanCNA repository "master" branch, the GitHub master branch for TitanCNA will also be under GPLv3.  
-Please note that any other branch in the GitHub TitanCNA repository is still under the previous academic license. Usage for the purpose of academic research are free to use all branches and versions of the code. If this does not apply to you, please contact gavinha@broadinstitute.org, sshah@bccrc.ca, and prebstein@bccancer.bc.ca.
+Please note that any other branch in the GitHub TitanCNA repository is still under the previous academic license. Users who are using TitanCNA for the purpose of academic research are free to use all branches and versions of the software. If this does not apply to you, please contact gavinha@broadinstitute.org, sshah@bccrc.ca, and prebstein@bccancer.bc.ca.
 
 Thank you for your interest in the TitanCNA software.
 
