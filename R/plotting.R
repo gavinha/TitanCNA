@@ -203,12 +203,18 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
 # alphaVal = [0,1] geneAnnot is a dataframe with 4
 # columns: geneSymbol, chr, start, stop spacing is
 # the distance between each track
+<<<<<<< HEAD
 plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL, 
     ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
+=======
+plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL, 
+    ploidy = NULL, normal = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
+>>>>>>> master
     # color coding
     alphaVal <- ceiling(alphaVal * 255)
     class(alphaVal) = "hexmode"
     cnCol <- c("#00FF00", "#006400", "#0000FF", "#880000", 
+<<<<<<< HEAD
         "#BB0000", "#CC0000", "#DD0000", "#EE0000", 
         "#FF0000")
     cnCol <- paste(cnCol, alphaVal, sep = "")
@@ -223,12 +229,36 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL,
             "LogRatio"]) + log2(ploidy/2)
     }
     
+=======
+        "#BB0000", "#CC0000", "#DD0000", "#EE0000", "#FF0000")
+    cnCol <- paste(cnCol, alphaVal, sep = "")
+    # cnCol <-
+    # col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
+    names(cnCol) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
+    
+    ## adjust logR values for ploidy ##
+    if (!is.null(ploidy)) {
+    	if (is.null(normal)){
+    		stop("plotCNlogRByChr: Please provide \"normal\" contamination estimate.")
+    	}
+        dataIn[, "LogRatio"] <- as.numeric(dataIn[, "LogRatio"]) + log2(((1-normal)*ploidy+normal*2)/2)
+        
+      if (!is.null(segs)){
+				segs[, "Median_logR"] <- segs[, "Median_logR"] + log2(((1-normal)*ploidy+normal*2) / 2)
+			}
+    }
+
+>>>>>>> master
     if (!is.null(chr)) {
         for (i in chr) {
             dataByChr <- dataIn[dataIn[, "Chr"] == 
                 i, ]
+<<<<<<< HEAD
             dataByChr <- dataByChr[dataByChr[, "TITANcall"] != 
                 "OUT", ]
+=======
+            dataByChr <- dataByChr[dataByChr[, "TITANcall"] != "OUT", ]
+>>>>>>> master
             # plot the data if (outfile!=''){
             # pdf(outfile,width=10,height=6) }
             par(mar = c(spacing, 8, 2, 2))
@@ -243,8 +273,20 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL,
                   "CopyNumber"])], pch = 16, xaxt = "n", 
                 las = 1, ylab = "Copy Number (log ratio)", 
                 xlim = xlim, ...)
+<<<<<<< HEAD
             lines(xlim, rep(0, 2), type = "l", 
                 col = "grey", lwd = 0.75)
+=======
+            lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
+            if (!is.null(segs)){
+							segsByChr <- segs[segs[,"Chromosome"]==as.character(i), , drop=FALSE]
+							tmp <- apply(segsByChr, 1, function(x){
+								lines(x[c("Start_Position.bp.","End_Position.bp.")], 
+										rep(x["Median_logR"], 2), col = "green", lwd = 3)
+							})
+						}
+  
+>>>>>>> master
             
             if (!is.null(geneAnnot)) {
                 plotGeneAnnotation(geneAnnot, i)
@@ -260,8 +302,26 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL,
             ylab = "Copy Number (log ratio)", ...)
         lines(as.numeric(c(1, coord$posns[length(coord$posns)])), 
             rep(0, 2), type = "l", col = "grey", lwd = 2)
+<<<<<<< HEAD
         plotChrLines(dataIn[, "Chr"], coord$chrBkpt, 
             par("yaxp")[1:2])
+=======
+        plotChrLines(dataIn[, "Chr"], coord$chrBkpt, par("yaxp")[1:2])
+        #plot segments
+				if (!is.null(segs)){
+					coordEnd <- getGenomeWidePositions(segs[, "Chromosome"], segs[, "End_Position.bp."])
+					coordStart <- coordEnd$posns - (segs[, "End_Position.bp."] - segs[, "Start_Position.bp."] + 1)
+					xlim <- as.numeric(c(1, coordEnd$posns[length(coordEnd$posns)]))
+					col <- cnCol[as.character(segs[, "Copy_Number"])]
+					value <- as.numeric(segs[, "Median_logR"])
+					mat <- as.data.frame(cbind(coordStart, coordEnd$posns, value, col))
+					rownames(mat) <- 1:nrow(mat)
+					tmp <- apply(mat, 1, function(x){
+						lines(x[1:2], rep(x[3], 2), col = x[4], lwd = 3)
+					})
+				}
+
+>>>>>>> master
     }
     
 }
@@ -362,6 +422,55 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
     
 }
 
+<<<<<<< HEAD
+=======
+## TODO: Not completed ##
+plotAllelicCN <- function(dataIn, chr = NULL, geneAnnot = NULL, 
+    ploidy = 2, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
+    # color coding
+    alphaVal <- ceiling(alphaVal * 255)
+    class(alphaVal) = "hexmode"
+    cnCol <- c("#00FF00", "#006400", "#0000FF", "#880000", 
+        "#BB0000", "#CC0000", "#DD0000", "#EE0000", 
+        "#FF0000")
+    cnCol <- paste(cnCol, alphaVal, sep = "")
+    # cnCol <-
+    # col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
+    names(cnCol) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
+    
+    ## compute allelic copy number for each allele ##
+    
+        totalDepth <- 2^as.numeric(dataIn[, "LogRatio"]) * ploidy
+        
+    
+    
+    if (!is.null(chr)) {
+        for (i in chr) {
+            dataByChr <- dataIn[dataIn[, "Chr"] == i, ]
+            dataByChr <- dataByChr[dataByChr[, "TITANcall"] != "OUT", ]
+            par(mar = c(spacing, 8, 2, 2))
+            # par(xpd=NA)
+            if (missing(xlim)) {
+                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), "Position"]))
+            }
+            coord <- as.numeric(dataByChr[, "Position"])
+            plot(coord, as.numeric(dataByChr[, "LogRatio"]), 
+                col = cnCol[as.character(dataByChr[, "CopyNumber"])], pch = 16, 
+                xaxt = "n", las = 1, ylab = "Copy Number (log ratio)", 
+                xlim = xlim, ...)
+            lines(xlim, rep(0, 2), type = "l", 
+                col = "grey", lwd = 0.75)
+            
+            if (!is.null(geneAnnot)) {
+                plotGeneAnnotation(geneAnnot, i)
+            }
+        }
+	}
+}
+
+
+
+>>>>>>> master
 plotSegmentMedians <- function(dataIn, resultType = "LogRatio", chr = NULL, 
 		geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, 
 		plot.new = FALSE, ...){

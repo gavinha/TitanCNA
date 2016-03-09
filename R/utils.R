@@ -1,8 +1,15 @@
 # author: Gavin Ha 
+<<<<<<< HEAD
 # 		  Dana-Farber Cancer Institute
 #		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 # date:	  January 20, 2015
+=======
+# 		Dana-Farber Cancer Institute
+#		  Broad Institute
+# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+# date:	  October 19, 2015
+>>>>>>> master
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
     skew = 0, symmetric = TRUE, data = NULL) {
@@ -918,6 +925,75 @@ printSDbw <- function(sdbw, fc, scale, data.type = ""){
         append = TRUE)
 }
 
+<<<<<<< HEAD
+=======
+## TODO: Add documentation
+removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0.001, 
+	proportionThresholdClonal = 0.3){
+	clust <- 1:nrow(convergeParams$s)
+	names(clust) <- clust
+	#newClust <- clust #original clusters
+	for (cl in clust){
+		ind <- which(results$ClonalCluster == cl)
+		if (length(ind) / nrow(results) < proportionThreshold || 
+				(length(ind) / nrow(results) < proportionThresholdClonal && cl == 1)){
+			#newClust <- newClust[-which(names(newClust) == cl)]
+			clust[cl] <- NA #assign cluster without sufficient data with NA
+		}
+	}
+	k <- ncol(convergeParams$s)
+	# sort the cellular prevalence since they are sorted in "results"
+	convergeParams$s <- convergeParams$s[order(convergeParams$s[, k], decreasing = FALSE), , drop = FALSE]
+	# if there is at least 1 cluster with sufficient data
+	if (length(which(clust > 0)) > 0){
+		#set new normal estimate as cluster 1
+		#purity <- as.numeric(unique(results$CellularPrevalence[which(results$ClonalCluster == which(!is.na(clust))[1])]))
+		purity <- (1 - convergeParams$s[which(!is.na(clust))[1], k]) * (1 -  convergeParams$n[k])
+		convergeParams$n[k] <- 1 - purity
+		#set new cellular prevalence using new clusters and renormalize to new cluster 1		
+		convergeParams$s <- convergeParams$s[which(!is.na(clust)), , drop = FALSE]
+		convergeParams$s[, k] <- 1 - (1 - convergeParams$s[, k]) / (1 - convergeParams$s[1, k])
+		#names(newClust) <- 1:length(newClust)
+		clust[!is.na(clust)] <- 1:sum(!is.na(clust))
+
+		#set new cellular prevalence and clonal cluster in results file	
+		for (cl in 1:length(clust)){
+			# assign data in removed cluster cl to next non-NA cluster
+			if (is.na(clust[cl])){
+				# assign to the right (larger cluster number)
+				if (length(which(!is.na(clust) & names(clust) > cl)) > 0){
+					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[which(!is.na(clust) & names(clust) > cl)[1]], k]
+					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[which(!is.na(clust) & names(clust) > cl)][1]
+				# assign to the left (smaller cluster number)
+				}else if (length(which(!is.na(clust) & names(clust) < cl)) > 0){
+					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[tail(which(!is.na(clust) & names(clust) < cl), 1)], k]
+					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[tail(which(!is.na(clust) & names(clust) < cl), 1)]
+				}
+			}else{ # update cluster and cellPrev info for kept clusters
+				results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[cl], k]
+				results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[cl]		
+			}
+		}
+	}else{ # no clusters with sufficient data
+		
+		# set params to only cluster with data or to default cluster01 if no cluster with data
+		clustData <- which.max(table(results$ClonalCluster))
+		if (length(clustData) >= 0){
+			clustData <- 1
+		}
+		#set normal contamination to 100%
+		convergeParams$n[k] <- 1 - convergeParams$s[clustData, k]
+		convergeParams$s <- convergeParams$s[clustData, , drop = FALSE]
+		convergeParams$s[, k] <- 0.0
+		
+			# set all clusters to 1 and all cellular prevalence to 1.0; leave HET as NA
+		results[which(results$TITANcall != "HET"), "CellularPrevalence"] <- 1
+		results[which(results$TITANcall != "HET"), "ClonalCluster"] <- 1
+	}	
+		
+	return(list(convergeParams = convergeParams, results = results))
+}
+>>>>>>> master
 
 getSubcloneProfiles <- function(titanResults){
 	if (is.character(titanResults)){
