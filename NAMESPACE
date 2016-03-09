@@ -1,24 +1,8 @@
 useDynLib(TitanCNA)
-<<<<<<< HEAD
-<<<<<<< HEAD
-import(IRanges,foreach,GenomeInfoDb,Rsamtools)
-=======
 import(IRanges,GenomicRanges,foreach,GenomeInfoDb,Rsamtools)
->>>>>>> master
-=======
-import(IRanges,GenomicRanges,foreach,GenomeInfoDb,Rsamtools)
->>>>>>> master
 export(loadAlleleCounts,loadDefaultParameters,extractAlleleReadCounts,
 		filterData,getPositionOverlap,wigToRangedData,
 		outputTitanResults,outputModelParameters,correctReadDepth,
 		runEMclonalCN, viterbiClonalCN,computeSDbwIndex,
 		plotAllelicRatio,plotClonalFrequency,plotCNlogRByChr,
-<<<<<<< HEAD
-<<<<<<< HEAD
-		plotSubcloneProfiles)
-=======
 		plotSubcloneProfiles, removeEmptyClusters)
->>>>>>> master
-=======
-		plotSubcloneProfiles, removeEmptyClusters)
->>>>>>> master
