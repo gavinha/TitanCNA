@@ -15,8 +15,13 @@ TITAN: Subclonal copy number and LOH prediction whole genome sequencing of tumou
 Package: \tab TitanCNA\cr
 Type: \tab Package\cr
 <<<<<<< HEAD
+<<<<<<< HEAD
 Version: \tab 1.7.1\cr
 Date: \tab 2015-04-28\cr
+=======
+Version: \tab 1.9.0\cr
+Date: \tab 2016-02-17\cr
+>>>>>>> master
 =======
 Version: \tab 1.9.0\cr
 Date: \tab 2016-02-17\cr
@@ -90,13 +95,19 @@ results <- outputTitanResults(data, convergeParams, optimalPath,
                               filename = NULL, posteriorProbs = FALSE,
                               subcloneProfiles = TRUE)
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> master
                               
 #### REMOVE EMPTY CLUSTERS ####
 corrResults <- removeEmptyClusters(convergeParams, results, proportionThreshold = 0.001,
 																		proportionThresholdClonal = 0.3)
 convergeParams <- corrResults$convergeParams
 results <- corrResults$results
+<<<<<<< HEAD
+>>>>>>> master
+=======
 >>>>>>> master
 
 #### PLOT RESULTS ####
@@ -105,7 +116,11 @@ ploidy <- tail(convergeParams$phi, 1)
 
 par(mfrow=c(4, 1))    
 <<<<<<< HEAD
+<<<<<<< HEAD
 plotCNlogRByChr(results, chr = 2, ploidy = ploidy, geneAnnot = NULL, 
+=======
+plotCNlogRByChr(results, chr = 2, ploidy = ploidy, normal = norm, geneAnnot = NULL, 
+>>>>>>> master
 =======
 plotCNlogRByChr(results, chr = 2, ploidy = ploidy, normal = norm, geneAnnot = NULL, 
 >>>>>>> master

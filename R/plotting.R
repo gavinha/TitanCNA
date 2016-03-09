@@ -204,8 +204,13 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
 # columns: geneSymbol, chr, start, stop spacing is
 # the distance between each track
 <<<<<<< HEAD
+<<<<<<< HEAD
 plotCNlogRByChr <- function(dataIn, chr = NULL, geneAnnot = NULL, 
     ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
+=======
+plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL, 
+    ploidy = NULL, normal = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
+>>>>>>> master
 =======
 plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL, 
     ploidy = NULL, normal = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
@@ -214,6 +219,7 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
     alphaVal <- ceiling(alphaVal * 255)
     class(alphaVal) = "hexmode"
     cnCol <- c("#00FF00", "#006400", "#0000FF", "#880000", 
+<<<<<<< HEAD
 <<<<<<< HEAD
         "#BB0000", "#CC0000", "#DD0000", "#EE0000", 
         "#FF0000")
@@ -230,6 +236,8 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
     }
     
 =======
+=======
+>>>>>>> master
         "#BB0000", "#CC0000", "#DD0000", "#EE0000", "#FF0000")
     cnCol <- paste(cnCol, alphaVal, sep = "")
     # cnCol <-
@@ -248,14 +256,21 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
 			}
     }
 
+<<<<<<< HEAD
+>>>>>>> master
+=======
 >>>>>>> master
     if (!is.null(chr)) {
         for (i in chr) {
             dataByChr <- dataIn[dataIn[, "Chr"] == 
                 i, ]
 <<<<<<< HEAD
+<<<<<<< HEAD
             dataByChr <- dataByChr[dataByChr[, "TITANcall"] != 
                 "OUT", ]
+=======
+            dataByChr <- dataByChr[dataByChr[, "TITANcall"] != "OUT", ]
+>>>>>>> master
 =======
             dataByChr <- dataByChr[dataByChr[, "TITANcall"] != "OUT", ]
 >>>>>>> master
@@ -274,9 +289,12 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
                 las = 1, ylab = "Copy Number (log ratio)", 
                 xlim = xlim, ...)
 <<<<<<< HEAD
+<<<<<<< HEAD
             lines(xlim, rep(0, 2), type = "l", 
                 col = "grey", lwd = 0.75)
 =======
+=======
+>>>>>>> master
             lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
             if (!is.null(segs)){
 							segsByChr <- segs[segs[,"Chromosome"]==as.character(i), , drop=FALSE]
@@ -286,6 +304,9 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
 							})
 						}
   
+<<<<<<< HEAD
+>>>>>>> master
+=======
 >>>>>>> master
             
             if (!is.null(geneAnnot)) {
@@ -303,9 +324,12 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
         lines(as.numeric(c(1, coord$posns[length(coord$posns)])), 
             rep(0, 2), type = "l", col = "grey", lwd = 2)
 <<<<<<< HEAD
+<<<<<<< HEAD
         plotChrLines(dataIn[, "Chr"], coord$chrBkpt, 
             par("yaxp")[1:2])
 =======
+=======
+>>>>>>> master
         plotChrLines(dataIn[, "Chr"], coord$chrBkpt, par("yaxp")[1:2])
         #plot segments
 				if (!is.null(segs)){
@@ -321,6 +345,9 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
 					})
 				}
 
+<<<<<<< HEAD
+>>>>>>> master
+=======
 >>>>>>> master
     }
     
@@ -423,7 +450,10 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> master
 ## TODO: Not completed ##
 plotAllelicCN <- function(dataIn, chr = NULL, geneAnnot = NULL, 
     ploidy = 2, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
@@ -470,6 +500,9 @@ plotAllelicCN <- function(dataIn, chr = NULL, geneAnnot = NULL,
 
 
 
+<<<<<<< HEAD
+>>>>>>> master
+=======
 >>>>>>> master
 plotSegmentMedians <- function(dataIn, resultType = "LogRatio", chr = NULL, 
 		geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, 

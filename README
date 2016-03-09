@@ -2,6 +2,7 @@
 # author: Gavin Ha 
 # 		  Dana-Farber Cancer Institute
 <<<<<<< HEAD
+<<<<<<< HEAD
 #		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 # TitanCNA website: http://compbio.bccrc.ca/software/titan/
@@ -12,6 +13,8 @@
 =================================================================================
 TitanCNA version 1.5.8/1.7.1 changes (Committed revisions 977c48a.)
 =======
+=======
+>>>>>>> master
 #		 	  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 # TitanCNA website: http://compbio.bccrc.ca/software/titan/
@@ -44,6 +47,9 @@ Merged to master as v1.9.0 to match Bioconductor versioning
 =================================================================================
 TitanCNA version 1.5.8 changes (Committed revisions 977c48a,5fe5acc.)
 Merged to master as v1.7.1 (a5bf4f3)
+<<<<<<< HEAD
+>>>>>>> master
+=======
 >>>>>>> master
 =================================================================================
 1) Updated functions to align with dependent package updates.

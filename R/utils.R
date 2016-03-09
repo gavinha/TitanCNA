@@ -1,14 +1,20 @@
 # author: Gavin Ha 
 <<<<<<< HEAD
+<<<<<<< HEAD
 # 		  Dana-Farber Cancer Institute
 #		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 # date:	  January 20, 2015
 =======
+=======
+>>>>>>> master
 # 		Dana-Farber Cancer Institute
 #		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 # date:	  October 19, 2015
+<<<<<<< HEAD
+>>>>>>> master
+=======
 >>>>>>> master
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
@@ -926,7 +932,10 @@ printSDbw <- function(sdbw, fc, scale, data.type = ""){
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> master
 ## TODO: Add documentation
 removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0.001, 
 	proportionThresholdClonal = 0.3){
@@ -993,6 +1002,9 @@ removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0
 		
 	return(list(convergeParams = convergeParams, results = results))
 }
+<<<<<<< HEAD
+>>>>>>> master
+=======
 >>>>>>> master
 
 getSubcloneProfiles <- function(titanResults){
