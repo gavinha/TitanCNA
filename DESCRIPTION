@@ -3,7 +3,7 @@ Type: Package
 Title: Subclonal copy number and LOH prediction from whole genome sequencing
         of tumours
 Version: 1.9.0
-Date: 2016-03-09
+Date: 2016-04-06
 Author: Gavin Ha, Sohrab P Shah
 Maintainer: Gavin Ha <gavinha@broadinstitute.org>, Sohrab P Shah <sshah@bccrc.ca>
 Depends: R (>= 3.2.0), foreach (>= 1.4.2), IRanges (>= 2.2.4), GenomicRanges (>= 1.20.5), Rsamtools (>= 1.20.4), GenomeInfoDb (>= 1.4.0)
