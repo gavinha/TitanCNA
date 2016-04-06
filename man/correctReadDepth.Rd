@@ -8,7 +8,8 @@
   Correct GC content and mappability biases in tumour sequence read counts using Loess curve fitting. Wrapper for function in \pkg{HMMcopy}.
 }
 \usage{
-  correctReadDepth(tumWig, normWig, gcWig, mapWig, genomeStyle = "NCBI", targetedSequence = NULL)
+  correctReadDepth(tumWig, normWig, gcWig, mapWig, 
+  			genomeStyle = "NCBI", targetedSequence = NULL)
 }
 
 \arguments{

@@ -9,7 +9,8 @@
 }
 
 \usage{
-removeEmptyClusters(convergeParams, results, proportionThreshold = 0.001, proportionThresholdClonal = 0.3)
+removeEmptyClusters(convergeParams, results, proportionThreshold = 0.001, 
+		proportionThresholdClonal = 0.05)
 }
 
 

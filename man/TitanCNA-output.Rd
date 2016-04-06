@@ -12,6 +12,7 @@
 \usage{
   outputTitanResults(data, convergeParams, optimalPath, filename = NULL, 
       posteriorProbs = FALSE, subcloneProfiles = TRUE)
+      
   outputModelParameters(convergeParams, results, filename, 
   		S_Dbw.scale = 1, S_Dbw.method = "Tong")
 }
