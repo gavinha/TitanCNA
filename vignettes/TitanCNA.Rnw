@@ -254,6 +254,27 @@ convergeParams <- corrResults$convergeParams
 results <- corrResults$results
 @
 
+New in version 1.10.1, users can now directly generate segments and output these to files.  There are two possible outputs to files: 1) Segments with detailed information, and 2) Segments prepared for loading into IGV.  These filenames can be specified in arguments \verb|filename| and \verb|igvfilename|
+
+<<eval>>=
+segs <- outputTitanSegments(results, id = "test", convergeParams, 
+													filename = NULL, igvfilename = NULL)
+head(segs)
+@
+
+The definitions of the headers for the segments are the following:
+\begin{enumerate}
+	\item \verb|Sample|: Name of sample
+	\item \verb|Chromosome|, \verb|Start_Position.bp.|, \verb|End_Position.bp.|: Coordinates of segment
+	\item \verb|Length.snps.|: Number of SNPs in the segment
+	\item \verb|Median_Ratio|: Median allelic ratio across SNPs in the segment
+	\item \verb|Median_logR|: Median log ratio across SNPs in the segment
+	\item \verb|TITAN_state|, \verb|TITAN_call|, \verb|Copy_Number|: Same as defined above
+	\item \verb|MinorCN|: Copy number of minor allele
+	\item \verb|MajorCN|: Copy number of major allele
+	\item \verb|Clonal_Cluster|, \verb|Cellular_Frequency|: Same as defined above
+\end{enumerate}
+
 Model parameters and summary values such as the number of clonal clusters and their corresponding cellular prevalence, normal contamination, ploidy, and the S\_Dbw validity index for model selection later.
 
 <<eval=FALSE>>=
@@ -294,7 +315,7 @@ ploidy <- tail(convergeParams$phi, 1)
 ploidy
 normal <- tail(convergeParams$n, 1)
 normal
-plotCNlogRByChr(results, chr = 2, ploidy = ploidy, normal = normal, 
+plotCNlogRByChr(results, segs = segs, chr = 2, ploidy = ploidy, normal = normal, 
 		ylim = c(-2, 2), cex = 0.25, xlab = "", main = "Chr 2")
 @
 

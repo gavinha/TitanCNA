@@ -325,6 +325,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         } else if (loglik[i] < loglik[i - 1]) {
             # stop('Failed EM!')
             converged <- 1
+            i <- i - 1
             message("fwdBack: Optimization during update decreased complete 
                     likelihood.  Stopping EM...")
         }

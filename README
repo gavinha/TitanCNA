@@ -5,10 +5,9 @@
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 # TitanCNA website: http://compbio.bccrc.ca/software/titan/
 # Google Groups: https://groups.google.com/forum/#!forum/titancna 
-# date:	  Feb 17, 2016
+# date:	  September 26, 2016
 # description: TitanCNA is a probabilistic framework for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome sequencing of tumours. The main software is implemented as a R Bioconductor package with preprocessing tools implemented in Python and BAMtools (C++). The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
 
-NEW IN VERSION 1.9.0 - February 17, 2016
 The license for the R Bioconductor package is now open source under GPLv3.  This applies to the v1.9.0 and all subsequent versions within and obtained from Bioconductor.  
 Because the Bioconductor SVN is bridged to the GitHub TitanCNA repository "master" branch, the GitHub master branch for TitanCNA will also be under GPLv3.  
 Please note that any other branch in the GitHub TitanCNA repository is still under the previous academic license. Users who are using TitanCNA for the purpose of academic research are free to use all branches and versions of the software. If this does not apply to you, please contact gavinha@broadinstitute.org, sshah@bccrc.ca, and prebstein@bccancer.bc.ca.
@@ -16,7 +15,26 @@ Please note that any other branch in the GitHub TitanCNA repository is still und
 Thank you for your interest in the TitanCNA software.
 
 =================================================================================
-TitanCNA version 1.7.2 changes (Committed revisions )
+TitanCNA version 1.10.1 changes 
+Changed to v1.12.1 to match Bioconductor versioning
+=================================================================================
+1) New function
+	- outputTitanSegments(): Replaces the need for external Perl script to generate segments file.
+	
+2) Modified function
+	- setupClonalParameters(): Initializes cellular prevalence values evenly distributed between 0 and 1 rather than 0.1 increments.
+	
+	- loadDefaultParameters(): added hetBaselineSkew argument which will determine the baseline allelic fraction to use.  If this is NULL, then will set using the median allelic ratio across the genome ("data" argument).  If "data" argument is NULL, then will simply set to 0.55 (heterozgyous skew of 0.05). Note that the "skew" argument applies to all other states except for the heterozygous allelic states (e.g. 1:1, 2:2, 3:3, 4:4 - for minor:major copies).
+
+3) Bug fixes
+	- plotClonalFrequency(): Handle case when result is completely copy neutral heterozygous and cellular prevalence and ClonalClusters columns are both NA
+	
+	- runEMclonalCN(): If EM ever decreases, then take last iteration (with higher likelihood).
+	
+	- filterData(): Remove centromere positions now working. 
+
+=================================================================================
+TitanCNA version 1.7.2 changes (Committed revisions 6796790)
 Merged to master as v1.9.0 to match Bioconductor versioning
 =================================================================================
 1) New function to remove clonal clusters with few or no data

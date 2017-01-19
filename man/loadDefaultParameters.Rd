@@ -11,7 +11,7 @@
 
 \usage{
   loadDefaultParameters(copyNumber = 5, numberClonalClusters = 1, skew = 0,
-      symmetric = TRUE, data = NULL)
+      hetBaselineSkew = NULL, symmetric = TRUE, data = NULL)
 }
 
 \arguments{
@@ -23,6 +23,9 @@
   }
   \item{skew}{
     \code{numeric} float indicating the heterozygous baseline shift for the allelic ratios towards 1. This is may be required for SOLiD data, but for most cases, this argument can be omitted.
+  }
+  \item{hetBaselineSkew}{
+  	Allelic reference base skew for heterozygous states (e.g. 1:1, 2:2, 3:3). Value is additive to baseline allelic ratios (which may already be adjusted by \code{skew}).
   }
   \item{symmetric}{
   	\code{logical}; if \code{TRUE}, then treat genotypes as symmetric. See Details.

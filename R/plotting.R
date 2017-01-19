@@ -54,7 +54,7 @@ plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
             dataIn[, "Position"])
         plot(coord$posns, as.numeric(dataIn[, "AllelicRatio"]), 
             col = lohCol[dataIn[, "TITANcall"]], pch = 16, 
-            xaxt = "n", bty = "n", las = 1, ylab = "Allelic Ratio", 
+            xaxt = "n", bty = "n", las = 1, ylab = "Allelic Fraction", 
             ...)
         lines(as.numeric(c(1, coord$posns[length(coord$posns)])), 
             rep(0.5, 2), type = "l", col = "grey", 
@@ -174,17 +174,19 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
             c(-0.1, 1.1))
         
         # plot cluster lines and labels
-        for (j in 1:length(clusters[, 1])) {
-            chrLen <- as.numeric(coord$posns[length(coord$posns)])
-            lines(c(1 - chrLen * 0.02, chrLen * 1.02), 
-                rep(clusters[j, 2], 2), type = "l", 
-                col = "grey", lwd = 3)
-            mtext(side = 4, at = clusters[j, 2], text = paste("Z", 
-                clusters[j, 1], "", sep = ""), cex = 1, 
-                padj = 0.5, adj = 1, las = 2, outer = FALSE)
-            mtext(side = 2, at = clusters[j, 2], text = paste("Z", 
-                clusters[j, 1], "", sep = ""), cex = 1, 
-                padj = 0.5, adj = 0, las = 2, outer = FALSE)
+      	if (nrow(clusters) > 0){
+					for (j in 1:length(clusters[, 1])) {
+							chrLen <- as.numeric(coord$posns[length(coord$posns)])
+							lines(c(1 - chrLen * 0.02, chrLen * 1.02), 
+									rep(clusters[j, 2], 2), type = "l", 
+									col = "grey", lwd = 3)
+							mtext(side = 4, at = clusters[j, 2], text = paste("Z", 
+									clusters[j, 1], "", sep = ""), cex = 1, 
+									padj = 0.5, adj = 1, las = 2, outer = FALSE)
+							mtext(side = 2, at = clusters[j, 2], text = paste("Z", 
+									clusters[j, 1], "", sep = ""), cex = 1, 
+									padj = 0.5, adj = 0, las = 2, outer = FALSE)
+					}
         }
         if (!is.null(normal)) {
             chrLen <- as.numeric(coord$posns[length(coord$posns)])

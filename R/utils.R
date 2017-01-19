@@ -5,7 +5,7 @@
 # date:	  October 19, 2015
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
-    skew = 0, symmetric = TRUE, data = NULL) {
+    skew = 0, hetBaselineSkew = NULL, symmetric = TRUE, data = NULL) {
     if (copyNumber < 3 || copyNumber > 8) {
         stop("loadDefaultParameters: Fewer than 3 or more than 8 copies are 
              being specified. Please use minimum 3 or maximum 8 'copyNumber'.")
@@ -23,9 +23,12 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         rt[rt < (rn + skew)] <- rn + skew
         ## shift heterozygous states to account for noise 
         ##   when using symmetric = TRUE
-        hetARshift <- 0.55
-        if (!is.null(data)){
+        if (!is.null(hetBaselineSkew)){
+        	hetARshift <- hetBaselineSkew + 0.5
+        }else if (!is.null(data)){
         	hetARshift <- median(data$ref / data$tumDepth, na.rm = TRUE)
+        }else{
+        	hetARshift <- 0.55
         }
         rt[c(4, 9, 25)] <- hetARshift
         ZS = 0:24
@@ -264,7 +267,7 @@ filterData <- function(data, chrs = NULL, minDepth = 10,
     }
     ## remove centromere SNPs ##
     if (!is.null(centromeres)){
-    	colnames(centromeres)[1:3] <- c("space", "start", "ends") 
+    	colnames(centromeres)[1:3] <- c("Chr", "Start", "End") 
     	data <- removeCentromere(data, centromeres, flankLength = centromere.flankLength)
     }
     return(data)
@@ -466,6 +469,7 @@ setupClonalParameters <- function(Z, sPriorStrength = 2) {
     
     # use naive initialization
     s_0 <- (1:Z)/10
+    #s_0 <- seq(0,1-1/Z,1/Z)
     
     ## first cluster should be clonally dominant (use
     ## 0.001) ##
@@ -817,7 +821,13 @@ outputTitanResults <- function(data, convergeParams,
         write.table(outmat, file = filename, col.names = TRUE, 
             row.names = FALSE, quote = FALSE, sep = "\t")
     }
-    return(as.data.frame(outmat, stringsAsFactors = FALSE))
+    suppressWarnings(outmat <- transform(outmat, Chr = as.character(Chr), Position = as.numeric(Position), 
+    		RefCount = as.integer(RefCount), NRefCount = as.integer(NRefCount),
+    		Depth = as.integer(Depth), AllelicRatio = as.numeric(AllelicRatio), LogRatio = as.numeric(LogRatio), 
+    		CopyNumber = as.integer(CopyNumber), TITANstate = as.integer(TITANstate),
+    		ClonalCluster = as.integer(ClonalCluster), CellularPrevalence = as.numeric(CellularPrevalence))
+    		)
+    return(outmat)
 }
 
 outputModelParameters <- function(convergeParams, results, filename, 
@@ -901,6 +911,126 @@ outputModelParameters <- function(convergeParams, results, filename,
     
 } 
 
+outputTitanSegments <- function(results, id, convergeParams, filename = NULL, igvfilename = NULL){
+  # get all possible states in this set of results
+  stateTable <- unique(results[, c("TITANstate", "TITANcall")])
+  rownames(stateTable) <- stateTable[, 1]
+  rleResults <- t(sapply(unique(results$Chr), function(x){
+  	ind <- results$Chr == x
+    r <- rle(results$TITANstate[ind])
+  }))
+	rleLengths <- unlist(rleResults[, "lengths"])
+	rleValues <- unlist(rleResults[, "values"])
+	numSegs <- length(rleLengths)
+	
+  # convert allelic ratio to symmetric ratios #
+  results$AllelicRatio <- apply(cbind(results$AllelicRatio, 1-results$AllelicRatio), 1, max, na.rm = TRUE)
+	
+	segs <- as.data.frame(matrix(NA, ncol = 14, nrow = numSegs, 
+								 dimnames = list(c(), c("Sample", "Chromosome", "Start_Position.bp.", "End_Position.bp.", 
+								 "Length.snp.", "Median_Ratio", "Median_logR", "TITAN_state", "TITAN_call", "Copy_Number",
+								 "MinorCN", "MajorCN", "Clonal_Cluster", "Cellular_Frequency"))))
+	segs$Sample <- id
+	colNames <- c("Chr", "Position", "TITANstate", "AllelicRatio", "LogRatio")
+	prevInd <- 0
+	for (j in 1:numSegs){
+		start <- prevInd + 1
+		end <- prevInd + rleLengths[j]
+		segDF <- results[start:end, ]
+		prevInd <- end
+		numR <- nrow(segDF)
+		segs[j, "Chromosome"] <- as.character(segDF[1, "Chr"])
+		segs[j, "Start_Position.bp."] <- segDF[1, "Position"]
+		segs[j, "TITAN_state"] <- rleValues[j]
+		segs[j, "TITAN_call"] <- segDF[1, "TITANcall"]#stateTable[as.character(rleValues[j]), 2]
+		segs[j, "Copy_Number"] <- segDF[1, "CopyNumber"]
+		segs[j, "Median_Ratio"] <- round(median(segDF$AllelicRatio, na.rm = TRUE), digits = 6)
+		segs[j, "Median_logR"] <- round(median(segDF$LogRatio, na.rm = TRUE), digits = 6)
+		segs[j, "MinorCN"] <- getMajorMinorCN(rleValues[j], convergeParams$symmetric)$majorCN
+		segs[j, "MajorCN"] <- getMajorMinorCN(rleValues[j], convergeParams$symmetric)$minorCN
+		segs[j, "Clonal_Cluster"] <- segDF[1, "ClonalCluster"]
+		segs[j, "Cellular_Frequency"] <- segDF[1, "CellularPrevalence"]
+		if (segDF[1, "Chr"] == segDF[numR, "Chr"]){
+			segs[j, "End_Position.bp."] <- segDF[numR, "Position"]
+			segs[j, "Length.snp."] <- numR
+		}else{ # segDF contains 2 different chromosomes
+			print(j)
+		}                                      
+	}
+  if (!is.null(filename)){
+		# write out detailed segment file #
+  	write.table(segs, file = filename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  }
+  # write out IGV seg file #
+  if (!is.null(igvfilename)){
+  	igv <- segs[, c("Sample", "Chromosome", "Start_Position.bp.", 
+  								"End_Position.bp.", "Length.snp.", "Median_logR")]
+  	colnames(igv) <- c("sample", "chr", "start", "end", "num.snps", "median.logR")
+  	write.table(igv, file = igvfilename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  }
+  return(segs)
+}
+
+getMajorMinorCN <- function(state, symmetric = TRUE){
+	majorCN <- NA
+	minorCN <- NA
+	if (symmetric){
+		if (state==0){
+			majorCN = 0; minorCN = 0;
+		}else if (state==1){
+			majorCN = 0; minorCN = 1;
+		}else if(state==2){
+			majorCN = 0; minorCN = 2;
+		}else if (state==3){
+			majorCN = 1; minorCN = 1;
+		}else if (state==4){
+			majorCN = 0; minorCN = 3;
+		}else if (state==5){
+			majorCN = 1; minorCN = 2;
+		}else if (state==6){
+			majorCN = 0; minorCN = 4;
+		}else if (state==7){
+			majorCN = 1; minorCN = 3;
+		}else if (state==8){
+			majorCN = 2; minorCN = 2;
+		}else if (state==9){
+			majorCN = 0; minorCN = 5;
+		}else if (state==10){
+			majorCN = 1; minorCN = 4;
+		}else if (state==11){
+			majorCN = 2; minorCN = 3;
+		}else if (state==12){
+			majorCN = 0; minorCN = 6;
+		}else if (state==13){
+			majorCN = 1; minorCN = 5;
+		}else if (state==14){
+			majorCN = 2; minorCN = 4;
+		}else if (state==15){
+			majorCN = 3; minorCN = 3;
+		}else if (state==16){
+			majorCN = 0; minorCN = 7;
+		}else if (state==17){
+			majorCN = 1; minorCN = 6;
+		}else if (state==18){
+			majorCN = 2; minorCN = 5;
+		}else if (state==19){
+			majorCN = 3; minorCN = 4;
+		}else if (state==20){
+			majorCN = 0; minorCN = 8;
+		}else if (state==21){
+			majorCN = 1; minorCN = 7;
+		}else if (state==22){
+			majorCN = 2; minorCN = 6;
+		}else if (state==23){
+			majorCN = 3; minorCN = 5;
+		}else if (state==24){
+			majorCN = 4; minorCN = 4;
+		}
+	}else{
+		#stop("symmetric=FALSE not yet supported.")	
+	}
+	return(list(majorCN = majorCN, minorCN = minorCN))
+}
 
 printSDbw <- function(sdbw, fc, scale, data.type = ""){
 	sdbw_str <- sprintf("S_Dbw dens.bw (%s):\t%0.4f ", data.type, sdbw$dens.bw)
@@ -920,7 +1050,7 @@ printSDbw <- function(sdbw, fc, scale, data.type = ""){
 
 ## TODO: Add documentation
 removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0.001, 
-	proportionThresholdClonal = 0.3){
+	proportionThresholdClonal = 0.05){
 	clust <- 1:nrow(convergeParams$s)
 	names(clust) <- clust
 	#newClust <- clust #original clusters
