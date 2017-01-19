@@ -1,6 +1,7 @@
 \name{Formatting and output of Titan results}
 \alias{outputTitanResults}
 \alias{outputModelParameters}
+\alias{outputTitanSegments}
 
 \title{
   Formatting and printing \pkg{TitanCNA} results.
@@ -12,12 +13,19 @@
 \usage{
   outputTitanResults(data, convergeParams, optimalPath, filename = NULL, 
       posteriorProbs = FALSE, subcloneProfiles = TRUE)
+      
   outputModelParameters(convergeParams, results, filename, 
   		S_Dbw.scale = 1, S_Dbw.method = "Tong")
+  
+  outputTitanSegments(results, id, convergeParams, filename = NULL, 
+  		igvfilename = NULL)
 }
 
 %- maybe also 'usage' for other objects documented here.
 \arguments{
+	\item{id}{
+		Character string identifier for sample 
+	}
   \item{data}{
     \code{\link[base:list]{list}} object that contains the components for the data to be analyzed. \code{chr}, \code{posn}, \code{ref}, and \code{tumDepth} that can be obtained using \code{\link{loadAlleleCounts}}, and \code{logR} that can be obtained using \code{\link{correctReadDepth}} and \code{\link{getPositionOverlap}} (see Example).
   }
@@ -32,6 +40,9 @@
   }
   \item{filename}{
     Path of the file to write the \pkg{TitanCNA} results.
+  }
+  \item{igvfilename}{
+  	Path of the file to write the IGV seg file.
   }
   \item{posteriorProbs}{
     \code{Logical TRUE} to include the posterior marginal probabilities in printing to \code{filename}. 
@@ -126,8 +137,14 @@ results <- outputTitanResults(data, convergeParams, optimalPath,
                               subcloneProfiles = TRUE)
 
 #### OUTPUT RESULTS TO FILE ####
-outparam <- paste("cluster2_params.txt", sep = "")
+outparam <- paste0("cluster2_params.txt")
 outputModelParameters(convergeParams, results, outparam)
+
+#### OUTPUT SEGMENTS TO FILE ####
+outseg <- paste0("cluster2_segs.txt")
+outigv <- paste0("cluster2.seg")
+segs <- outputTitanSegments(results, id = "test", convergeParams, filename = outseg, igvfilename = outigv)
+# segment results also stored in data.frame "segs" 
 }
 
 

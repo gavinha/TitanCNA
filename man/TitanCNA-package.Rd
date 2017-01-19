@@ -14,9 +14,9 @@ TITAN: Subclonal copy number and LOH prediction whole genome sequencing of tumou
 \tabular{ll}{
 Package: \tab TitanCNA\cr
 Type: \tab Package\cr
-Version: \tab 1.9.0\cr
-Date: \tab 2016-02-17\cr
-License: \tab see LICENSE\cr
+Version: \tab 1.12.1\cr
+Date: \tab 2017-01-18\cr
+License: \tab GPL-3\cr
 }
 
 \code{example("TitanCNA-package")} for quick tour of functionality and visualization
@@ -91,12 +91,15 @@ corrResults <- removeEmptyClusters(convergeParams, results, proportionThreshold 
 convergeParams <- corrResults$convergeParams
 results <- corrResults$results
 
+#### GET SEGMENT RESULTS ####
+segs <- outputTitanSegments(results, id = "test", convergeParams, filename = NULL, igvfilename = NULL)
+
 #### PLOT RESULTS ####
 norm <- tail(convergeParams$n, 1)
 ploidy <- tail(convergeParams$phi, 1)
 
 par(mfrow=c(4, 1))    
-plotCNlogRByChr(results, chr = 2, ploidy = ploidy, normal = norm, geneAnnot = NULL, 
+plotCNlogRByChr(results, chr = 2, segs = segs, ploidy = ploidy, normal = norm, geneAnnot = NULL, 
                 ylim = c(-2, 2), cex = 0.5, xlab = "", main = "Chr 2")
 plotAllelicRatio(results, chr = 2, geneAnnot = NULL, ylim = c(0, 1), cex = 0.5, 
                 xlab = "", main = "Chr 2")

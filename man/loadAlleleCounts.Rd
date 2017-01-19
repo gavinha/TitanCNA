@@ -10,7 +10,8 @@
 }
 
 \usage{
-  loadAlleleCounts(inCounts, symmetric = TRUE, genomeStyle = "NCBI", sep = "\t", header = TRUE)
+  loadAlleleCounts(inCounts, symmetric = TRUE, 
+  		genomeStyle = "NCBI", sep = "\t", header = TRUE)
 }
 
 \arguments{
