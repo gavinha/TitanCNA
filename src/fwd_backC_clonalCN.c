@@ -254,7 +254,7 @@ void preparePositionSpecificMatrix(double * transSlice, unsigned int K, unsigned
 						//transitions to same state or same zygosity status
 						
             /** GENOTYPE TRANSITION **/
-            if ((iZS==jZS)){
+            if (iZS==jZS){
                 transSlice[i + j*K] = rhoG; 
             }else{
 	              transSlice[i + j*K] = (1.0-rhoG)/((double)K-1.0); 

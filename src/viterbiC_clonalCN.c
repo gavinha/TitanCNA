@@ -128,7 +128,7 @@ SEXP viterbiC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey, 
       path[t] = (double)(path[t]+1);
   
   free(delta); free(psi); free(d);
-  UNPROTECT(9);
+  UNPROTECT(10);
 
   return path_data;
 }
