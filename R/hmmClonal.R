@@ -2,7 +2,7 @@
 # 		  Dana-Farber Cancer Institute
 #		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-# date:	  November 13, 2014
+# date:	  March 17, 2017
 
 #### EM (FWD-BACK) Algorithm ####
 runEMclonalCN <- function(data, gParams, nParams, pParams, 

@@ -1,5 +1,6 @@
 \name{loadAlleleCounts}
 \alias{loadAlleleCounts}
+\alias{setGenomeStyle}
 
 \title{
   Function to load tumour allele counts from a text file or data.frame
@@ -12,6 +13,9 @@
 \usage{
   loadAlleleCounts(inCounts, symmetric = TRUE, 
   		genomeStyle = "NCBI", sep = "\t", header = TRUE)
+
+\usage{
+	setGenomeStyle(x, genomeStyle = "NCBI", species = "Homo_sapiens")
 }
 
 \arguments{
@@ -30,10 +34,13 @@
   \item{header}{
   	\code{logical} to indicate if the input tumour counts file contains a header line.
   }
+  \item{species}{
+  	\code{character} denoting the species
+  }
 }
 
 \value{
-  \code{\link[base:list]{list}} containing components for 
+	\code{loadAlleleCounts} returns a \code{\link[base:list]{list}} containing components for 
   \item{chr}{Chromosome; character, NCBI or UCSC genome style format}
   \item{posn}{Position; integer}
   \item{ref}{Reference counts; numeric}
@@ -61,10 +68,9 @@ Ha, G., Roth, A., Khattra, J., Ho, J., Yap, D., Prentice, L. M., Melnyk, N., McP
   data <- loadAlleleCounts(infile, symmetric = TRUE, 
   		genomeStyle = "NCBI", header = TRUE)
   
+  ## use the UCSC chromosome naming convention instead ##
+  data$chr <- setGenomeStyle(data$chr, genomeStyle = "UCSC")
   \dontrun{
-	countsDF <- extractAlleleReadCounts(tumBam, tumBamIndex, 
-			germlineHetPosns, outputFilename = NULL, 
-			pileupParam = PileupParam())
 	data <- loadAlleleCounts(countsDF, symmetric = TRUE, 
   			genomeStyle = "NCBI")
   }

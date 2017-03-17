@@ -76,8 +76,17 @@ Load the provided text file for the allele counts for chromosome 2 of a breast c
 library(TitanCNA)
 infile <- system.file("extdata", "test_alleleCounts_chr2.txt", 
                       package = "TitanCNA")
-data <- loadAlleleCounts(infile)
+data <- loadAlleleCounts(infile, genomeStyle = "NCBI")
 names(data)
+@
+
+Users can specify the desired chromosome naming convention by using the \verb|genomeStyle| argument. Using \verb|NCBI| will use chromosome names such as 1, 2, 3, ..., X, while using \verb|UCSC| will use names such as chr1, chr2, chr3, ..., chrX. Users can further change chromosome naming convention after by invoking \verb|setGenomeStyle|. Note that it does not matter what the chromosome convention was originally; using \verb|genomeStyle| argument and \verb|setGenomeStyle| function will return the specified convention.
+
+<<>>= 
+data$chr <- setGenomeStyle(data$chr, genomeStyle = "UCSC")
+head(data$chr)
+data$chr <- setGenomeStyle(data$chr, genomeStyle = "NBCI")
+head(data$chr)
 @
 
 \subsection{Loading the initial parameters}
@@ -127,7 +136,7 @@ tumWig <- system.file("extdata", "test_tum_chr2.wig", package = "TitanCNA")
 normWig <- system.file("extdata", "test_norm_chr2.wig", package = "TitanCNA")
 gc <- system.file("extdata", "gc_chr2.wig", package = "TitanCNA")
 map <- system.file("extdata", "map_chr2.wig", package = "TitanCNA")
-cnData <- correctReadDepth(tumWig, normWig, gc, map)
+cnData <- correctReadDepth(tumWig, normWig, gc, map, genomeStyle = "NCBI")
 head(cnData)
 @
 

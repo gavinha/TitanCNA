@@ -5,4 +5,5 @@ export(loadAlleleCounts,loadDefaultParameters,
 		outputTitanResults,outputModelParameters,correctReadDepth,
 		runEMclonalCN, viterbiClonalCN,computeSDbwIndex,
 		plotAllelicRatio,plotClonalFrequency,plotCNlogRByChr,
-		plotSubcloneProfiles, removeEmptyClusters, outputTitanSegments)
+		plotSubcloneProfiles, removeEmptyClusters, outputTitanSegments,
+		setGenomeStyle)

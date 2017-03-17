@@ -2,7 +2,7 @@
 # 		Dana-Farber Cancer Institute
 #		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-# date:	  October 19, 2015
+# date:	  March 17, 2017
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
     skew = 0, hetBaselineSkew = NULL, symmetric = TRUE, data = NULL) {
@@ -148,7 +148,7 @@ loadAlleleCounts <- function(inCounts, symmetric = TRUE,
     nonRef <- as.numeric(data[, 6])
     tumDepth <- refOriginal + nonRef
     if (symmetric) {
-        ref <- apply(cbind(refOriginal, nonRef), 1, max, na.rm = TRUE)
+        ref <- pmax(refOriginal, nonRef)
     } else {
         ref <- refOriginal
     }
@@ -250,8 +250,7 @@ filterData <- function(data, chrs = NULL, minDepth = 10,
     } else {
         keepPosn <- !logical(length = length(data$chr))
     }
-    keepTumDepth <- data$tumDepth <= maxDepth & data$tumDepth >= 
-        minDepth
+    keepTumDepth <- data$tumDepth <= maxDepth & data$tumDepth >= minDepth
     if (is.null(chrs)){
    		keepChrs <- logical(length = length(data$chr))
    	}else{
@@ -259,11 +258,14 @@ filterData <- function(data, chrs = NULL, minDepth = 10,
    	}
     cI <- keepChrs & keepTumDepth & !is.na(data$logR) & 
         keepMap & keepPosn
-    for (i in 1:length(data)) {
-        if (!is.null(data[[i]])) {
-            data[[i]] <- data[[i]][cI]
-        }
-        
+    if (class(data) == "list"){
+      for (i in 1:length(data)) {
+          if (!is.null(data[[i]])) {
+              data[[i]] <- data[[i]][cI]
+          }
+      }
+    }else{
+      data <- data[which(cI), ]
     }
     ## remove centromere SNPs ##
     if (!is.null(centromeres)){
@@ -526,7 +528,7 @@ computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRati
     	}
     	## for allelic ratios, compute the symmetric allelic ratio
     	ARdata <- as.numeric(x[, data.type])
-    	ARdata <- apply(cbind(ARdata, 1 - ARdata), 1, max, na.rm = TRUE)
+    	ARdata <- pmax(ARdata, 1 - ARdata)
     	ARdata <- scale(ARdata)
     	x <- as.matrix(cbind(as.numeric(flatState), ARdata))
     	rm(ARdata)
@@ -747,7 +749,7 @@ decodeLOH <- function(G, symmetric = TRUE) {
 
 
 outputTitanResults <- function(data, convergeParams, 
-    optimalPath, filename = NULL, posteriorProbs = FALSE, 
+    optimalPath, filename = NULL, is.haplotypeData = FALSE, posteriorProbs = FALSE, 
     subcloneProfiles = TRUE) {
     
     # check if useOutlierState is in convergeParams
@@ -791,19 +793,31 @@ outputTitanResults <- function(data, convergeParams,
         clonalHeaderStr[j] <- sprintf("pClust%d", j)
     }
     
-    outmat <- cbind(Chr = data$chr, Position = data$posn, 
-        RefCount = data$refOriginal, NRefCount = data$tumDepth - 
-            data$refOriginal, Depth = data$tumDepth, 
-        AllelicRatio = sprintf("%0.2f", data$refOriginal/data$tumDepth), 
-        LogRatio = sprintf("%0.2f", log2(exp(data$logR))), 
+    outmat <- data.frame(Chr = data$chr, Position = data$posn, RefCount = data$refOriginal, 
+        stringsAsFactors = FALSE)
+      
+    if (is.haplotypeData){
+      outmat <- cbind(outmat, NRefCount = data$tumDepthOriginal - data$refOriginal, 
+        Depth = data$tumDepthOriginal, 
+        AllelicRatio = sprintf("%0.2f", data$refOriginal/data$tumDepthOriginal),
+        HaplotypeCount = data$haplotypeCount,
+        HaplotypeDepth = data$tumDepth,
+        HaplotypeRatio =  sprintf("%0.2f", data$haplotypeCount/data$tumDepth), 
+        PhaseSet = data$phaseSet,
+        stringsAsFactors = FALSE)
+    }else{
+      outmat <- cbind(outmat, Depth = data$tumDepth, 
+        AllelicRatio = sprintf("%0.2f", data$refOriginal/data$tumDepth))
+    }
+    outmat <- cbind(outmat, LogRatio = sprintf("%0.2f", log2(exp(data$logR))), 
         CopyNumber = CN, TITANstate = G, TITANcall = Gcalls, 
-        ClonalCluster = Zclust, CellularPrevalence = sprintf("%0.2f", 
-            1 - Sout))
+        ClonalCluster = Zclust, CellularPrevalence = sprintf("%0.2f", 1 - Sout),
+        stringsAsFactors = FALSE)
    	
    	## INCLUDE SUBCLONE PROFILES 
    	if (subcloneProfiles & numClust <= 2){
-   		outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
-    	outmat <- cbind(outmat, getSubcloneProfiles(outmat))
+   		#outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
+    	outmat <- cbind(outmat, getSubcloneProfiles(outmat), stringsAsFactors = FALSE)
     }else{
     	message("outputTitanResults: More than 2 clusters or subclone profiles not requested.")
     }
@@ -812,21 +826,27 @@ outputTitanResults <- function(data, convergeParams,
     	rhoZ <- t(convergeParams$rhoZ)
     	rhoZ <- rhoZ[, sortS$ix, drop = FALSE]
    		colnames(rhoZ) <- clonalHeaderStr
-        outmat <- cbind(outmat, format(round(rhoZ, 
-            4), nsmall = 4, scientific = FALSE), format(round(rhoG, 
-            4), nsmall = 4, scientific = FALSE))
+        outmat <- cbind(outmat, format(round(rhoZ, 4), 
+        nsmall = 4, scientific = FALSE), format(round(rhoG, 4), 
+        nsmall = 4, scientific = FALSE))
     }
     if (!is.null(filename)) {
         message("titan: Writing results to ", filename)
         write.table(outmat, file = filename, col.names = TRUE, 
             row.names = FALSE, quote = FALSE, sep = "\t")
     }
-    suppressWarnings(outmat <- transform(outmat, Chr = as.character(Chr), Position = as.numeric(Position), 
-    		RefCount = as.integer(RefCount), NRefCount = as.integer(NRefCount),
-    		Depth = as.integer(Depth), AllelicRatio = as.numeric(AllelicRatio), LogRatio = as.numeric(LogRatio), 
-    		CopyNumber = as.integer(CopyNumber), TITANstate = as.integer(TITANstate),
-    		ClonalCluster = as.integer(ClonalCluster), CellularPrevalence = as.numeric(CellularPrevalence))
-    		)
+    suppressWarnings(outmat <- transform(outmat, AllelicRatio = as.numeric(AllelicRatio),
+        LogRatio = as.numeric(LogRatio),
+        CellularPrevalence = as.numeric(CellularPrevalence)))
+    if (is.haplotypeData){
+      suppressWarnings(outmat <- transform(outmat, HaplotypeRatio = as.numeric(HaplotypeRatio)))
+    }
+    #suppressWarnings(outmat <- transform(outmat, Chr = as.character(Chr), Position = as.numeric(Position), 
+    #		RefCount = as.integer(RefCount), NRefCount = as.integer(NRefCount),
+    #		Depth = as.integer(Depth), AllelicRatio = as.numeric(AllelicRatio), LogRatio = as.numeric(LogRatio), 
+    #		CopyNumber = as.integer(CopyNumber), TITANstate = as.integer(TITANstate),
+    #		ClonalCluster = as.integer(ClonalCluster), CellularPrevalence = as.numeric(CellularPrevalence))
+    #		)
     return(outmat)
 }
 
@@ -924,11 +944,14 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 	numSegs <- length(rleLengths)
 	
   # convert allelic ratio to symmetric ratios #
-  results$AllelicRatio <- apply(cbind(results$AllelicRatio, 1-results$AllelicRatio), 1, max, na.rm = TRUE)
-	
-	segs <- as.data.frame(matrix(NA, ncol = 14, nrow = numSegs, 
+  results$AllelicRatio <- pmax(results$AllelicRatio, 1-results$AllelicRatio)
+	if (!is.null(results$HaplotypeRatio)){
+	  results$HaplotypeRatio <- pmax(results$HaplotypeRatio, 1-results$HaplotypeRatio)
+	}
+	segs <- as.data.frame(matrix(NA, ncol = 15, nrow = numSegs, 
 								 dimnames = list(c(), c("Sample", "Chromosome", "Start_Position.bp.", "End_Position.bp.", 
-								 "Length.snp.", "Median_Ratio", "Median_logR", "TITAN_state", "TITAN_call", "Copy_Number",
+								 "Length.snp.", "Median_Ratio", "Median_HaplotypeRatio", "Median_logR", "TITAN_state", 
+								 "TITAN_call", "Copy_Number",
 								 "MinorCN", "MajorCN", "Clonal_Cluster", "Cellular_Frequency"))))
 	segs$Sample <- id
 	colNames <- c("Chr", "Position", "TITANstate", "AllelicRatio", "LogRatio")
@@ -950,6 +973,9 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 		segs[j, "MajorCN"] <- getMajorMinorCN(rleValues[j], convergeParams$symmetric)$minorCN
 		segs[j, "Clonal_Cluster"] <- segDF[1, "ClonalCluster"]
 		segs[j, "Cellular_Frequency"] <- segDF[1, "CellularPrevalence"]
+		if (!is.null(segDF$HaplotypeRatio)){
+		  segs[j, "Median_HaplotypeRatio"] <- round(median(segDF$HaplotypeRatio, na.rm = TRUE), digits = 6)
+		}
 		if (segDF[1, "Chr"] == segDF[numR, "Chr"]){
 			segs[j, "End_Position.bp."] <- segDF[numR, "Position"]
 			segs[j, "Length.snp."] <- numR
