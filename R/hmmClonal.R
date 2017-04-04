@@ -5,46 +5,54 @@
 # date:	  March 17, 2017
 
 #### EM (FWD-BACK) Algorithm ####
-runEMclonalCN <- function(data, gParams, nParams, pParams, 
-    sParams, txnExpLen = 1e+15, txnZstrength = 5e+5, 
-    maxiter = 15, maxiterUpdate = 1500, pseudoCounts = 1e-300, 
-    normalEstimateMethod = "map", estimateS = TRUE, 
-    estimatePloidy = TRUE, useOutlierState = FALSE, 
-    verbose = TRUE) {
-    ## check that arguments contain necessary list
-    ## elements
-    if (length(data$chr) == 0 || length(data$posn) == 
-        0 || length(data$ref) == 0 || length(data$tumDepth) == 
-        0 || length(data$logR) == 0) {
+runEMclonalCN <- function(data, params,
+                          #gParams = NULL, nParams = NULL, pParams = NULL, sParams = NULL, 
+                          txnExpLen = 1e+15, txnZstrength = 5e+5, 
+                          maxiter = 15, maxiterUpdate = 1500, pseudoCounts = 1e-300, 
+                          normalEstimateMethod = "map", estimateS = TRUE, estimatePloidy = TRUE, 
+                          useOutlierState = FALSE, verbose = TRUE) {
+    ## check that arguments contain necessary list elements
+    if (is.null(params$genotypeParams) || is.null(params$ploidyParams) ||
+        is.null(params$normalParams) || is.null(params$cellPrevParams)){
+      stop("params must include genotypeParams, ploidyParams, normalParams, cellPrevParams.")
+    }else{
+      gParams <- params$genotypeParams
+      pParams <- params$ploidyParams
+      sParams <- params$cellPrevParams
+      nParams <- params$normalParams
+    }
+  
+    if (is.null(data$chr) || is.null(data$posn) || 
+        is.null(data$ref) || is.null(data$tumDepth) ||
+        is.null(data$logR)) {
         stop("data must contain named list elements: chr, posn, ref, tumDepth, 
              logR. See loadDataFromFile()")
     }
-    if (length(gParams$rt) == 0 || length(gParams$ct) == 
-        0 || length(gParams$rn) == 0 || length(gParams$ZS) == 
-        0 || length(gParams$var_0) == 0 || length(gParams$alphaKHyper) == 
-        0 || length(gParams$betaKHyper) == 0 || length(gParams$kappaGHyper) == 
-        0) {
+    if (is.null(gParams$rt) || is.null(gParams$ct) || 
+        is.null(gParams$rn)  || is.null(gParams$ZS) || 
+        is.null(gParams$var_0) || is.null(gParams$alphaKHyper) || 
+        is.null(gParams$betaKHyper) || is.null(gParams$kappaGHyper)) {
         stop("genotypeParams must contain named list elements: rt, rn, ct, ZS, 
              var_0, alphaKHyper, betaKHyper, kappaGHyper.\n         
              See loadDefaultParameters().")
     }
-    if (length(pParams$phi_0) == 0 || length(pParams$alphaPHyper) == 
-        0 || length(pParams$betaPHyper) == 0) {
+    if (is.null(pParams$phi_0) || is.null(pParams$alphaPHyper) ||
+        is.null(pParams$betaPHyper)) {
         stop("ploidyParams must contain named list elements: phi_0, alphaPHyper, 
              betaPHyper. See loadDefaultParameters()")
     }
-    if (length(nParams$n_0) == 0 || length(nParams$alphaNHyper) == 
-        0 || length(nParams$betaNHyper) == 0) {
+    if (is.null(nParams$n_0) || is.null(nParams$alphaNHyper) || 
+        is.null(nParams$betaNHyper)) {
         stop("normalParams must contain named list elements: n_0, alphaNHyper, 
              betaNHyper. See loadDefaultParameters()")
     }
-    if (length(sParams$s_0) == 0 || length(sParams$kappaZHyper) == 
-        0 || length(sParams$alphaSHyper) == 0 || length(sParams$betaSHyper) == 
-        0) {
+    if (is.null(sParams$s_0) || is.null(sParams$kappaZHyper) || 
+        is.null(sParams$alphaSHyper) || is.null(sParams$betaSHyper)) {
         stop("sParams (clonal parameters) must contain named list elements: s_0, 
              kappaSHyper, alphaSHyper, betaSHyper. \n         
              See setupClonalParameters().")
     }
+   
     
     ## track the total time
     ticTotalId <- proc.time()
@@ -68,8 +76,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         gParams$alphaKHyper <- c(0, gParams$alphaKHyper)
         gParams$betaKHyper <- c(0, gParams$betaKHyper)
         K <- length(gParams$rt)
-        gNoOUTStateParams <- excludeGarbageState(gParams, 
-            K)
+        gNoOUTStateParams <- excludeGarbageState(gParams, K)
         KnoOutlier <- K - 1
         kRange <- 2:K
         Ktotal <- KnoOutlier * Z + 1
@@ -89,7 +96,8 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     piG <- matrix(0, K, maxiter)  # initial state distribution of genotypes + outlier state
     piZ <- matrix(0, Z, maxiter)  # initial state assignments for clonal clusters
     s <- matrix(0, Z, maxiter)  # clonal frequency parameter
-    var <- matrix(0, K, maxiter)  # clonal frequency parameter + outlier state
+    var <- matrix(0, K, maxiter)  # variance parameter (logR) + outlier state
+    varR <- matrix(0, K, maxiter) # variance parameter (allelic) + outlier state
     phi <- rep(0, maxiter)  # global ploidy parameter
     n <- rep(0, maxiter)  # global normal contamination parameter
     loglik <- rep(0, maxiter)  #log likelihood
@@ -121,14 +129,14 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     converged <- 0  # flag for convergence
     s[, i] <- sParams$s_0
     var[, i] <- gParams$var_0
+    
     # var[1,i] <- gParams$outlierVar
     phi[i] <- pParams$phi_0
     n[i] <- nParams$n_0
     piG[, i] <- piG_0
-    if (useOutlierState) 
-        {
-            piG[1, i] <- piG_0[1] * piZ_0[1]
-        }  #initialize outlier state 
+    if (useOutlierState){ #initialize outlier state 
+      piG[1, i] <- piG_0[1] * piZ_0[1]
+    }  
     piZ[, i] <- piZ_0
     musTmp <- clonalTwoComponentMixtureCN(gNoOUTStateParams$rt, 
         gParams$rn, nParams$n_0, sParams$s_0, gNoOUTStateParams$ct, 
@@ -138,10 +146,17 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     
     # compute likelihood conditional on k and z
     # (K-by-Z-by-N)
-    pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
-        matrix(mus$R[, , i], KnoOutlier, Z))
-    pyC <- computeNormalObslik(data$logR, matrix(mus$C[, 
-        , i], KnoOutlier, Z), gNoOUTStateParams$var_0)
+    if (gParams$alleleEmissionModel == "Gaussian"){
+      pyR <- computeNormalObslik(data$ref / data$tumDepth, 
+                                 matrix(mus$R[, , i], KnoOutlier, Z),
+                                 gNoOUTStateParams$varR_0)
+      varR[, i] <- gParams$varR_0
+    }else{ # if (gParams$alleleEmissionModel == "binomial"){
+      pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
+                                   matrix(mus$R[, , i], KnoOutlier, Z))
+    }
+    pyC <- computeNormalObslik(data$logR, matrix(mus$C[, , i], KnoOutlier, Z), 
+                               gNoOUTStateParams$var_0)
     if (useOutlierState == 1) {
         pyO <- outlierObslik(data$ref, data$tumDepth, 
             data$logR, gParams$outlierVar)
@@ -161,7 +176,6 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         ticId <- proc.time()
         i <- i + 1
         ## E-STEP: FORWARDS-BACKWARDS ALGORITHM;
-        ## PARALLELIZATION
         loglik[i] <- 0
         if (verbose == TRUE) {
             message("fwdBack: Iteration ", i - 1, " chr: ", 
@@ -173,18 +187,15 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         for (c in 1:numChrs) {
             piZi[[c]] <- piZ[, i - 1, drop = FALSE]
             piGi[[c]] <- piG[kRange, i - 1, drop = FALSE]
-            piGiZi[c, KtotalRange] <- as.vector(piGi[[c]] %*% 
-                t(piZi[[c]]))  #inner product then flatten to 1-by-K*Z
-            if (useOutlierState) 
-                {
-                  piGiZi[c, ] <- c(piG[1, i - 1], piGiZi[c, 
-                    KtotalRange])
-                }  #add outlier state
+            #inner product then flatten to 1-by-K*Z
+            piGiZi[c, KtotalRange] <- as.vector(piGi[[c]] %*% t(piZi[[c]]))  
+            if (useOutlierState) { #add outlier state
+                  piGiZi[c, ] <- c(piG[1, i - 1], piGiZi[c, KtotalRange])
+            }  
         }
         gc(verbose = FALSE, reset = TRUE)
         ## PARALLELIZATION
-        fwdBackPar <- foreach(c = 1:numChrs, .combine = rbind, .noexport = c("data")) %dopar% 
-            {
+        fwdBackPar <- foreach(c = 1:numChrs, .combine = rbind, .noexport = c("data")) %dopar% {
                 ## Fwd-back returns rho (responsibilities) and
                 ## loglik (log-likelihood, p(Data|Params)) include outlier state
                 if (verbose == TRUE) {
@@ -194,13 +205,12 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
                   log(piGiZi[c, ]), py[, chrsI[[c]]], gNoOUTStateParams$ct, 
                   gNoOUTStateParams$ZS, Z, posn[chrsI[[c]]], 
                   txnZstrength * txnExpLen, txnExpLen, O)
-            }
+        }
         if (verbose == TRUE) {
             message("")
         }
         if (numChrs > 1) {
-            loglik[i] <- sum(do.call(rbind, fwdBackPar[, 
-                2]))  #combine loglik
+            loglik[i] <- sum(do.call(rbind, fwdBackPar[, 2]))  #combine loglik
             # marginal probs or responsibilities,
             # p(G_t,Z_t|Data,Params)
             rho <- do.call(cbind, fwdBackPar[, 1])  #combine rho from parallel runs  
@@ -221,8 +231,8 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         
         ## M-STEP: COORDINATE DESCENT UPDATE OF PARAMETERS
         estimateOut <- estimateClonalCNParamsMap(data$ref, data$tumDepth, 
-            data$logR, rho, n[i - 1], 
-            s[, i - 1], var[kRange, i - 1], phi[i - 1], 
+            data$logR, rho, n[i - 1], s[, i - 1], phi[i - 1], 
+            var[kRange, i - 1], varR[kRange, i - 1], 
             gNoOUTStateParams, nParams, sParams, pParams, 
             maxiter = maxiterUpdate, 
             normalEstimateMethod = normalEstimateMethod, 
@@ -231,26 +241,29 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         n[i] <- estimateOut$n
         s[, i] <- estimateOut$s
         var[kRange, i] <- estimateOut$var
+        varR[kRange, i] <- estimateOut$varR
         phi[i] <- estimateOut$phi
-        if (useOutlierState) 
-            {
+        if (useOutlierState) { #garbage state
                 var[1, i] <- gParams$outlierVar
-            }  #garbage state 
-        piZ[, i] <- estimateClonalMixWeightsParamMap(rhoZ, 
-            sParams$kappaZHyper)
-        piG[, i] <- estimateGenotypeMixWeightsParamMap(rhoG, 
-            gParams$kappaGHyper)
+        }   
+        piZ[, i] <- estimateClonalMixWeightsParamMap(rhoZ, sParams$kappaZHyper)
+        piG[, i] <- estimateGenotypeMixWeightsParamMap(rhoG, gParams$kappaGHyper)
         rm(rho, estimateOut, outRhoRow)  #clear rho and estimateOut
         ## Recompute the likelihood conditional on k and z
         musTmp <- clonalTwoComponentMixtureCN(gNoOUTStateParams$rt, 
-            gParams$rn, n[i], s[, i], gNoOUTStateParams$ct, 
-            phi[i])
+            gParams$rn, n[i], s[, i], gNoOUTStateParams$ct, phi[i])
         mus$R[, , i] <- musTmp$R
         mus$C[, , i] <- musTmp$C
-        pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
-            matrix(mus$R[, , i], KnoOutlier, Z))
-        pyC <- computeNormalObslik(data$logR, matrix(mus$C[, 
-            , i], KnoOutlier, Z), var[kRange, i])
+        if (gParams$alleleEmissionModel == "Gaussian"){
+          pyR <- computeNormalObslik(data$ref / data$tumDepth, 
+                                     matrix(mus$R[, , i], KnoOutlier, Z),
+                                     varR[kRange, i])
+        }else{ # if (gParams$alleleEmissionModel == "binomial"){
+          pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
+                                       matrix(mus$R[, , i], KnoOutlier, Z))
+        }
+        pyC <- computeNormalObslik(data$logR, 
+                                   matrix(mus$C[, , i], KnoOutlier, Z), var[kRange, i])
         if (useOutlierState == 1) {
             pyO <- outlierObslik(data$ref, data$tumDepth, 
                 data$logR, gParams$outlierVar)
@@ -280,6 +293,11 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
             priorVar[k] <- invgammapdflog(var[k, i], 
                 gParams$alphaKHyper[k], gParams$betaKHyper[k])
         }
+        priorVarR <- 0
+        if (gParams$alleleEmissionModel == "Gaussian"){
+            priorVarR <- invgammapdflog(varR[, i], 
+                gParams$alphaRHyper, gParams$betaRHyper)
+        }
         if (estimatePloidy) {
             priorPhi <- invgammapdflog(phi[i], pParams$alphaPHyper, 
                 pParams$betaPHyper)
@@ -299,8 +317,8 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
                 loglik[i]))
         }
         loglik[i] <- loglik[i] + priorPiG + priorPiZ + 
-            sum(priorS, na.rm = TRUE) + sum(priorVar, 
-            na.rm = TRUE) + priorPhi + priorN
+            sum(priorS, na.rm = TRUE) + sum(priorVar, na.rm = TRUE) + 
+            sum(priorVarR, na.rm = TRUE) + priorPhi + priorN
         if (verbose == TRUE) {
             message("fwdBack: priorN=", sprintf("%0.4f", 
                 priorN))
@@ -308,6 +326,8 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
                 sum(priorS, na.rm = TRUE)))
             message("fwdBack: priorVar=", sprintf("%0.4f", 
                 sum(priorVar, na.rm = TRUE)))
+            message("fwdBack: priorVarR=", sprintf("%0.4f", 
+                sum(priorVarR, na.rm = TRUE)))
             message("fwdBack: priorPhi=", sprintf("%0.4f", 
                 priorPhi))
             message("fwdBack: priorPiG=", sprintf("%0.4f", 
@@ -352,6 +372,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     output$n <- n[1:i]
     output$s <- s[, 1:i, drop = FALSE]
     output$var <- var[, 1:i, drop = FALSE]
+    output$varR <- varR[, 1:i, drop = FALSE]
     output$phi <- phi[1:i]
     output$piG <- piG[, 1:i, drop = FALSE]
     output$piZ <- piZ[, 1:i, drop = FALSE]

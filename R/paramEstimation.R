@@ -8,38 +8,43 @@
 ## updateParameters based on the normal estimate
 ## method chosen
 estimateClonalCNParamsMap <- function(x, N, l, rho, 
-    n_0, s_0, var_0, phi_0, gParams, nParams, sParams, 
+    n_0, s_0, phi_0, var_0, varR_0, gParams, nParams, sParams, 
     pParams, maxiter = 500, normalEstimateMethod = "fixed", 
     estimateS = TRUE, estimatePloidy = TRUE, verbose = TRUE) {
     K <- dim(rho)[1]
     Z <- dim(rho)[2]
     T <- dim(rho)[3]
-    # assign some variables to simpify the update
-    # equations
+    # assign some variables to simpify the update equations
     a <- matrix(0, K, Z)
     b <- matrix(0, K, Z)
     c <- matrix(0, K, Z)
     d <- matrix(0, K, Z)
     e <- matrix(0, K, Z)
+    f <- matrix(0, K, Z)
     g <- matrix(0, K, Z)
     for (z in 1:Z) {
         for (k in 1:K) {
-            a[k, z] <- x %*% rho[k, z, ]
-            b[k, z] <- (N - x) %*% rho[k, z, ]
+            if (gParams$alleleEmissionModel == "Gaussian"){
+              a[k, z] <- (x / N) %*% rho[k, z, ]
+              f[k, z] <- (x / N)^2 %*% rho[k, z, ]
+            }else{
+              a[k, z] <- x %*% rho[k, z, ]
+              b[k, z] <- (N - x) %*% rho[k, z, ]
+              d[k, z] <- lchoose(N, x) %*% rho[k, z, ]
+            }
             c[k, z] <- l %*% rho[k, z, ]
             e[k, z] <- sum(rho[k, z, ])
             g[k, z] <- (l^2) %*% rho[k, z, ]
-            d[k, z] <- lchoose(N, x) %*% rho[k, z, ]
         }
     }
     
-    estimateOut <- updateParameters(n_0, s_0, var_0, 
-        phi_0, a, b, c, d, e, g, gParams, nParams, 
+    estimateOut <- updateParameters(n_0, s_0, var_0, varR_0,
+        phi_0, a, b, c, d, e, f, g, gParams, nParams, 
         sParams, pParams, normalEstimateMethod = normalEstimateMethod, 
-        estimateS = estimateS, estimatePloidy = estimatePloidy, 
+        estimateS = estimateS, estimatePloidy = estimatePloidy,
         maxiter = maxiter, verbose = verbose)
     
-    rm(a, b, c, d, e, g)
+    rm(a, b, c, d, e, f, g)
     gc(verbose = FALSE, reset = TRUE)
     if (verbose == TRUE) {
         message("Using Coordinate Descent iteration ", 
@@ -56,20 +61,22 @@ estimateClonalCNParamsMap <- function(x, N, l, rho,
 
 ## handles normal contamination estimation using 1)
 ## map and 2) fixed approaches
-updateParameters <- function(n_0, s_0, var_0, phi_0, 
-    a, b, c, d, e, g, gParams, nParams, sParams, pParams, 
-    normalEstimateMethod, estimateS, estimatePloidy, 
+updateParameters <- function(n_0, s_0, var_0, varR_0, phi_0, 
+    a, b, c, d, e, f, g, gParams, nParams, sParams, pParams, 
+    normalEstimateMethod, estimateS, estimatePloidy, estimateR,
     maxiter = 500, miniter = 10, verbose = TRUE) {
     
     K <- length(var_0)
     Z <- length(s_0)
     s <- rep(0, Z)
-    var = rep(0, K)
-    phi = 0
-    n = 0
+    var <- rep(0, K)
+    varR <- rep(0, K)
+    phi <- 0
+    n <- 0
     
     intervalS <- c(.Machine$double.eps, 1 - .Machine$double.eps)
     intervalVar <- c(.Machine$double.eps, 5)
+    intervalVarR <- c(.Machine$double.eps, 5)
     intervalPhi <- c(.Machine$double.eps, 10)
     intervalN <- c(.Machine$double.eps, 1 - .Machine$double.eps)
     converged <- 0
@@ -79,16 +86,18 @@ updateParameters <- function(n_0, s_0, var_0, phi_0,
     n_prev <- n_0
     s_prev <- s_0
     var_prev <- var_0
+    varR_prev <- varR_0
     phi_prev <- phi_0
-    F <- matrix(0, K + Z + 2, maxiter)
-    F[, i] <- c(n_prev, s_prev, var_prev, phi_prev)
+    numParameters <- K + Z + K + 2 # logR var + s + allele varR + n + phi
+    F <- matrix(0, numParameters, maxiter)
+    F[, i] <- c(n_prev, s_prev, var_prev, varR_prev, phi_prev)
     F0 <- rep(0, maxiter)  ## keep track of likelihood function (objective function)
-    F0[i] <- likelihoodFunc(F[, i], a, b, c, d, e, 
-        g, gParams$rt, gParams$rn, gParams$ct, sParams$alphaSHyper, 
-        sParams$betaSHyper, nParams$alphaNHyper, nParams$betaNHyper, 
-        gParams$alphaKHyper, gParams$betaKHyper, pParams$alphaPHyper, 
-        pParams$betaPHyper, normalEstimateMethod, estimateS, 
-        estimatePloidy)
+    F0[i] <- likelihoodFunc(F[, i], a, b, c, d, e, f, g, gParams$alleleEmissionModel,
+                            gParams$rt, gParams$rn, gParams$ct, sParams$alphaSHyper, 
+                            sParams$betaSHyper, nParams$alphaNHyper, nParams$betaNHyper, 
+                            gParams$alphaKHyper, gParams$betaKHyper, gParams$alphaRHyper,
+                            gParams$betaRHyper, pParams$alphaPHyper, pParams$betaPHyper, 
+                            normalEstimateMethod, estimateS, estimatePloidy)
     objfun[i] <- F0[i]
     if (verbose == TRUE) {
         message("Coord Descent[", i, "]=", format(objfun[i], 
@@ -104,7 +113,8 @@ updateParameters <- function(n_0, s_0, var_0, phi_0,
         if (normalEstimateMethod == "map") {
             funcN <- function(n) {
                 clonalCNDerivativeNUpdateEqn(n, s_prev, 
-                  var_prev, phi_prev, a, b, c, e, gParams$rt, 
+                  var_prev, varR_prev, phi_prev, a, b, c, e, 
+                  gParams$alleleEmissionModel, gParams$rt, 
                   gParams$rn, gParams$ct, nParams$alphaNHyper, 
                   nParams$betaNHyper)
             }
@@ -113,15 +123,15 @@ updateParameters <- function(n_0, s_0, var_0, phi_0,
             n <- n_prev
         }
         
-        if (normalEstimateMethod != "optim" && estimateS) {
+        if (estimateS) {
             # estimate S independently since not using optim
             for (z in 1:Z) {
                 funcS <- function(s) {
-                  clonalCNDerivativeSUpdateEqn(s, n, 
-                    var_prev, phi_prev, a[, z], b[, 
-                      z], c[, z], e[, z], gParams$rt, 
-                    gParams$rn, gParams$ct, sParams$alphaSHyper[z], 
-                    sParams$betaSHyper[z])
+                  clonalCNDerivativeSUpdateEqn(s, n, var_prev, 
+                      varR_prev, phi_prev, a[, z], b[, z], c[, z], e[, z], 
+                      gParams$alleleEmissionModel,
+                      gParams$rt, gParams$rn, gParams$ct, 
+                      sParams$alphaSHyper[z], sParams$betaSHyper[z])
                 }
                 s[z] <- uniroot(funcS, intervalS, tol = 1e-15)$root
             }
@@ -136,17 +146,28 @@ updateParameters <- function(n_0, s_0, var_0, phi_0,
         for (ck in 1:length(cnLevel)) {
             cnInd <- which(gParams$ct == cnLevel[ck])
             varTmp <- clonalCNDerivativeVarExactUpdateEqn(n, 
-                s, phi_prev, c, e, g, gParams$rt, gParams$rn, 
-                gParams$ct, cnLevel[ck], gParams$alphaKHyper[cnInd[1]], 
-                gParams$betaKHyper[cnInd[1]])
-            var[cnInd] <- varTmp
+                s, phi_prev, c[cnInd, , drop = FALSE], 
+                e[cnInd, , drop = FALSE], g[cnInd, , drop = FALSE], 
+                gParams$rt[cnInd], gParams$rn, 
+                gParams$ct[cnInd], gParams$alphaKHyper[cnInd], 
+                gParams$betaKHyper[cnInd])
+            var[cnInd] <- sum(varTmp)
         }
         
+        # Estimate Gaussian variance for each allelic state 
+        if (gParams$alleleEmissionModel == "Gaussian"){
+          varTmp <- clonalCNDerivativeVarExactUpdateEqn(n, 
+             s, phi_prev, a, e, f, gParams$rt, gParams$rn, 
+             gParams$ct, gParams$alphaRHyper, gParams$betaRHyper)
+          varR <- varTmp
+        }else{
+          varR <- varR_prev
+        }
         
         if (estimatePloidy) {
             funcP <- function(phi) {
                 clonalCNDerivativePloidyUpdateEqn(phi, 
-                  n_prev, s, var, c, e, gParams$rt, 
+                  n, s, var, c, e, gParams$rt, 
                   gParams$rn, gParams$ct, pParams$alphaPHyper, 
                   pParams$betaPHyper)
             }
@@ -157,13 +178,14 @@ updateParameters <- function(n_0, s_0, var_0, phi_0,
         }
         
         
-        
-        F[, i] <- c(n, s, var, phi)
-        F0[i] <- likelihoodFunc(F[, i], a, b, c, d, 
-            e, g, gParams$rt, gParams$rn, gParams$ct, 
+        F[, i] <- c(n, s, var, varR, phi)
+        F0[i] <- likelihoodFunc(F[, i], a, b, c, d, e, f, g, 
+            gParams$alleleEmissionModel, 
+            gParams$rt, gParams$rn, gParams$ct, 
             sParams$alphaSHyper, sParams$betaSHyper, 
             nParams$alphaNHyper, nParams$betaNHyper, 
             gParams$alphaKHyper, gParams$betaKHyper, 
+            gParams$alphaRHyper, gParams$betaRHyper,
             pParams$alphaPHyper, pParams$betaPHyper, 
             normalEstimateMethod, estimateS, estimatePloidy)
         objfun[i] <- F0[i]
@@ -177,6 +199,7 @@ updateParameters <- function(n_0, s_0, var_0, phi_0,
         n_prev <- n
         s_prev <- s
         var_prev <- var
+        varR_prev <- varR
         phi_prev <- phi
         
         if (objfun[maxFind] >= objfun[i]) {
@@ -193,123 +216,58 @@ updateParameters <- function(n_0, s_0, var_0, phi_0,
     output <- vector("list", 0)
     output$maxFind <- maxFind
     output$maxF <- objfun[maxFind]
-    output$n <- F[1, maxFind]
-    output$s <- F[2:(Z + 1), maxFind]
-    output$var <- F[(Z + 2):(dim(F)[1] - 1), maxFind]
-    output$phi <- F[dim(F)[1], maxFind]
+    output$n <- F[1, maxFind]; sInd <- 2
+    output$s <- F[sInd:(sInd + Z - 1), maxFind]; varInd <- sInd + Z
+    output$var <- F[varInd:(varInd + K - 1), maxFind]; varRInd <- varInd + K
+    output$varR <- F[varRInd:(varRInd + K - 1), maxFind]
+    output$phi <- F[nrow(F), maxFind]
     return(output)
-}
-
-clonalNSUpdateEqn <- function(unk, var, phi, a, b, 
-    c, e, gParams, nParams, sParams) {
-    K <- length(gParams$alphaKHyper)
-    Z <- length(sParams$alphaSHyper)
-    F <- rep(0, Z + 1)
-    
-    n <- unk[1]
-    s <- unk[2:(Z + 1)]
-    
-    F[1] <- clonalCNDerivativeNUpdateEqn(n, s, var, 
-        phi, a, b, c, e, gParams$rt, gParams$rn, gParams$ct, 
-        nParams$alphaNHyper, nParams$betaNHyper)
-    
-    for (z in 1:Z) {
-        F[z + 1] <- clonalCNDerivativeSUpdateEqn(s[z], 
-            n, var, phi, a[, z], b[, z], c[, z], e[, 
-                z], gParams$rt, gParams$rn, gParams$ct, 
-            sParams$alphaSHyper[z], sParams$betaSHyper[z])
-    }
-    # return(F)
-    return(sum(abs(F)))
-}
-
-clonalCNSVarUpdateEqn <- function(unk, a, b, c, d, 
-    e, g, gParams, nParams, sParams, pParams, normalEstimateMethod, 
-    estimateS, estimatePloidy) {
-    K <- length(gParams$alphaKHyper)
-    Z <- length(sParams$alphaSHyper)
-    F <- rep(0, K + Z + 2)
-    
-    n <- unk[1]
-    s <- unk[2:(Z + 1)]
-    var <- unk[(Z + 2):(length(unk) - 1)]
-    phi <- unk[length(unk)]
-    
-    if (normalEstimateMethod == "fixed") {
-        F[1] <- 0
-    } else if (normalEstimateMethod == "map") {
-        F[1] <- clonalCNDerivativeNUpdateEqn(n, s, 
-            var, phi, a, b, c, e, gParams$rt, gParams$rn, 
-            gParams$ct, nParams$alphaNHyper, nParams$betaNHyper)
-    }
-    
-    for (z in 1:Z) {
-        if (estimateS) {
-            F[z + 1] <- clonalCNDerivativeSUpdateEqn(s[z], 
-                n, var, phi, a[, z], b[, z], c[, z], 
-                e[, z], gParams$rt, gParams$rn, gParams$ct, 
-                sParams$alphaSHyper[z], sParams$betaSHyper[z])
-        } else {
-            # estimateS ==FALSE
-            F[z + 1] <- 0
-        }
-    }
-    
-    cnLevel <- unique(gParams$ct)
-    for (ck in 1:length(cnLevel)) {
-        cnInd <- which(gParams$ct == cnLevel[ck])
-        varTmp <- 0
-        for (k in cnInd) {
-            varTmp <- varTmp + clonalCNDerivativeVarUpdateEqn(var[k], 
-                n, s, phi, c[k, ], e[k, ], g[k, ], 
-                gParams$rt[k], gParams$rn, cnLevel[ck], 
-                gParams$alphaKHyper[k], gParams$betaKHyper[k])
-        }
-        F[(Z + 1) + cnInd] <- varTmp
-    }
-    
-    if (estimatePloidy) {
-        F[K + Z + 2] <- clonalCNDerivativePloidyUpdateEqn(phi, 
-            n, s, var, c, e, gParams$rt, gParams$rn, 
-            gParams$ct, pParams$alphaPHyper, pParams$betaPHyper)
-    } else {
-        # estimatePloidy==FALSE
-        F[K + Z + 2] <- 0
-    }
-    return(F)
 }
 
 
 ## computed once for all parameters ##
-likelihoodFunc <- function(unk, a, b, c, d, e, g, rt, 
-    rn, ct, alphaS, betaS, alphaN, betaN, alphaK, betaK, 
-    alphaP, betaP, normalEstimateMethod, estimateS, 
-    estimatePloidy) {
+likelihoodFunc <- function(unk, a, b, c, d, e, f, g, alleleEmissionModel, 
+                           rt, rn, ct, alphaS, betaS, alphaN, betaN, 
+                           alphaK, betaK, alphaR, betaR, alphaP, betaP, 
+                           normalEstimateMethod, estimateS, estimatePloidy) {
     K <- length(rt)
     Z <- length(alphaS)
-    
-    n <- unk[1]
-    s <- unk[2:(Z + 1)]
-    var <- unk[(Z + 2):(length(unk) - 1)]
+
+    # c(n_prev, s_prev, var_prev, varR_prev, phi_prev)
+    n <- unk[1]; sInd <- 2
+    s <- unk[sInd:(sInd + Z - 1)]; varInd <- sInd + Z
+    var <- unk[varInd:(varInd + K - 1)]; varRInd <- varInd + K
+    varR <- unk[varRInd:(varRInd + K - 1)]
     phi <- unk[length(unk)]
-    mus <- clonalTwoComponentMixtureCN(rt, rn, n, s, 
-        ct, phi)
-    lik = 0
+    mus <- clonalTwoComponentMixtureCN(rt, rn, n, s, ct, phi)
+    lik <- 0
+    
     ## find copy number level indices - short list of
     ## the full genotype indices
     cnLevel <- unique(ct)
     cnInd <- sapply(cnLevel, function(x) {
-        which(ct == x)[1]
+      which(ct == x)[1]
     })
-    
-    for (z in 1:Z) {
+      
+    if (alleleEmissionModel == "Gaussian"){
+      for (z in 1:Z) {
         for (k in 1:K) {
-            lik <- lik + d[k, z] + a[k, z] * log(mus$R[k, 
-                z]) + b[k, z] * log(1 - mus$R[k, z]) + 
-                e[k, z] * log(1/sqrt(2 * pi * var[k])) - 
-                (g[k, z] - 2 * c[k, z] * mus$C[k, z] + 
-                  e[k, z] * mus$C[k, z]^2)/(2 * var[k])
+          lik <- lik + 
+            e[k, z] * log(1/sqrt(2 * pi * varR[k])) - 
+            (f[k, z] - 2 * a[k, z] * mus$R[k, z] + e[k, z] * mus$R[k, z]^2) / (2 * varR[k]) # allelic
+            e[k, z] * log(1/sqrt(2 * pi * var[k])) - 
+            (g[k, z] - 2 * c[k, z] * mus$C[k, z] + e[k, z] * mus$C[k, z]^2) / (2 * var[k]) # logR
         }
+      }
+    }else{
+      for (z in 1:Z) {
+        for (k in 1:K) {
+          lik <- lik + 
+            d[k, z] + a[k, z] * log(mus$R[k, z]) + b[k, z] * log(1 - mus$R[k, z]) + # binomial, allelic
+            e[k, z] * log(1/sqrt(2 * pi * var[k])) - 
+            (g[k, z] - 2 * c[k, z] * mus$C[k, z] + e[k, z] * mus$C[k, z]^2) / (2 * var[k]) # gaussian, logR
+        }
+      }
     }
     
     ## prior for S ##
@@ -328,8 +286,7 @@ likelihoodFunc <- function(unk, a, b, c, d, e, g, rt,
     ## prior for n ##
     if (normalEstimateMethod == "map") {
         prior_beta_n <- log(1/beta(alphaN, betaN)) + 
-            (alphaN - 1) * log(n) + (betaN - 1) * log(1 - 
-            n)
+            (alphaN - 1) * log(n) + (betaN - 1) * log(1 - n)
         # prior_beta_n <- dbeta(n,alphaN,betaN,log=TRUE)
     } else {
         prior_beta_n <- 0
@@ -337,10 +294,11 @@ likelihoodFunc <- function(unk, a, b, c, d, e, g, rt,
     ## prior for variance var ##
     prior_gamma_var <- 0
     for (k in cnInd) {
-        prior_gamma_var <- prior_gamma_var + alphaK[k] * 
-            log(betaK[k]) - lgamma(alphaK[k]) + (-alphaK[k] - 
-            1) * log(var[k]) - betaK[k]/var[k]
+        prior_gamma_var <- prior_gamma_var + 
+          alphaK[k] * log(betaK[k]) - lgamma(alphaK[k]) + # constant term
+          (-alphaK[k] - 1) * log(var[k]) - betaK[k]/var[k] # beta likelihood
     }
+    
     ## prior for phi ##
     if (estimatePloidy) {
         prior_gamma_phi <- alphaP * log(betaP) - lgamma(alphaP) + 
@@ -349,13 +307,22 @@ likelihoodFunc <- function(unk, a, b, c, d, e, g, rt,
         prior_gamma_phi <- 0
     }
     
+    prior_gamma_varR <- 0
+    if (alleleEmissionModel == "Gaussian"){
+      for (k in 1:K){
+        prior_gamma_varR <- prior_gamma_varR + 
+          alphaR[k] * log(betaR[k]) - lgamma(alphaR[k]) + #constant term
+          (-alphaR[k] - 1) * log(varR[k]) - betaR[k]/varR[k]
+      }
+    }
+    
     return(lik + prior_beta_s + prior_beta_n + prior_gamma_var + 
-        prior_gamma_phi)
+        prior_gamma_phi + prior_gamma_varR)
 }
 
 
-clonalCNDerivativeNUpdateEqn <- function(n, s, var, 
-    phi, a, b, c, e, rt, rn, ct, alphaN, betaN) {
+clonalCNDerivativeNUpdateEqn <- function(n, s, var, varR, phi, 
+    a, b, c, e, alleleEmissionModel, rt, rn, ct, alphaN, betaN) {
     K <- length(ct)
     Z <- length(s)
     cn <- 2
@@ -365,21 +332,22 @@ clonalCNDerivativeNUpdateEqn <- function(n, s, var,
         ct, phi)
     
     for (z in 1:Z) {
-        dmuC_dn <- (cn - s[z] * cn - (1 - s[z]) * ct)/(n * 
-            cn + (1 - n) * s[z] * cn + (1 - n) * (1 - 
-            s[z]) * ct) - (cn - phi)/(n * cn + (1 - 
-            n) * phi)
-        dmuR_dn <- ((1 - s[z]) * cn * ct * (rn - rt))/((n * 
-            cn + (1 - n) * s[z] * cn + (1 - n) * (1 - 
-            s[z]) * ct)^2)
+        dmuC_dn <- (cn - s[z] * cn - (1 - s[z]) * ct) / 
+          (n * cn + (1 - n) * s[z] * cn + (1 - n) * (1 - s[z]) * ct) - 
+          (cn - phi)/(n * cn + (1 - n) * phi)
+        dmuR_dn <- ((1 - s[z]) * cn * ct * (rn - rt)) / 
+            ((n * cn + (1 - n) * s[z] * cn + (1 - n) * (1 - s[z]) * ct)^2)
         for (k in 1:K) {
-            term1 <- a[k, z] * dmuR_dn[k]/mus$R[k, 
-                z]
-            term2 <- b[k, z] * dmuR_dn[k]/(1 - mus$R[k, 
-                z])
-            term3 <- (c[k, z] - e[k, z] * mus$C[k, 
-                z]) * dmuC_dn[k]/var[k]
-            dlik_dn <- dlik_dn + (term1 - term2 + term3)
+          # allelic
+          if (alleleEmissionModel == "Gaussian"){
+            term1 <- (a[k, z] - e[k, z] * mus$R[k, z]) * dmuR_dn[k] / varR[k]
+          }else{ # alleleEmissionModel == "binomial"
+            term1 <- a[k, z] * dmuR_dn[k]/mus$R[k, z] -
+              b[k, z] * dmuR_dn[k]/(1 - mus$R[k, z])
+          }
+          # logR
+          term2 <- (c[k, z] - e[k, z] * mus$C[k, z]) * dmuC_dn[k]/var[k]
+          dlik_dn <- dlik_dn + (term1 + term2)
         }
     }
     
@@ -389,26 +357,28 @@ clonalCNDerivativeNUpdateEqn <- function(n, s, var,
     return(f)
 }
 
-clonalCNDerivativeSUpdateEqn <- function(s, n, var, 
-    phi, a, b, c, e, rt, rn, ct, alphaS, betaS) {
+clonalCNDerivativeSUpdateEqn <- function(s, n, var, varR,
+    phi, a, b, c, e, alleleEmissionModel, rt, rn, ct, alphaS, betaS) {
     K <- length(ct)
     cn <- 2
     # data likelihood derivative wrt to s
     dlik_ds <- 0
     
-    mus <- clonalTwoComponentMixtureCN(rt, rn, n, s, 
-        ct, phi)
-    dmuC_ds <- ((1 - n) * cn - (1 - n) * ct)/(n * cn + 
-        (1 - n) * s * cn + (1 - n) * (1 - s) * ct)
-    dmuR_ds <- ((1 - n) * cn * ct * (rn - rt))/((n * 
-        cn + (1 - n) * s * cn + (1 - n) * (1 - s) * 
-        ct)^2)
+    mus <- clonalTwoComponentMixtureCN(rt, rn, n, s, ct, phi)
+    dmuC_ds <- ((1 - n) * cn - (1 - n) * ct) / 
+      (n * cn + (1 - n) * s * cn + (1 - n) * (1 - s) * ct)
+    dmuR_ds <- ((1 - n) * cn * ct * (rn - rt)) / 
+      ((n * cn + (1 - n) * s * cn + (1 - n) * (1 - s) * ct)^2)
     
     for (k in 1:K) {
-        term1 <- a[k] * dmuR_ds[k]/mus$R[k]
-        term2 <- b[k] * dmuR_ds[k]/(1 - mus$R[k])
-        term3 <- (c[k] - e[k] * mus$C[k]) * dmuC_ds[k]/var[k]
-        dlik_ds <- dlik_ds + (term1 - term2 + term3)
+      if (alleleEmissionModel == "Gaussian"){
+        term1 <- (a[k] - e[k] * mus$R[k]) * dmuR_ds[k]/varR[k]
+      }else{ # binomial
+        term1 <- a[k] * dmuR_ds[k]/mus$R[k] -
+          b[k] * dmuR_ds[k]/(1 - mus$R[k])
+      }
+      term2 <- (c[k] - e[k] * mus$C[k]) * dmuC_ds[k]/var[k]
+      dlik_ds <- dlik_ds + (term1 + term2)
     }
     
     # beta prior likelihood (of s) derivative wrt to s
@@ -420,22 +390,15 @@ clonalCNDerivativeSUpdateEqn <- function(s, n, var,
 # ck is the copy number level that we want to
 # marginalize over ct is vector of copy number;
 # each corresponding to genotype state
-clonalCNDerivativeVarExactUpdateEqn <- function(n, 
-    s, phi, c, e, g, rt, rn, ct, ck, alphaK, betaK) {
+clonalCNDerivativeVarExactUpdateEqn <- function(n, s, phi, c, e, g, rt, rn, ct, alphaK, betaK) {
     Z <- length(s)
-    mus <- clonalTwoComponentMixtureCN(rt, rn, n, s, 
-        ct, phi)
-    cnInd <- which(ct == ck)
+    mus <- clonalTwoComponentMixtureCN(rt, rn, n, s, ct, phi)
     var <- 0
     term1 <- 0
     term2 <- 0
-    for (k in cnInd) {
-        for (z in 1:Z) {
-            term1 = term1 + -sum(g[k, z] - 2 * c[k, 
-                z] * mus$C[k, z] + e[k, z] * (mus$C[k, 
-                z])^2)
-            term2 = term2 + -sum(e[k, z])
-        }
+    for (z in 1:Z) {
+      term1 = term1 - (g[, z] - 2 * c[, z] * mus$C[, z] + e[, z] * (mus$C[, z])^2)
+      term2 = term2 - (e[, z])
     }
     term1 = term1 - 2 * betaK
     term2 = term2 - 2 * (alphaK + 1)
@@ -465,22 +428,20 @@ clonalCNDerivativeVarUpdateEqn <- function(var, n,
     return(f)
 }
 
-clonalCNDerivativePloidyUpdateEqn <- function(phi, 
-    n, s, var, c, e, rt, rn, ct, alphaP, betaP) {
+clonalCNDerivativePloidyUpdateEqn <- function(phi, n, s, var, 
+    c, e, rt, rn, ct, alphaP, betaP) {
     K <- length(var)
     Z <- length(s)
-    mus <- clonalTwoComponentMixtureCN(rt, rn, n, s, 
-        ct, phi)
+    mus <- clonalTwoComponentMixtureCN(rt, rn, n, s, ct, phi)
     cn = 2
     dlik_dphi = 0
     
+    dmuC_dphi <- -(1 - n)/(n * cn + (1 - n) * phi)
     for (z in 1:Z) {
-        dmuC_dphi <- -(1 - n)/(n * cn + (1 - n) * phi)
         for (k in 1:K) {
             term1 <- c[k, z]/var[k]
             term2 <- e[k, z] * mus$C[k, z]/var[k]
-            dlik_dphi <- dlik_dphi + (term1 - term2) * 
-                dmuC_dphi
+            dlik_dphi <- dlik_dphi + (term1 - term2) * dmuC_dphi
         }
     }
     
@@ -490,6 +451,7 @@ clonalCNDerivativePloidyUpdateEqn <- function(phi,
     f = dlik_dphi + dinvgamma_dphi
     return(f)
 }
+
 
 estimateClonalMixWeightsParamMap <- function(rho, kappa) {
     K <- dim(rho)[1]

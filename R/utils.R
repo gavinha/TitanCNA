@@ -5,10 +5,16 @@
 # date:	  March 17, 2017
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
-    skew = 0, hetBaselineSkew = NULL, symmetric = TRUE, data = NULL) {
+    skew = 0, hetBaselineSkew = NULL, alleleEmissionModel = "binomial", symmetric = TRUE, data = NULL) {
     if (copyNumber < 3 || copyNumber > 8) {
         stop("loadDefaultParameters: Fewer than 3 or more than 8 copies are 
              being specified. Please use minimum 3 or maximum 8 'copyNumber'.")
+    }
+    if (!alleleEmissionModel %in% c("binomial", "Gaussian")){
+      stop("loadDefaultParameters: alleleEmissionModel must be either \"binomial\" or \"Gaussian\".")
+    }
+    if (!symmetric){
+      message("loadDefaultParameters: symmetric=FALSE is deprecated; using symmetric=TRUE.")
     }
     ## Data without allelic skew rn is theoretical
     ## normal reference allelic ratio initialize to
@@ -36,28 +42,28 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
         highStates <- c(1,10:length(rt))
         hetState <- c(4, 9, 16, 25)
-    } else {
-        rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
-            1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
-            4/5, 3/5, 2/5, 1/5, 1e-05, 1, 5/6, 4/6, 
-            3/6, 2/6, 1/6, 1e-05, 1, 6/7, 5/7, 4/7, 
-            3/7, 2/7, 1/7, 1e-05, 1, 7/8, 6/8, 5/8, 
-            4/8, 3/8, 2/8, 1/8, 1e-05)
-        rt = rt + skew
-        rt[rt > 1] <- 1
-        rt[rt < 0] <- 1e-05
-        ZS = c(0, 1, 1, 2, 3, 2, 4, 5, 5, 4, 6, 7, 
-            8, 7, 6, 9, 10, 11, 11, 10, 9, 12, 13, 
-            14, 15, 14, 13, 12, 16, 17, 18, 19, 19, 
-            18, 17, 16, 20, 21, 22, 23, 24, 23, 22, 
-            21, 20)
-        ct = c(0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 
-            4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 
-            6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
-            8, 8, 8, 8, 8, 8, 8)
-        highStates <- c(1,16:length(rt))
-        hetState <- c(5, 13, 25, 41)
-    }
+    } #else {
+      #  rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
+      #      1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
+      #      4/5, 3/5, 2/5, 1/5, 1e-05, 1, 5/6, 4/6, 
+      #      3/6, 2/6, 1/6, 1e-05, 1, 6/7, 5/7, 4/7, 
+      #      3/7, 2/7, 1/7, 1e-05, 1, 7/8, 6/8, 5/8, 
+      #      4/8, 3/8, 2/8, 1/8, 1e-05)
+      #  rt = rt + skew
+      #  rt[rt > 1] <- 1
+      #  rt[rt < 0] <- 1e-05
+      #  ZS = c(0, 1, 1, 2, 3, 2, 4, 5, 5, 4, 6, 7, 
+      #      8, 7, 6, 9, 10, 11, 11, 10, 9, 12, 13, 
+      #      14, 15, 14, 13, 12, 16, 17, 18, 19, 19, 
+      #      18, 17, 16, 20, 21, 22, 23, 24, 23, 22, 
+      #      21, 20)
+      #  ct = c(0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 
+      #      4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 
+      #      6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
+      #      8, 8, 8, 8, 8, 8, 8)
+      #  highStates <- c(1,16:length(rt))
+      #  hetState <- c(5, 13, 25, 41)
+    #}
     ZS[hetState[1]] <- -1
     rn = rn + skew
     ind <- ct <= copyNumber
@@ -67,22 +73,27 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     K = length(rt)
     ## VARIANCE for Gaussian to model copy number, var
     var_0 = rep(1/20, K)
+    ## VARIANCE for Gaussian to model allelic fraction, varR
+    varR_0 = rep(1/20, K)
     ## Dirichlet hyperparameter for initial state
     ## distribution, kappaG
     kappaGHyper = rep(1, K) + 1
     kappaGHyper[hetState[hetState %in% 1:K]] = 5
-    ## Gather all genotype related parameters into a
-    ## list
+    ## Gather all genotype related parameters into a list
     genotypeParams <- vector("list", 0)
     genotypeParams$rt <- rt
     genotypeParams$rn <- rn
     genotypeParams$ZS <- ZS
     genotypeParams$ct <- ct
     genotypeParams$var_0 <- var_0
+    genotypeParams$varR_0 <- varR_0
     genotypeParams$alphaKHyper <- rep(15000, K)
     varHyperHigh <- 15000
     genotypeParams$alphaKHyper[highStates] <- varHyperHigh  #AMP(11-15),HLAMP(16-21) states
     genotypeParams$betaKHyper <- rep(25, K)
+    genotypeParams$alleleEmissionModel <- alleleEmissionModel
+    genotypeParams$alphaRHyper <- rep(1000, K)
+    genotypeParams$betaRHyper <- rep(25, K)
     genotypeParams$kappaGHyper <- kappaGHyper
     genotypeParams$outlierVar <- 10000
     genotypeParams$symmetric <- symmetric
@@ -115,7 +126,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
 loadAlleleCounts <- function(inCounts, symmetric = TRUE, 
 			genomeStyle = "NCBI", sep = "\t", header = TRUE) {
 	if (is.character(inCounts)){
-    #### LOAD INPUT READ COUNT DATA ####
+    ## LOAD INPUT READ COUNT DATA 
     	message("titan: Loading data ", inCounts)
     	data <- read.delim(inCounts, header = header, stringsAsFactors = FALSE, 
         		sep = sep)
@@ -153,7 +164,7 @@ loadAlleleCounts <- function(inCounts, symmetric = TRUE,
         ref <- refOriginal
     }
     
-    return(list(chr = data[, 1], posn = data[, 2], ref = ref, 
+    return(data.table(chr = data[, 1], posn = data[, 2], ref = ref, 
         refOriginal = refOriginal, nonRef = nonRef, 
         tumDepth = tumDepth))
 }
@@ -258,7 +269,7 @@ filterData <- function(data, chrs = NULL, minDepth = 10,
    	}
     cI <- keepChrs & keepTumDepth & !is.na(data$logR) & 
         keepMap & keepPosn
-    if (class(data) == "list"){
+    if (class(data)[1] == "list"){
       for (i in 1:length(data)) {
           if (!is.null(data[[i]])) {
               data[[i]] <- data[[i]][cI]
@@ -310,12 +321,12 @@ excludeGarbageState <- function(params, K) {
 
 getPositionOverlap <- function(chr, posn, dataVal) {
 # use RangedData to perform overlap
-    dataIR <- RangedData(space = dataVal[, 1], 
-    				IRanges(start = dataVal[, 2], end = dataVal[, 3]),
-    				val = as.numeric(dataVal[, 4]))
+    dataIR <- RangedData(space = dataVal[[1]], 
+    				IRanges(start = dataVal[[2]], end = dataVal[[3]]),
+    				val = dataVal[[4]])
     				
     ## load chr/posn as data.frame first to use proper chr ordering by factors/levels
-    chrDF <- data.frame(space=chr,start=posn,end=posn)
+    chrDF <- data.frame(space=chr, start=posn, end=posn)
     chrDF$space <- factor(chrDF$space, levels = unique(chr))    
     chrIR <- as(chrDF, "RangedData")
     
@@ -511,24 +522,23 @@ computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRati
     
     ## flatten copynumber-clonalclusters to single vector
     if (data.type=="LogRatio"){
-    	cn <- as.numeric(x[, "CopyNumber"]) + 1
-		cn[cn == 3] <- NA  ## remove all CN=2 positions
-    	flatState <- (as.numeric(x[, "ClonalCluster"]) - 1) * (max(cn, na.rm = TRUE)) + cn
+    	cn <- x[, CopyNumber] + 1
+		  cn[cn == 3] <- NA  ## remove all CN=2 positions
+    	flatState <- (x[, ClonalCluster] - 1) * (max(cn, na.rm = TRUE)) + cn
     	flatState[is.na(flatState)] <- 3 ### assign all the CN=2 positions to cluster 3
-    	CNdata <- scale(as.numeric(x[, data.type]))
+    	CNdata <- scale(x[, get(data.type)])
     	x <- as.matrix(cbind(as.numeric(flatState), CNdata))
     }else if (data.type=="AllelicRatio"){
-    	st <- as.numeric(x[, "TITANstate"]) + 1
-    	st[x[, "TITANcall"] == "HET"] <- NA
-    	flatState <- (as.numeric(x[, "ClonalCluster"]) - 1) * (max(st, na.rm = TRUE)) + st
+    	st <- x[, TITANstate] + 1
+    	st[x[, which(TITANcall == "HET")]] <- NA
+    	flatState <- (x[, ClonalCluster] - 1) * (max(st, na.rm = TRUE)) + st
     	if (symmetric){
     		flatState[is.na(flatState)] <- 4
     	}else{
     		flatState[is.na(flatState)] <- 5
     	}
     	## for allelic ratios, compute the symmetric allelic ratio
-    	ARdata <- as.numeric(x[, data.type])
-    	ARdata <- pmax(ARdata, 1 - ARdata)
+    	ARdata <- x[, pmax(get(data.type), 1 - get(data.type))]
     	ARdata <- scale(ARdata)
     	x <- as.matrix(cbind(as.numeric(flatState), ARdata))
     	rm(ARdata)
@@ -763,7 +773,7 @@ outputTitanResults <- function(data, convergeParams,
     }
    
     
-    #### PROCESS HMM RESULTS ####
+    ## PROCESS HMM RESULTS 
     numClust <- dim(convergeParams$s)[1]
     K <- dim(convergeParams$var)[1]
     if (useOutlierState) {
@@ -800,9 +810,10 @@ outputTitanResults <- function(data, convergeParams,
       outmat <- cbind(outmat, NRefCount = data$tumDepthOriginal - data$refOriginal, 
         Depth = data$tumDepthOriginal, 
         AllelicRatio = sprintf("%0.2f", data$refOriginal/data$tumDepthOriginal),
-        HaplotypeCount = data$haplotypeCount,
+        HaplotypeCount = data$ref, #data$haplotypeCount,
         HaplotypeDepth = data$tumDepth,
-        HaplotypeRatio =  sprintf("%0.2f", data$haplotypeCount/data$tumDepth), 
+        #HaplotypeRatio =  sprintf("%0.2f", data$haplotypeCount/data$tumDepth), 
+        HaplotypeRatio = data$HaplotypeRatio,
         PhaseSet = data$phaseSet,
         stringsAsFactors = FALSE)
     }else{
@@ -847,7 +858,7 @@ outputTitanResults <- function(data, convergeParams,
     #		CopyNumber = as.integer(CopyNumber), TITANstate = as.integer(TITANstate),
     #		ClonalCluster = as.integer(ClonalCluster), CellularPrevalence = as.numeric(CellularPrevalence))
     #		)
-    return(outmat)
+    return(data.table(outmat))
 }
 
 outputModelParameters <- function(convergeParams, results, filename, 
@@ -859,11 +870,11 @@ outputModelParameters <- function(convergeParams, results, filename,
         index.return = TRUE)
     s <- sortS$x
     fc <- file(filename, "w+")
-    norm_str <- sprintf("Normal contamination estimate:\t%0.2f", 
+    norm_str <- sprintf("Normal contamination estimate:\t%0.4f", 
         convergeParams$n[i])
     write.table(norm_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
-    ploid_str <- sprintf("Average tumour ploidy estimate:\t%0.2f", 
+    ploid_str <- sprintf("Average tumour ploidy estimate:\t%0.4f", 
         convergeParams$phi[i])
     write.table(ploid_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
@@ -933,8 +944,8 @@ outputModelParameters <- function(convergeParams, results, filename,
 
 outputTitanSegments <- function(results, id, convergeParams, filename = NULL, igvfilename = NULL){
   # get all possible states in this set of results
-  stateTable <- unique(results[, c("TITANstate", "TITANcall")])
-  rownames(stateTable) <- stateTable[, 1]
+  #stateTable <- unique(results[, c("TITANstate", "TITANcall")])
+  #rownames(stateTable) <- stateTable[, 1]
   rleResults <- t(sapply(unique(results$Chr), function(x){
   	ind <- results$Chr == x
     r <- rle(results$TITANstate[ind])
@@ -948,13 +959,13 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 	if (!is.null(results$HaplotypeRatio)){
 	  results$HaplotypeRatio <- pmax(results$HaplotypeRatio, 1-results$HaplotypeRatio)
 	}
-	segs <- as.data.frame(matrix(NA, ncol = 15, nrow = numSegs, 
-								 dimnames = list(c(), c("Sample", "Chromosome", "Start_Position.bp.", "End_Position.bp.", 
-								 "Length.snp.", "Median_Ratio", "Median_HaplotypeRatio", "Median_logR", "TITAN_state", 
-								 "TITAN_call", "Copy_Number",
-								 "MinorCN", "MajorCN", "Clonal_Cluster", "Cellular_Frequency"))))
-	segs$Sample <- id
-	colNames <- c("Chr", "Position", "TITANstate", "AllelicRatio", "LogRatio")
+  segs <- data.table(Sample = character(), Chromosome = character(), Start_Position.bp. = integer(), 
+                     End_Position.bp. = integer(), Length.snp. = integer(), Median_Ratio = numeric(),
+                     Median_HaplotypeRatio = numeric(), Median_logR = numeric(), TITAN_state = integer(),
+                     TITAN_call = character(), Copy_Number = integer(), MinorCN = integer(), MajorCN = integer(),
+                     Clonal_Cluster = integer(), Cellular_Frequency = numeric())[1:numSegs]
+	segs[, Sample := id]
+	#colNames <- c("Chr", "Position", "TITANstate", "AllelicRatio", "LogRatio")
 	prevInd <- 0
 	for (j in 1:numSegs){
 		start <- prevInd + 1
@@ -985,14 +996,16 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 	}
   if (!is.null(filename)){
 		# write out detailed segment file #
-  	write.table(segs, file = filename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  	#write.table(segs, file = filename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+    fwrite(segs, file = filename, sep = "\t")  
   }
   # write out IGV seg file #
   if (!is.null(igvfilename)){
   	igv <- segs[, c("Sample", "Chromosome", "Start_Position.bp.", 
   								"End_Position.bp.", "Length.snp.", "Median_logR")]
   	colnames(igv) <- c("sample", "chr", "start", "end", "num.snps", "median.logR")
-  	write.table(igv, file = igvfilename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  	#write.table(igv, file = igvfilename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+    fwrite(igv, file = igvfilename, sep = "\t")  
   }
   return(segs)
 }
