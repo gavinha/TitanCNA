@@ -83,19 +83,25 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
   }
   
   //SEXP scale_data, alpha_data, beta_data;
-  SEXP gamma_data, loglik_data;
-  double * scale, * alpha, * beta, * gamma, * loglik, * m;
+  SEXP gamma_data, loglik_data, eta_data, dim;
+  double * scale, * alpha, * beta, * gamma, * eta, * loglik, * m, * squareSpace;
   //PROTECT(scale_data = NEW_NUMERIC(T));
   //PROTECT(alpha_data = allocMatrix(REALSXP, K, T));
   //PROTECT(beta_data = allocMatrix(REALSXP, K, T));
   PROTECT(gamma_data = allocMatrix(REALSXP, K, T));
   PROTECT(loglik_data = NEW_NUMERIC(1));
+  PROTECT(eta_data = NEW_NUMERIC(K * K * T));
   //scale = NUMERIC_POINTER(scale_data);
   //alpha = NUMERIC_POINTER(alpha_data);
   //beta = NUMERIC_POINTER(beta_data);
   gamma = NUMERIC_POINTER(gamma_data);
   loglik = NUMERIC_POINTER(loglik_data);
-    
+  eta = NUMERIC_POINTER(eta_data);
+
+  PROTECT(dim = NEW_INTEGER(3));
+  INTEGER(dim)[0] = K; INTEGER(dim)[1] = K; INTEGER(dim)[2] = T;
+  SET_DIM(eta_data, dim);
+  
   scale = malloc(T*sizeof(double));    
   alpha = malloc(K*T*sizeof(double));
   beta = malloc(K*T*sizeof(double));
@@ -152,8 +158,13 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
     gamma[d + t*K] = alpha[d + t*K];
   }
   
+  for(int d = 0; d < (K * K); ++d) {
+    *(eta + d + t * K * K) = 0;
+  }
+  
   double * b;
   b = malloc(K*sizeof(double));
+  squareSpace = malloc(K*K*sizeof(double));
   
   for(t=(T-2);t>=0;--t) {        
     /* setting beta */
@@ -186,6 +197,11 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
     //printf("FWBK t=%d\tScale=%0.2f\n",t,sumBack);
     //outputVector(m, K);
     
+    // setting eta, whether we want it or not in the output
+    outerProductUVInPlace(squareSpace, alpha + t * K, b, K);
+    componentVectorMultiplyInPlace(eta + t * K * K, transSlice, squareSpace, K * K);
+    normalizeInPlace(eta + t * K * K, K * K);
+    
     for(d=0;d<K;++d) { gamma[d + t*K] = m[d]; } 
   	//printf("GAMMA t=%d\n",t);
     //outputVector(gamma + t*K, K);
@@ -193,19 +209,20 @@ SEXP fwd_backC_clonalCN(SEXP piGiZi, SEXP py, SEXP copyNumKey, SEXP zygosityKey,
       
   free(b); free(m); 
   free(scale); free(transmatT); free(transSlice);
-  free(alpha); free(beta);     
+  free(alpha); free(beta); free(squareSpace);
     
   SEXP list, list_names;
-  char *names[2] = {"rho", "loglik"};
-  PROTECT(list_names = allocVector(STRSXP, 2));
-  for (int i = 0; i < 2; ++i) {
+  char *names[3] = {"rho", "loglik", "xi"};
+  PROTECT(list_names = allocVector(STRSXP, 3));
+  for (int i = 0; i < 3; ++i) {
     SET_STRING_ELT(list_names, i, mkChar(names[i]));
   }
-  PROTECT(list = allocVector(VECSXP, 2));
+  PROTECT(list = allocVector(VECSXP, 3));
   SET_VECTOR_ELT(list, 0, gamma_data); 
   SET_VECTOR_ELT(list, 1, loglik_data);
+  SET_VECTOR_ELT(list, 2, eta_data);
   setAttrib(list, R_NamesSymbol, list_names);
-  UNPROTECT(13);
+  UNPROTECT(15);
   return list;
   
 }
@@ -486,6 +503,8 @@ void outerProductUVInPlace(double * Out, double * u, double * v, unsigned int K)
     }
     return;
 }
+
+
 
 /* this works for matrices also if you just set the length "L" to be the right value,
  * often K*K, instead of just K in the case of vectors
