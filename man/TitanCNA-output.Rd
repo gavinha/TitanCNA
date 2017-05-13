@@ -172,7 +172,8 @@ outputModelParameters(convergeParams, results, outparam)
 #### OUTPUT SEGMENTS TO FILE ####
 outseg <- paste0("cluster2_segs.txt")
 outigv <- paste0("cluster2.seg")
-segs <- outputTitanSegments(results, id = "test", convergeParams, filename = outseg, igvfilename = outigv)
+segs <- outputTitanSegments(results, id = "test", convergeParams, 
+  filename = outseg, igvfilename = outigv)
 # segment results also stored in data.frame "segs" 
 }
 

@@ -124,10 +124,9 @@ optimalPath <- viterbiClonalCN(data, convergeParams)
 
 #### FORMAT RESULTS ####
 results <- outputTitanResults(data, convergeParams, optimalPath, 
-                              filename = NULL, posteriorProbs = FALSE,
-                              correctResults = TRUE, 
-                              proportionThreshold = 0.05,
-															proportionThresholdClonal = 0.05)
+  filename = NULL, posteriorProbs = FALSE, 
+  correctResults = TRUE, proportionThreshold = 0.05, 
+  proportionThresholdClonal = 0.05)
 convergeParams <- results$convergeParams
 results <- results$corrResults # use corrected results
 #### PLOT RESULTS ####
@@ -136,17 +135,18 @@ ploidy <- tail(convergeParams$phi, 1)
 
 par(mfrow=c(4, 1))    
 plotCNlogRByChr(results, chr = 2, segs = NULL, ploidy = ploidy, normal = norm, 
-								geneAnnot = NULL, ylim = c(-2, 2), cex = 0.5, xlab = "", 
-								main = "Chr 2")
+  geneAnnot = NULL, ylim = c(-2, 2), cex = 0.5, xlab = "", 
+  main = "Chr 2")
 plotAllelicRatio(results, chr = 2, geneAnnot = NULL, ylim = c(0, 1), cex = 0.5, 
-                xlab = "", main = "Chr 2")
+  xlab = "", main = "Chr 2")
 plotClonalFrequency(results, chr = 2, normal = norm, geneAnnot = NULL, 
-                    ylim = c(0, 1), cex = 0.5, xlab = "", main = "Chr 2")
+  ylim = c(0, 1), cex = 0.5, xlab = "", main = "Chr 2")
 plotSubcloneProfiles(results, chr = 2, cex = 2, main = "Chr 2")
 
 segs <- outputTitanSegments(results, id = "test", convergeParams)
 
-plotSegmentMedians(segs, chr=2, resultType = "LogRatio", plotType = "CopyNumber", plot.new = TRUE)
+plotSegmentMedians(segs, chr=2, resultType = "LogRatio", 
+  plotType = "CopyNumber", plot.new = TRUE)
 
 }
 

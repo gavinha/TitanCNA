@@ -89,7 +89,8 @@ convergeParams <- results$convergeParams
 results <- results$corrResults
 
 #### GET SEGMENT RESULTS ####
-segs <- outputTitanSegments(results, id = "test", convergeParams, filename = NULL, igvfilename = NULL)
+segs <- outputTitanSegments(results, id = "test", convergeParams, 
+  filename = NULL, igvfilename = NULL)
 
 #### PLOT RESULTS ####
 norm <- tail(convergeParams$n, 1)
