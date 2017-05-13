@@ -3,7 +3,7 @@
 \alias{setGenomeStyle}
 
 \title{
-  Function to load tumour allele counts from a text file or data.frame
+  Function to load tumour allele counts from a text file or data.frame and returns a \link[data.table]{data.table}.
 }
 
 \description{
@@ -14,7 +14,6 @@
   loadAlleleCounts(inCounts, symmetric = TRUE, 
   		genomeStyle = "NCBI", sep = "\t", header = TRUE)
 
-\usage{
 	setGenomeStyle(x, genomeStyle = "NCBI", species = "Homo_sapiens")
 }
 
@@ -34,13 +33,16 @@
   \item{header}{
   	\code{logical} to indicate if the input tumour counts file contains a header line.
   }
+  \item{x}{
+    \code{character} vector of chromosome names to change.
+  }
   \item{species}{
   	\code{character} denoting the species
   }
 }
 
 \value{
-	\code{loadAlleleCounts} returns a \code{\link[base:list]{list}} containing components for 
+	\code{loadAlleleCounts} returns a \link[data.table]{data.table} containing components for 
   \item{chr}{Chromosome; character, NCBI or UCSC genome style format}
   \item{posn}{Position; integer}
   \item{ref}{Reference counts; numeric}

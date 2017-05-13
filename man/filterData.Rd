@@ -2,7 +2,7 @@
 \alias{filterData}
 
 \title{
-  Filter list object based on read depth and missing data 
+  Filter list object based on read depth and missing data and returns a filtered \link[data.table]{data.table} object.
 }
 \description{
   Filters all vectors in list based on specified chromosome(s) of interest, minimum and maximum read depths, missing data, mappability score threshold
@@ -17,7 +17,7 @@ filterData(data ,chrs = NULL, minDepth = 10, maxDepth = 200,
 
 \arguments{
   \item{data}{
-    \code{\link[base:list]{list}} object that contains an arbitrary number of components. Should include \sQuote{chr}, \sQuote{tumDepth}. All vector elements must have the same number of rows where each row corresponds to information pertaining to a chromosomal position.
+    \link[data.table]{data.table} object that contains an arbitrary number of components. Should include \sQuote{chr}, \sQuote{tumDepth}. All vector elements must have the same number of rows where each row corresponds to information pertaining to a chromosomal position.
   }
   \item{chrs}{
     \code{character} or vector of \code{character} specifying the chromosomes to keep. Chromosomes not included in this \code{array} will be filtered out. Chromosome style must match the \code{genomeStyle} used when running \code{\link{loadAlleleCounts}}
@@ -46,11 +46,11 @@ filterData(data ,chrs = NULL, minDepth = 10, maxDepth = 200,
 }
 
 \details{
-  All vectors in the input \code{data} list object, and \code{map}, must all have the same number of rows.
+  All vectors in the input \link[data.table]{data.table} object, and \code{map}, must all have the same number of rows.
 }
 
 \value{
-  The same \code{\link[base:list]{list} data} containing filtered components.
+  The same \code{\link[data.table]{data.table}} object containing filtered components.
 }
 
 \references{

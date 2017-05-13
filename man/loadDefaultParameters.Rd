@@ -11,7 +11,8 @@
 
 \usage{
   loadDefaultParameters(copyNumber = 5, numberClonalClusters = 1, skew = 0,
-      hetBaselineSkew = NULL, symmetric = TRUE, data = NULL)
+      hetBaselineSkew = NULL, alleleEmissionModel = "binomial", 
+      symmetric = TRUE, data = NULL)
 }
 
 \arguments{
@@ -22,13 +23,16 @@
     Number of clonal clusters to use in the analysis. Each cluster represents a potential clone. Using \sQuote{1} treats the sample as being clonal (no subclonality). \sQuote{2} or higher treats the tumour data as being subclonal.  
   }
   \item{skew}{
-    \code{numeric} float indicating the heterozygous baseline shift for the allelic ratios towards 1. This is may be required for SOLiD data, but for most cases, this argument can be omitted.
+    \code{numeric} float (between 0 to 0.5) indicating the heterozygous baseline shift for the allelic ratios towards 1. This is may be required for SOLiD data, but for most cases, this argument can be omitted. Use \code{0} or \code{NULL} for no skew.
   }
   \item{hetBaselineSkew}{
-  	Allelic reference base skew for heterozygous states (e.g. 1:1, 2:2, 3:3). Value is additive to baseline allelic ratios (which may already be adjusted by \code{skew}).
+  	Allelic reference base skew for heterozygous states (e.g. 1:1, 2:2, 3:3). Value is additive to baseline allelic ratios (which may already be adjusted by \code{skew}). Use \code{0} or \code{NULL} for no skew; use from range between 0 to 0.5.
+  }
+  \item{alleleEmissionModel}{
+    Specify the emission model to use for the allelic input data. \code{"binomial"} or \code{"Gaussian"}.
   }
   \item{symmetric}{
-  	\code{logical}; if \code{TRUE}, then treat genotypes as symmetric. See Details.
+  	\code{logical}; if \code{TRUE}, then treat genotypes as symmetric. This should always be \code{TRUE} because \code{symmetric=FALSE} is deprecated. See Details.
   }
   \item{data}{
   	\code{data} is the output of function \code{\link{loadAlleleCounts}}. If provided and \code{symmetric=TRUE}, then it will compute the median allelic ratio to use as the baseline for heterozygous genotypes; otherwise, the baseline will default to 0.55 (reference/depth) if \code{data=NULL}. If \code{symmetric=FALSE}, this argument will not be used.

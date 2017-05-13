@@ -1,8 +1,8 @@
-# author: Gavin Ha 
-# 		Dana-Farber Cancer Institute
-#		  Broad Institute
-# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-# date:	  March 17, 2017
+#' author: Gavin Ha 
+#' 		Dana-Farber Cancer Institute
+#'		  Broad Institute
+#' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+#' date:	  March 17, 2017
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
     skew = 0, hetBaselineSkew = NULL, alleleEmissionModel = "binomial", symmetric = TRUE, data = NULL) {
@@ -36,12 +36,12 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         }else{
         	hetARshift <- 0.55
         }
-        rt[c(4, 9, 25)] <- hetARshift
+        hetState <- c(4, 9, 16, 25)
+        rt[hetState] <- hetARshift
         ZS = 0:24
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
-        highStates <- c(1,10:length(rt))
-        hetState <- c(4, 9, 16, 25)
+        
     } #else {
       #  rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
       #      1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
@@ -67,34 +67,56 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     ZS[hetState[1]] <- -1
     rn = rn + skew
     ind <- ct <= copyNumber
+    hetState <- hetState[hetState <= sum(ind)]
     rt <- rt[ind]
     ZS <- ZS[ind]
     ct <- ct[ind]  #reassign rt and ZS based on specified copy number
-    K = length(rt)
-    ## VARIANCE for Gaussian to model copy number, var
-    var_0 = rep(1/20, K)
-    ## VARIANCE for Gaussian to model allelic fraction, varR
-    varR_0 = rep(1/20, K)
+    K <- length(rt)
+    N <- nrow(data)
     ## Dirichlet hyperparameter for initial state
     ## distribution, kappaG
-    kappaGHyper = rep(1, K) + 1
-    kappaGHyper[hetState[hetState %in% 1:K]] = 5
+    kappaGHyper_base <- 100
+    if (length(data$ref) > 0 && length(data$logR) > 0){
+      corRho_0 <- cor(data$ref / data$tumDepth, data$logR, use = "pairwise.complete.obs")
+    }else{
+      corRho_0 <- NULL
+    }
+    var_base <- 1/20 #var(data$logR, na.rm = TRUE)
+    var0_base <- 1/20 #var(data$ref / data$tumDepth, na.rm = TRUE)
+    if (!is.null(data)){
+      alphaK <- 1 / (var(data$logR, na.rm = TRUE) / sqrt(N))
+      betaK <- alphaK * var(data$logR, na.rm = TRUE)
+      alphaR <- 1 / (var(data$ref / data$tumDepth, na.rm = TRUE) / sqrt(N))
+      betaR <- alphaK * var(data$ref / data$tumDepth, na.rm = TRUE)
+    }else{
+      alphaK <- 10000   
+      betaK <- 25
+      alphaR <- 10000
+      betaR <- 25
+    }
     ## Gather all genotype related parameters into a list
     genotypeParams <- vector("list", 0)
     genotypeParams$rt <- rt
     genotypeParams$rn <- rn
     genotypeParams$ZS <- ZS
     genotypeParams$ct <- ct
-    genotypeParams$var_0 <- var_0
-    genotypeParams$varR_0 <- varR_0
-    genotypeParams$alphaKHyper <- rep(15000, K)
-    varHyperHigh <- 15000
-    genotypeParams$alphaKHyper[highStates] <- varHyperHigh  #AMP(11-15),HLAMP(16-21) states
-    genotypeParams$betaKHyper <- rep(25, K)
+    ## VARIANCE for Gaussian to model copy number, var
+    genotypeParams$corRho_0 <- corRho_0
+    genotypeParams$var_0 <- rep(var_base, K) 
+    #genotypeParams$var_0[ct %in% c(2, 4, 8)] <- var_base / 10
+    genotypeParams$alphaKHyper <- rep(alphaK, K)
+    genotypeParams$alphaKHyper[ct >= 5] <- alphaK  #AMP(11-15),HLAMP(16-21) states
+    genotypeParams$betaKHyper <- rep(betaK, K)
     genotypeParams$alleleEmissionModel <- alleleEmissionModel
-    genotypeParams$alphaRHyper <- rep(1000, K)
-    genotypeParams$betaRHyper <- rep(25, K)
-    genotypeParams$kappaGHyper <- kappaGHyper
+    ## VARIANCE for Gaussian to model allelic fraction, varR
+    genotypeParams$varR_0 <- rep(var0_base, K) 
+    #genotypeParams$varR_0[hetState] <- var0_base / 10
+    genotypeParams$alphaRHyper <- rep(alphaR, K)
+    genotypeParams$betaRHyper <- rep(betaR, K)
+    genotypeParams$kappaGHyper <- rep(kappaGHyper_base, K) + 1
+    genotypeParams$kappaGHyper[hetState] <- kappaGHyper_base * 5
+    genotypeParams$kappaGHyper[ct == 0] <- kappaGHyper_base / 50
+    genotypeParams$piG_0 <- estimateDirichletParamsMap(genotypeParams$kappaGHyper)  #add the outlier state
     genotypeParams$outlierVar <- 10000
     genotypeParams$symmetric <- symmetric
     ## NORMAL, n
@@ -102,8 +124,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     normalParams$n_0 <- 0.5
     normalParams$alphaNHyper <- 2
     normalParams$betaNHyper <- 2
-    rm(list = c("rt", "rn", "ZS", "ct", "var_0", "kappaGHyper", 
-        "skew"))
+    #rm(list = c("rt", "rn", "ZS", "ct", "var_0", "kappaGHyper", "skew"))
     ## PLOIDY, phi
     ploidyParams <- vector("list", 0)
     ploidyParams$phi_0 <- 2
@@ -112,7 +133,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     
     ## CELLULAR PREVALENCE, s
     sParams <- setupClonalParameters(Z = numberClonalClusters)
-    
+    sParams$piZ_0 <- estimateDirichletParamsMap(sParams$kappaZHyper)
     # return
     output <- vector("list", 0)
     output$genotypeParams <- genotypeParams
@@ -334,7 +355,7 @@ getPositionOverlap <- function(chr, posn, dataVal) {
     
     ## create full dataval list ##
     hitVal <- rep(NA, length = length(chr))
-    hitVal[queryHits(hits)] <- dataIR$val[subjectHits(hits)]
+    hitVal[from(hits)] <- dataIR$val[to(hits)]
     #chrIR$hitVal <- hitVal
     ## reorder to match input chr and posn arguments
     #chrDF <- as.data.frame(chrIR)
@@ -760,7 +781,8 @@ decodeLOH <- function(G, symmetric = TRUE) {
 
 outputTitanResults <- function(data, convergeParams, 
     optimalPath, filename = NULL, is.haplotypeData = FALSE, posteriorProbs = FALSE, 
-    subcloneProfiles = TRUE) {
+    subcloneProfiles = TRUE, correctResults = TRUE, proportionThreshold = 0.05, 
+    proportionThresholdClonal = 0.05, verbose = TRUE) {
     
     # check if useOutlierState is in convergeParams
     if (length(convergeParams$useOutlierState) == 0) {
@@ -803,32 +825,29 @@ outputTitanResults <- function(data, convergeParams,
         clonalHeaderStr[j] <- sprintf("pClust%d", j)
     }
     
-    outmat <- data.frame(Chr = data$chr, Position = data$posn, RefCount = data$refOriginal, 
-        stringsAsFactors = FALSE)
+    outmat <- data.table(Chr = data$chr, Position = data$posn, RefCount = data$refOriginal)
       
     if (is.haplotypeData){
       outmat <- cbind(outmat, NRefCount = data$tumDepthOriginal - data$refOriginal, 
         Depth = data$tumDepthOriginal, 
-        AllelicRatio = sprintf("%0.2f", data$refOriginal/data$tumDepthOriginal),
+        AllelicRatio = data$refOriginal/data$tumDepthOriginal,
         HaplotypeCount = data$ref, #data$haplotypeCount,
         HaplotypeDepth = data$tumDepth,
         #HaplotypeRatio =  sprintf("%0.2f", data$haplotypeCount/data$tumDepth), 
         HaplotypeRatio = data$HaplotypeRatio,
-        PhaseSet = data$phaseSet,
-        stringsAsFactors = FALSE)
+        PhaseSet = data$phaseSet)
     }else{
       outmat <- cbind(outmat, Depth = data$tumDepth, 
-        AllelicRatio = sprintf("%0.2f", data$refOriginal/data$tumDepth))
+        AllelicRatio = data$refOriginal/data$tumDepth)
     }
-    outmat <- cbind(outmat, LogRatio = sprintf("%0.2f", log2(exp(data$logR))), 
+    outmat <- cbind(outmat, LogRatio = log2(exp(data$logR)), 
         CopyNumber = CN, TITANstate = G, TITANcall = Gcalls, 
-        ClonalCluster = Zclust, CellularPrevalence = sprintf("%0.2f", 1 - Sout),
-        stringsAsFactors = FALSE)
+        ClonalCluster = Zclust, CellularPrevalence = 1 - Sout)
    	
    	## INCLUDE SUBCLONE PROFILES 
    	if (subcloneProfiles & numClust <= 2){
    		#outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
-    	outmat <- cbind(outmat, getSubcloneProfiles(outmat), stringsAsFactors = FALSE)
+    	outmat <- cbind(outmat, getSubcloneProfiles(outmat))
     }else{
     	message("outputTitanResults: More than 2 clusters or subclone profiles not requested.")
     }
@@ -843,22 +862,23 @@ outputTitanResults <- function(data, convergeParams,
     }
     if (!is.null(filename)) {
         message("titan: Writing results to ", filename)
-        write.table(outmat, file = filename, col.names = TRUE, 
+        write.table(format(outmat, digits = 2, scientific = FALSE), file = filename, col.names = TRUE, 
             row.names = FALSE, quote = FALSE, sep = "\t")
     }
-    suppressWarnings(outmat <- transform(outmat, AllelicRatio = as.numeric(AllelicRatio),
-        LogRatio = as.numeric(LogRatio),
-        CellularPrevalence = as.numeric(CellularPrevalence)))
-    if (is.haplotypeData){
-      suppressWarnings(outmat <- transform(outmat, HaplotypeRatio = as.numeric(HaplotypeRatio)))
+  
+    ## filter results to remove empty clusters or set normal contamination to 1.0 if few events 
+    if (correctResults){
+      if (verbose)
+        message("outputTitanResults: Correcting results...")
+      corrResults <- removeEmptyClusters(data, convergeParams, outmat, 
+                                         proportionThreshold = proportionThreshold, 
+                                         proportionThresholdClonal = proportionThresholdClonal, verbose = verbose)
+      convergeParams <- corrResults$convergeParams
+    }else{
+      corrResults <- NULL
     }
-    #suppressWarnings(outmat <- transform(outmat, Chr = as.character(Chr), Position = as.numeric(Position), 
-    #		RefCount = as.integer(RefCount), NRefCount = as.integer(NRefCount),
-    #		Depth = as.integer(Depth), AllelicRatio = as.numeric(AllelicRatio), LogRatio = as.numeric(LogRatio), 
-    #		CopyNumber = as.integer(CopyNumber), TITANstate = as.integer(TITANstate),
-    #		ClonalCluster = as.integer(ClonalCluster), CellularPrevalence = as.numeric(CellularPrevalence))
-    #		)
-    return(data.table(outmat))
+
+    return(list(results = outmat, corrResults = corrResults$results, convergeParams = convergeParams))
 }
 
 outputModelParameters <- function(convergeParams, results, filename, 
@@ -887,24 +907,33 @@ outputModelParameters <- function(convergeParams, results, filename,
     for (j in 1:Z) {
         musR_str <- sprintf("%0.2f ", convergeParams$muR[, j, i])
         musR_str <- gsub(" ", "", musR_str)
-        outStr <- sprintf("Genotype binomial means for clonal cluster Z=%d:\t%s", j, paste(musR_str, collapse = " "))
+        outStr <- sprintf("AllelicRatio %s means for clonal cluster Z=%d:\t%s", 
+                          convergeParams$genotypeParams$alleleEmissionModel, j, 
+                          paste(musR_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
         musC_str <- sprintf("%0.2f ", log2(exp(convergeParams$muC[, j, i])))
         musC_str <- gsub(" ", "", musC_str)
-        outStr <- sprintf("Genotype Gaussian means for clonal cluster Z=%d:\t%s", j, paste(musC_str, collapse = " "))
+        outStr <- sprintf("logRatio Gaussian means for clonal cluster Z=%d:\t%s", j, paste(musC_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
     }
+    if (convergeParams$genotypeParams$alleleEmissionModel == "Gaussian"){
+        varR_str <- sprintf("%0.5f ", convergeParams$varR[, i])
+        varR_str <- gsub(" ", "", varR_str)
+        outStr <- sprintf("AllelicRatio Gaussian variance:\t%s",
+                      paste(varR_str, collapse = " "))
+        write.table(outStr, file = fc, col.names = FALSE, 
+          row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
+    }
     var_str <- sprintf("%0.4f ", convergeParams$var[, i])
     var_str <- gsub(" ", "", var_str)
-    outStr <- sprintf("Genotype Gaussian variance:\t%s", 
+    outStr <- sprintf("logRatio Gaussian variance:\t%s", 
         paste(var_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
-        row.names = FALSE, quote = FALSE, sep = "", 
-        append = TRUE)
+        row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
     iter_str <- sprintf("Number of iterations:\t%d", 
         length(convergeParams$phi))
     write.table(iter_str, file = fc, col.names = FALSE, 
@@ -1088,8 +1117,8 @@ printSDbw <- function(sdbw, fc, scale, data.type = ""){
 }
 
 ## TODO: Add documentation
-removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0.001, 
-	proportionThresholdClonal = 0.05){
+removeEmptyClusters <- function(data, convergeParams, results, proportionThreshold = 0.001, 
+	proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, verbose = TRUE){
 	clust <- 1:nrow(convergeParams$s)
 	names(clust) <- clust
 	#newClust <- clust #original clusters
@@ -1150,7 +1179,27 @@ removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0
 		results[which(results$TITANcall != "HET"), "CellularPrevalence"] <- 1
 		results[which(results$TITANcall != "HET"), "ClonalCluster"] <- 1
 	}	
-		
+	
+	if (recomputeLogLik){
+	  if (verbose)
+  	  message("outputTitanResults: Recomputing log-likelihood.")
+  	newParams <- convergeParams
+  	iter <- length(newParams$n)
+  	newNumClust <- nrow(newParams$s)
+  	newParams$genotypeParams$var_0 <- newParams$var[, iter]
+  	newParams$genotypeParams$varR_0 <- newParams$varR[, iter]
+  	newParams$genotypeParams$piG_0 <- newParams$piG[, iter]
+  	newParams$normalParams$n_0 <- newParams$n[iter]
+  	newParams$ploidyParams$phi_0 <- newParams$phi[iter]
+  	newParams$cellPrevParams <- lapply(newParams$cellPrevParams, function(x){ x[1:newNumClust] })
+  	newParams$cellPrevParams$s_0 <- newParams$s[, iter]
+  	newParams$cellPrevParams$piZ_0 <- newParams$piZ[1:newNumClust, iter]
+  	
+  	p <- runEMclonalCN(data, newParams, maxiter=1, txnExpLen=convergeParams$txn_exp_len, 
+  	                   txnZstrength=convergeParams$txn_z_strength, useOutlierState=FALSE, 
+  	                   normalEstimateMethod="fixed", estimateS=FALSE,estimatePloidy=F, verbose=verbose)
+    convergeParams$loglik[iter] <- tail(p$loglik, 1)
+	}
 	return(list(convergeParams = convergeParams, results = results))
 }
 
@@ -1170,15 +1219,14 @@ getSubcloneProfiles <- function(titanResults){
 			Prevalence = titanResults$CellularPrevalence))
 	
 	if (numClones == 0){
-		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
-				TITANcall = titanResults$TITANcall,
-				Prevalence = "NA"), stringsAsFactors = FALSE)
+		subc1 <- data.table(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
+				TITANcall = titanResults$TITANcall, Prevalence = "NA"))
 	}
 	if (numClones == 1){
 		subc1Prev <- cellPrev[which(cellPrev[, "Cluster"] == "1"), "Prevalence"]
-		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
+		subc1 <- data.table(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
 				TITANcall = titanResults$TITANcall,
-				Prevalence = as.numeric(subc1Prev)), stringsAsFactors = FALSE)
+				Prevalence = as.numeric(subc1Prev)))
 	}
 	if (numClones == 2){
 		subc2Prev <- as.numeric(cellPrev[which(cellPrev[, "Cluster"] == "2"),
@@ -1186,24 +1234,23 @@ getSubcloneProfiles <- function(titanResults){
 		subc1Prev <- as.numeric(cellPrev[which(cellPrev[, "Cluster"] == "1"),
 				"Prevalence"])
 		subc1Prev <- subc1Prev - subc2Prev
-		subc2 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
-			TITANcall = titanResults$TITANcall,
-			Prevalence = as.numeric(subc2Prev)), stringsAsFactors = FALSE)
-		mode(subc2[, 1]) <- "numeric"; mode(subc2[, 3]) <- "numeric"
-		subc1 <- subc2
+		subc2 <- data.table(CopyNumber = as.numeric(titanResults$CopyNumber), 
+			TITANcall = titanResults$TITANcall, Prevalence = as.numeric(subc2Prev))
+		#mode(subc2[, 1]) <- "numeric"; mode(subc2[, 3]) <- "numeric"
+		subc1 <- copy(subc2)
 		ind <- which(titanResults$ClonalCluster == 2)
-		subc1[ind, c("CopyNumber", "TITANcall")] <- t(matrix(cbind(2, "HET"), 
-				ncol = length(ind), nrow = 2))
+		subc1[ind, CopyNumber := 2]
+		subc1[ind, TITANcall := "HET"]
 		subc1[, "Prevalence"] <- subc1Prev
 	}
 	
 	## Add subclone 1, 2 and 3 if they are defined
-	outMat <- cbind(Subclone1 = subc1)
+	outMat <- data.table(Subclone1 = subc1)
 	if (exists("subc2")){
 		outMat <- cbind(outMat, Subclone2 = subc2)
 	}
 	#if (exists("subc3")){
 	#	outMat <- cbind(outMat, Subclone3 = subc3, stringsAsFactors = FALSE)
 	#}
-	return(as.data.frame(outMat, stringsAsFactors = FALSE))
+	return(outMat)
 }

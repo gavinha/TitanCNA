@@ -23,8 +23,8 @@ plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
     dataIn <- copy(dataIn)
     if (!is.null(chr)) {
         for (i in chr) {
-            dataByChr <- dataIn[dataIn[, Chr] == i, ]
-            dataByChr <- dataByChr[dataByChr[, TITANcall] != "OUT", ]
+            dataByChr <- dataIn[Chr == i]
+            dataByChr <- dataByChr[TITANcall != "OUT"]
             # plot the data if (outfile!=''){
             # pdf(outfile,width=10,height=6) }
             par(mar = c(spacing, 8, 2, 2))
@@ -211,7 +211,8 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
         dataIn[, LogRatio := LogRatio + log2(((1-normal)*ploidy+normal*2)/2)]
         
       if (!is.null(segs)){
-				segs[, Median_logR := Median_logR + log2(((1-normal)*ploidy+normal*2) / 2)]
+        segs.sample <- copy(segs)
+				segs.sample[, Median_logR := Median_logR + log2(((1-normal)*ploidy+normal*2) / 2)]
 			}
     }
 
@@ -232,7 +233,7 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
                 las = 1, ylab = "Copy Number (log ratio)", xlim = xlim, ...)
             lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
             if (!is.null(segs)){
-							segsByChr <- segs[Chromosome == as.character(i), ]
+							segsByChr <- segs.sample[Chromosome == as.character(i), ]
 							tmp <- apply(segsByChr, 1, function(x){
 								lines(x[c("Start_Position.bp.","End_Position.bp.")], 
 										rep(x["Median_logR"], 2), col = "green", lwd = 3, lend = 1)
@@ -256,11 +257,11 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
         plotChrLines(dataIn[, Chr], coord$chrBkpt, par("yaxp")[1:2])
         #plot segments
 				if (!is.null(segs)){
-					coordEnd <- getGenomeWidePositions(segs[, Chromosome], segs[, End_Position.bp.])
-					coordStart <- coordEnd$posns - (segs[, End_Position.bp.] - segs[, Start_Position.bp.] + 1)
+					coordEnd <- getGenomeWidePositions(segs.sample[, Chromosome], segs.sample[, End_Position.bp.])
+					coordStart <- coordEnd$posns - (segs.sample[, End_Position.bp.] - segs.sample[, Start_Position.bp.] + 1)
 					xlim <- as.numeric(c(1, coordEnd$posns[length(coordEnd$posns)]))
-					col <- cnCol[as.character(segs[, Copy_Number])]
-					value <- as.numeric(segs[, Median_logR])
+					col <- cnCol[as.character(segs.sample[, Copy_Number])]
+					value <- as.numeric(segs.sample[, Median_logR])
 					mat <- as.data.frame(cbind(coordStart, coordEnd$posns, value, col))
 					rownames(mat) <- 1:nrow(mat)
 					tmp <- apply(mat, 1, function(x){

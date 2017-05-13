@@ -85,47 +85,9 @@ Users can specify the desired chromosome naming convention by using the \verb|ge
 <<>>= 
 data$chr <- setGenomeStyle(data$chr, genomeStyle = "UCSC")
 head(data$chr)
-data$chr <- setGenomeStyle(data$chr, genomeStyle = "NBCI")
+data$chr <- setGenomeStyle(data$chr, genomeStyle = "NCBI")
 head(data$chr)
 @
-
-\subsection{Loading the initial parameters}
-
-Load the default parameters using a specified maximum copy number \textit{TITAN} will consider. Here, 5 is used but up to 8 copies can be specified, however, running time and memory performance hits will be incurred. Here, you will also specify the number of clonal clusters to use for the TITAN run. This is where the number of clusters will be specified when running for 1,2,3,4, or 5 clonal cluster for real data. In general, the default parameters will work well with real, full datasets of whole genome sequencing of tumour samples.
-Including the loaded \verb|data| from the previous step will help inform the baseline allelic ratio parameters; this is recommended when using \verb|symmetric| genotypes.
-
-<<>>=
-numClusters <- 2
-params <- loadDefaultParameters(copyNumber = 5, 
-                                numberClonalClusters = numClusters,
-                                symmetric = TRUE, data = data)
-params
-@
-
-\verb|params| is a list object containing 4 sets of parameters, each as a component: 
-\begin{itemize}
-  \item \verb|genotypeParams|: Parameters for copy number and allelic ratios genotype states
-  \item \verb|normalParams|: Parameters for normal contamination
-  \item \verb|ploidyParams|: Parameters for average tumour ploidy
-  \item \verb|sParams|: Parameters for modeling subclonality: clonal clusters and cellular prevalence
-  \item \verb|data|: Input data frame to help determine the prior diploid heterozygous baseline allelic ratio noise 
-\end{itemize}
-
-Analysis of copy number by \textit{TITAN} is subject to tumour ploidy. TITAN attempts to estimate this value globally and is accurate in most cases. However, the issue is that, from the signals observed in the data, \textit{TITAN} cannot distinguish between diploid (2 global copies) and tetraploidy (4 global copies) because the data can explain both situations. Therefore, in general, if the user is aware that a sample is ployploid, then TITAN should be run with the ploidy initialization of 2 and also for initialization of 4. If the user is unaware of the ploidy status of the sample, then inspection of a TITAN run at ploidy initialization of 2 can help. If this run has many large, prominent regions of inferred homozygous deletions, then it is likely that this sample is triploid or tetraploid.
-
-<<echo=TRUE,eval=FALSE>>=
-params$ploidyParams$phi_0 <- 2 # for diploid or
-params$ploidyParams$phi_0 <- 4 # for tetraploid/ployploid
-@
-
-Because this vignette is an example involving only one chromosome, the fewer loci in the analysis will give different results than for a sample with all chromosomes. For this example, we will modify the Gaussian variance hyperparameter (prior used in modeling the log ratios) to a less influential setting, making the analysis more suitable for one chromosome. Also, because we know the average tumour ploidy of the genome-wide sample is slightly less than 2, we will initialize the \verb|phi_0| to 1.5 so that it does not overfit to this one chromosome. 
-
-<<>>=
-K <- length(params$genotypeParams$alphaKHyper)
-params$genotypeParams$alphaKHyper <- rep(500, K)
-params$ploidyParams$phi_0 <- 1.5
-@
-
 
 \subsection{Correct GC content and mappability biases}
 
@@ -161,6 +123,45 @@ data <- filterData(data, c(1:22, "X", "Y"), minDepth = 10, maxDepth = 200,
                    positionList = NULL, centromere = NULL, centromere.flankLength = 10000)
 @
 
+\subsection{Loading the initial parameters}
+
+Load the default parameters using a specified maximum copy number \textit{TITAN} will consider. Here, 5 is used but up to 8 copies can be specified, however, running time and memory performance hits will be incurred. Here, you will also specify the number of clonal clusters to use for the TITAN run. This is where the number of clusters will be specified when running for 1,2,3,4, or 5 clonal cluster for real data. In general, the default parameters will work well with real, full datasets of whole genome sequencing of tumour samples.
+Including the loaded \verb|data| from the previous step will help inform the baseline allelic ratio parameters; this is recommended when using \verb|symmetric| genotypes. \verb|hetBaselineSkew| is the allelic reference skew for heterozygous states (e.g. 1:1, 2:2, 3:3). This value is the additive to baseline allelic ratios, for example, when \verb|hetBaselineSkew=0.05|, then the heterozygous allelic ratio is expected to be 0.55. The \verb|alleleEmissionModel| is specified as \verb|"binomial"| or \verb|"Gaussian"| (not fully implemented yet; please use binomial).
+
+<<>>=
+numClusters <- 2
+params <- loadDefaultParameters(copyNumber = 5, 
+                                numberClonalClusters = numClusters,
+                                symmetric = TRUE, hetBaselineSkew = 0, 
+                                alleleEmissionModel = "binomial", data = data)
+params
+@
+
+\verb|params| is a list object containing 4 sets of parameters, each as a component: 
+\begin{itemize}
+  \item \verb|genotypeParams|: Parameters for copy number and allelic ratios genotype states
+  \item \verb|normalParams|: Parameters for normal contamination
+  \item \verb|ploidyParams|: Parameters for average tumour ploidy
+  \item \verb|cellPrevParams|: Parameters for modeling subclonality: clonal clusters and cellular prevalence
+  \item \verb|data|: Input data frame to help determine the prior diploid heterozygous baseline allelic ratio noise 
+\end{itemize}
+
+Analysis of copy number by \textit{TITAN} is subject to tumour ploidy. TITAN attempts to estimate this value globally and is accurate in most cases. However, the issue is that, from the signals observed in the data, \textit{TITAN} cannot distinguish between diploid (2 global copies) and tetraploidy (4 global copies) because the data can explain both situations. Therefore, in general, if the user is aware that a sample is ployploid, then TITAN should be run with the ploidy initialization of 2 and also for initialization of 4. If the user is unaware of the ploidy status of the sample, then inspection of a TITAN run at ploidy initialization of 2 can help. If this run has many large, prominent regions of inferred homozygous deletions, then it is likely that this sample is triploid or tetraploid.
+
+<<echo=TRUE,eval=FALSE>>=
+params$ploidyParams$phi_0 <- 2 # for diploid or
+params$ploidyParams$phi_0 <- 4 # for tetraploid/ployploid
+@
+
+Because this vignette is an example involving only one chromosome, the fewer loci in the analysis will give different results than for a sample with all chromosomes. For this example, we will modify the Gaussian variance hyperparameter (prior used in modeling the log ratios) to a less influential setting, making the analysis more suitable for one chromosome. Also, because we know the average tumour ploidy of the genome-wide sample is slightly less than 2, we will initialize the \verb|phi_0| to 1.5 so that it does not overfit to this one chromosome. 
+
+<<>>=
+K <- length(params$genotypeParams$alphaKHyper)
+params$genotypeParams$alphaKHyper <- rep(500, K)
+params$ploidyParams$phi_0 <- 1.5
+@
+
+
 \subsection{Model training and parameter estimation}
 
 Parameter estimation in \textit{TITAN} uses the Expectation Maximization algorithm (EM) and forwards-backwards algorithm. This step generally requires parallelization to increase time performance. The \textit{TITAN} package uses the \textit{foreach} package which conveniently enables the user to use libraries, such as \textit{doMC} and \textit{doMPI}, to parallelize the training by chromosome. It is up to the user to decide which is the best library to use depending on the current system. For example, if one wishes to use multiple cores via forking on a single machine,
@@ -183,10 +184,7 @@ Here is a little more detail regarding some important arguments:
 \end{itemize}
 
 <<>>=
-convergeParams <- runEMclonalCN(data, gParams = params$genotypeParams, 
-                                nParams = params$normalParams, 
-                                pParams = params$ploidyParams, 
-                                sParams = params$cellPrevParams, 
+convergeParams <- runEMclonalCN(data, params, 
                                 maxiter = 3, maxiterUpdate = 50, 
                                 useOutlierState = FALSE, txnExpLen = 1e15, 
                                 txnZstrength = 5e5, 
@@ -228,11 +226,26 @@ Position-specific results that includes genotype, clonal cluster, and cellular p
 <<>>=
 results <- outputTitanResults(data, convergeParams, optimalPath,
                               filename = NULL, posteriorProbs = FALSE,
-                              subcloneProfiles = TRUE)
-head(results)
+                              subcloneProfiles = TRUE, correctResults = TRUE, 
+                              proportionThreshold = 0.05, 
+                              proportionThresholdClonal = 0.05,
+                              is.haplotypeData = FALSE)
+names(results)
+head(results$corrResults) ## corrected results
+convergeParams <- results$convergeParam ## use corrected parameters
+results <- results$corrResults ## use corrected results
 @
 
-The format of this output file and data.frame is the following:
+The format of this a list containing the following:
+\begin{enumerate}
+  \item \verb|results|: TITAN results, uncorrected for cluster number and parameters
+  \item \verb|corrResults|: TITAN results, corrected by removing empty clusters and parameters adjusted accordingly.
+  \item \verb|convergeParams|: Corrected parameter object
+\end{enumerate}
+
+When \verb|correctResults=TRUE|, the results will be post-processed to exclude clonal clusters that have fewer genomic alterations.  Users can specify the minimum proportion of the genome altered for any subclonal cluster using \verb|proportionThreshold| and the minimum proportion of clonal events for the clonal (highest cellular prevalence) cluster using \verb|proportionThresholdClonal|.  The function returns the post-processed \verb|convergeParams| and \verb|corrResults| objects in a 2 element list.
+
+\verb|results| and \verb|CorrResults| have the following format:
 \begin{enumerate}
   \item \verb|Chr|
   \item \verb|Position|
@@ -254,20 +267,20 @@ The format of this output file and data.frame is the following:
   \item \verb|Subclone2.Prevalence|: Subclonal prevalence for Subclone 2
 \end{enumerate}
 
-New in version 1.8.1, users can post-process the results to exclude clonal clusters that have fewer genomic alterations.  Users can specify the minimum proportion of the genome altered for any subclonal cluster using \verb|proportionThreshold| and the minimum proportion of clonal events for the clonal (highest cellular prevalence) cluster using \verb|proportionThresholdClonal|.  The function returns the post-processed \verb|convergeParams| and \verb|results| objects in a 2 element list.
+%For haplotype-based copy number using phasing information, use \verb|is.haplotypeData=TRUE|.  Then, additional columns are included:
+%\begin{enumerate}
+%  \item \verb|HaplotypeRatio|: haplotype-based fraction if analyzing haplotype-based %copy number
+%  \item \verb|HaplotypeCount|:
+%  \item \verb|HaplotypeDepth|: Total coverage 
+%  \item \verb|PhaseSet|: An identifier indicating the original haplotype phase block
+%\end{enumerate}
 
-<<eval=FALSE>>=
-corrResults <- removeEmptyClusters(convergeParams, results, proportionThreshold = 0.001, 
-																	 proportionThresholdClonal = 0.3)
-convergeParams <- corrResults$convergeParams
-results <- corrResults$results
-@
 
 New in version 1.10.1, users can now directly generate segments and output these to files.  There are two possible outputs to files: 1) Segments with detailed information, and 2) Segments prepared for loading into IGV.  These filenames can be specified in arguments \verb|filename| and \verb|igvfilename|
 
 <<eval>>=
 segs <- outputTitanSegments(results, id = "test", convergeParams, 
-													filename = NULL, igvfilename = NULL)
+                            filename = NULL, igvfilename = NULL)
 head(segs)
 @
 
@@ -373,6 +386,14 @@ plotSubcloneProfiles(results, chr = 2, cex = 1, spacing = 2, main = "Chr 2")
 @
 
 Colours have the same definition as for the allelic ratio plots.
+
+\subsubsection{Segment medians}
+For a cleaner visualization of copy number results, users can plot segment means of total copy number and allelic copy number results
+
+<<fig=TRUE, pdf=FALSE, eps=FALSE, png=TRUE, height=2>>=
+plotSegmentMedians(segs, chr=2, resultType = "LogRatio", plotType = "CopyNumber", 
+                   plot.new = TRUE, ylim = c(0, 4), main="Chr 2")
+@
 
 \section{Session Information}
 
