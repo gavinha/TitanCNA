@@ -141,7 +141,30 @@ R scripts are provided to run the R component of the TITAN analysis using the Ti
                 Hyperparameter on Gaussian variance for extreme copy number states; 
                 for WES, use 1000; for WGS, use 10000; float (Default: 10000)
     ```
-
+4. Running TitanCNA for multiple restarts and model selection
+  ```
+  numClusters=3
+  numCores=4
+  ## run TITAN for each ploidy (2 to 4) and clusters (1 to numClusters)
+  echo "Maximum number of clusters: $numClusters";
+  for ploidy in $(seq 2 4)
+    do
+      echo "Running TITAN for $i clusters.";
+      outDir=run_ploidy$ploidy
+      mkdir $outDir
+      for numClust in $(seq 1 $numClusters)
+      do
+        echo "Running for ploidy=$ploidy";
+        Rscript titanCNA_v1.10.1.R --id test --hetFile test.het.txt --cnFile test.cn.txt \
+        --numClusters $numClust --numCores $numCores --normal_0 0.5 --ploidy_0 $ploidy \
+        --chrs "c(1:22, \"X\")" --estimatePloidy TRUE --outDir $outDir
+      done
+      echo "Completed job for $numClust clusters."
+    done
+  
+  ## select optimal solution
+  Rscript selectSolution.R run_ploidy2 run_ploidy3 run_ploidy4 0.05 ./
+  ```
 
 ## Vignette in R package
 The PDF of the vignette can be accessed from R
