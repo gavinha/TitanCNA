@@ -180,9 +180,8 @@ pathToPdf <- paste0(pathToInstall, "/int/doc/TitanCNA.pdf)
 The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
 
 ## License
-TitanCNA is The license for the R Bioconductor package is now open source under GPLv3.  This applies to the v1.9.0 and all subsequent versions within and obtained from Bioconductor.  
-Because the Bioconductor SVN is bridged to the GitHub TitanCNA repository "master" branch, the GitHub master branch for TitanCNA will also be under GPLv3.  
-Please note that any other branch in the GitHub TitanCNA repository is still under the previous academic license. Users who are using TitanCNA for the purpose of academic research are free to use all branches and versions of the software. If this does not apply to you, please contact gavinha@broadinstitute.org, sshah@bccrc.ca, and prebstein@bccancer.bc.ca.
+TitanCNA R code is open source and is R/Bioconductor package is under GPLv3.  This applies to the v1.9.0 and all subsequent versions within and obtained from Bioconductor.  
+Users who are using TitanCNA earlier than v1.9.0 not for the purpose of academic research should contact gavinha@broadinstitute.org, sshah@bccrc.ca, and prebstein@bccancer.bc.ca to inquire about previous licensing.
 
 # Acknowledgements
 TitanCNA was developed by Gavin Ha while in the laboratories of Sohrab Shah (sshah@bccrc.ca) and Sam Aparicio (saparicio@bccrc.ca) at the Dept of Molecular Oncology, BC Cancer Agency, Vancouver, Canada.
