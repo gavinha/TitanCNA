@@ -42,7 +42,6 @@ Thank you for your interest in the TitanCNA software.
   - loadHaplotypeAlleleCounts(): loads input allele counts with phasing information
   - plotHaplotypeFraction(): results from 10X Genomics WGS data with phasing of haplotype blocks
   
-
 3) Modified features (no changes for user-accessible functions)
   - updateParameters: coordinate descent estimate of ploidy update uses previously estimated normal parameter from the same corodinate descent iteration ; leads to faster convergence
   - fwd_back_clonalCN.c: returns 2-slice marginals 
@@ -50,7 +49,7 @@ Thank you for your interest in the TitanCNA software.
 ## Installation
 ### Install TitanCNA R package from github
 
-From R-3.3.2 or higher,  
+From within R-3.3.2 or higher,  
 ```
 install.packages("devtools")
 library(devtools)
@@ -58,9 +57,13 @@ install_github("gavinha/TitanCNA")
 ```
 
 ### Install TitanCNA from Bioconductor
+From within R-3.3.2 or higher,  
+```
+source("https://bioconductor.org/biocLite.R")
+biocLite("TitanCNA")
+```
 
-### Install other dependencies
-
+### Install other dependencies  
 1. Install the HMMcopy suite
 Please follow instructions on the HMMcopy website <http://compbio.bccrc.ca/software/hmmcopy/>.
 
@@ -141,6 +144,16 @@ R scripts are provided to run the R component of the TITAN analysis using the Ti
 
 
 ## Vignette in R package
+The PDF of the vignette can be accessed from R
+```
+library(TitanCNA)
+browseVignettes(package = "TitanCNA")
+```
+The path of the file can also be located using
+```
+pathToInstall <- system.file(package = "TitanCNA")
+pathToPdf <- paste0(pathToInstall, "/int/doc/TitanCNA.pdf)
+```
 The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
 
 ## License
