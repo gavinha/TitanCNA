@@ -1,3 +1,11 @@
+#' titanCNA.R
+#' author: Gavin Ha 
+#' Dana-Farber Cancer Institute
+#' Broad Institute
+#' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+#' date:	  May 14, 2017
+#' Notes: This script is tested for TitanCNA v1.13.1 and higher
+
 library(optparse)
 
 option_list <- list(
@@ -13,10 +21,8 @@ option_list <- list(
 	make_option(c("--estimateNormal"), type = "character", default = "map", help = "Estimate normal contamination method; string {'map', 'fixed'} [Default: %default]"),
 	make_option(c("--estimateClonality"), type="logical", default=TRUE, help="Estimate cellular prevalence. [Default: %default]"),
 	make_option(c("--maxCN"), type = "integer", default = 8, help = "Maximum number of copies to model; integer [Default: %default]"),
-	make_option(c("--alphaK"), type = "numeric", default = 10000, help = "Hyperparameter on Gaussian variance for log ratio data; for WES, use 1000; for WGS, use 10000; float [Default: %default]"),
+	make_option(c("--alphaK"), type = "numeric", default = 10000, help = "Hyperparameter on Gaussian variance; for WES, use 1000; for WGS, use 10000; float [Default: %default]"),
 	make_option(c("--alphaKHigh"), type = "numeric", default = 10000, help = "Hyperparameter on Gaussian variance for extreme copy number states; for WES, use 1000; for WGS, use 10000; float [Default: %default]"),
-	make_option(c("--alleleModel"), type = "character", default = "binomial", help = "Emission density to use for allelic input data (binomial or Gaussian). [Default: %default]"),
-	make_option(c("--alphaR"), type = "numeric", default = 5000, help = "Hyperparaemter on the Gaussian variance for allelic fraction data; used if --alleleModel=\"Gaussian\". [Defaule: %default]"),
 	make_option(c("--txnExpLen"), type = "numeric", default = 1e15, help = "Expected length of segments; higher leads to longer (less sensitive) segments; float [Default: %default]"),
 	make_option(c("--txnZStrength"), type = "numeric", default = 1, help = "Expected length of clonal cluster segmentation (factor of txnExpLen); float [Default: %default]"),
 	make_option(c("--minDepth"), type = "integer", default = 10, help = "Minimum read depth of a HET site to include in analysis; integer [Default: %default]"),
@@ -34,9 +40,7 @@ option_list <- list(
 	make_option(c("--outIGV"), type = "character", default = NULL, help = "Output file to write segments for loading into IGV. (default uses extension: *.seg]"),
 	make_option(c("--outParam"), type = "character", default = NULL, help = "Output file to write parameters. [Default: %default]"),
 	make_option(c("--outPlotDir"), type = "character", default = NULL, help = "Output directory to save plots. [Default: %default]"),
-	make_option(c("--plotYlim"), type = "character", default = "c(-2,4)", help = "The Y-axis limits to use for plotting log ratio coverage results. [Default: %default]"),
-	make_option(c("--haplotypeBinSize"), type = "integer", default = 1e5, help = "Bin size for summarizing phased haplotypes. [Default: %default]"),
-	make_option(c("--phaseSummarizeFun"), type = "character", default = "sum", help = "Strategy to summarize specified haplotype bins: mean, sum, SNP. [Default: %default]")
+	make_option(c("--plotYlim"), type = "character", default = "c(-2,4)", help = "The Y-axis limits to use for plotting log ratio coverage results. [Default: %default]")
 )
 
 parseobj <- OptionParser(option_list=option_list, usage = "usage: Rscript %prog [options]")
@@ -52,20 +56,14 @@ library(SNPchip)
 sessionInfo()
 options(bitmapType='cairo', scipen=0)
 
-#setwd("~/Documents/Projects/CRPC_SV/TITAN_10X")
 libdir <- opt$libdir
-#libdir = "~/home_unix/code/git/TitanCNA/"
 if (!is.null(libdir)){
-	source(paste0(libdir, "/R/plotting.R"))
-	source(paste0(libdir, "/R/utils.R"))
-  source(paste0(libdir, "/R/hmmClonal.R"))
-  source(paste0(libdir, "/R/paramEstimation.R"))
-  source(paste0(libdir, "/R/correction.R"))
-  source(paste0(libdir, "/R/haplotype.R"))
+	source(paste0(libdir, "R/plotting.R"))
+	source(paste0(libdir, "R/utils.R"))
+  source(paste0(libdir, "R/hmmClonal.R"))
+  source(paste0(libdir, "R/paramEstimation.R"))
+  source(paste0(libdir, "R/correction.R"))
 }
-
-dyn.load(paste0(libdir, "src/TitanCNA.so"))
-#dyn.load("/Users/gavinha/Documents/Code/git/github/TitanCNA/src/fwd_backC_clonalCN.so")
 
 id <- opt$id
 hetfile <- opt$hetFile
@@ -80,8 +78,6 @@ estimateS <- opt$estimateClonality
 maxCN <- opt$maxCN
 alphaK <- opt$alphaK
 alphaHigh <- opt$alphaKHigh
-alleleEmissionModel <- opt$alleleModel
-alphaR <- opt$alphaR
 txn_exp_len <- opt$txnExpLen
 txn_z_strength <- opt$txnZStrength
 mapThres <- opt$mapThres
@@ -93,8 +89,6 @@ chrs <- eval(parse(text = opt$chrs))
 genomeStyle <- opt$genomeStyle
 mapWig <- opt$mapWig
 centromere <- opt$centromere
-haplotypeBinSize <- opt$haplotypeBinSize
-phaseSummarizeFun <- opt$phaseSummarizeFun
 outdir <- opt$outDir
 outfile <- opt$outFile
 outparam <- opt$outParam
@@ -132,7 +126,6 @@ if (is.null(outplot)){
 outImage <- gsub(".titan.txt", ".RData", outfile)
 
 ## set up chromosome naming convention ##
-seqinfo.hg19 <- readRDS("/home/unix/gavinha/software/code/git/scripts/references/Seqinfo_hg19.rds")
 chrs <- setGenomeStyle(chrs, genomeStyle = genomeStyle)
 
 pseudo_counts <- 1e-300
@@ -140,25 +133,23 @@ centromereFlank <- 100000
 maxI <- 50
 
 message('Running TITAN...')
-save.image(file=outImage)
-#### LOAD DATA ####
-#data <- loadAlleleCounts(hetfile, header=T, genomeStyle = genomeStyle)
-data <- loadHaplotypeAlleleCounts(hetfile, seqinfo = seqinfo.hg19, haplotypeBinSize = haplotypeBinSize, fun=phaseSummarizeFun) 
-data <- data$haplotypeData
 
+#### LOAD DATA ####
+data <- loadAlleleCounts(hetfile, header=T, genomeStyle = genomeStyle)
+ 
 #### REMOVE CENTROMERES ####
 if (!is.null(centromere)){
 	centromere <- read.delim(centromere,header=T,stringsAsFactors=F,sep="\t")
 }
-
+save.image()
 #### LOAD GC AND MAPPABILITY CORRECTED COVERAGE LOG RATIO FILE ####
 message('titan: Loading GC content and mappability corrected log2 ratios...')
-cnData <- fread(cnfile)
+cnData <- read.delim(cnfile, header=T, stringsAsFactors=F, sep="\t")
 cnData$chr <- setGenomeStyle(cnData$chr, genomeStyle = genomeStyle)
 
 #### ADD CORRECTED LOG RATIOS TO DATA OBJECT ####
 message('titan: Extracting read depth...')
-logR <- getPositionOverlap(data$chr,data$posn, cnData)
+logR <- getPositionOverlap(data$chr,data$posn,cnData)
 data$logR <- log(2^logR)
 rm(logR,cnData)
 
@@ -171,14 +162,11 @@ if (!is.null(mapWig)){
 }else{
 	data <- filterData(data,chrs,minDepth=minDepth,maxDepth=maxDepth,centromeres = centromere)
 }
-## reassign chromosomes ##
-chrs <- unique(data$chr)
 
 #### LOAD PARAMETERS ####
 message('titan: Loading default parameters')
 params <- loadDefaultParameters(copyNumber=maxCN,numberClonalClusters=numClusters, 
-																skew=skew, hetBaselineSkew=hetBaselineSkew, 
-																alleleEmissionModel = alleleEmissionModel, data=data)
+																skew=skew, hetBaselineSkew=hetBaselineSkew, data=data)
 
 #### MODEL SELECTION USING EM (FWD-BACK) TO SELECT NUMBER OF CLUSTERS ####
 registerDoMC()
@@ -186,40 +174,26 @@ options(cores=numCores)
 message("Using ",getDoParWorkers()," cores.")
 K <- length(params$genotypeParams$rt)
 params$genotypeParams$alphaKHyper <- rep(alphaK,K)
-params$genotypeParams$betaKHyper <- rep(25,K)
-#params$genotypeParams$alphaKHyper[params$genotypeParams$ct == 0] <- alphaK / 500 #HOMD
-#params$genotypeParams$alphaKHyper[params$genotypeParams$ct == max(params$genotypeParams$ct)] <- alphaK / 50 #maxCN
-#params$genotypeParams$var_0[params$genotypeParams$ct %in% c(2, 4, 8)] <- 1/20 / 100
-#params$genotypeParams$alphaKHyper[params$genotypeParams$ct %in% c(1,2,3)] <- alphaK / 2
-params$genotypeParams$alphaRHyper <- rep(alphaR,K)
-params$genotypeParams$betaRHyper <- rep(25,K)
-#params$genotypeParams$alphaRHyper[params$genotypeParams$ct == 0] <- alphaR / 500 #HOMD
-#params$genotypeParams$alphaRHyper[params$genotypeParams$ct == max(params$genotypeParams$ct)] <- alphaR / 50 #maxCN
-#params$genotypeParams$varR_0[c(4, 9, 16, 25)] <- 1/20 / 100
-#params$genotypeParams$alphaRHyper[c(4,9,25)] <- alphaR * 5
 #params$genotypeParams$alphaKHyper[c(1,7:K)] <- alphaHigh 
 params$ploidyParams$phi_0 <- ploidy_0
 params$normalParams$n_0 <- norm_0
 #params$genotypeParams$rt[c(4, 9)] <- hetAR
 
-convergeParams <- runEMclonalCN(data, params=params,
-                                #gParams=params$genotypeParams,nParams=params$normalParams,
-                                #pParams=params$ploidyParams,sParams=params$cellPrevParams,
-                                maxiter=maxI,maxiterUpdate=15,
+convergeParams <- runEMclonalCN(data, params,
+                                maxiter=maxI,maxiterUpdate=1500,
                                 txnExpLen=txn_exp_len,txnZstrength=txn_z_strength,
                                 useOutlierState=FALSE,
                                 normalEstimateMethod=normEstMeth,estimateS=estimateS,
                                 estimatePloidy=boolEstPloidy, pseudoCounts=pseudo_counts)
     
 #### COMPUTE OPTIMAL STATE PATH USING VITERBI ####
-message("Using ",getDoParWorkers()," cores.")
+message("Using ",getDoParWorkers(),"cores.")
 optimalPath <- viterbiClonalCN(data,convergeParams)
 save.image(file=outImage)
 #### PRINT RESULTS TO FILES ####
-results <- outputTitanResults(data,convergeParams,optimalPath,is.haplotypeData=TRUE,
-			filename=NULL,posteriorProbs=FALSE,subcloneProfiles=TRUE, 
-			proportionThreshold = 0.05, proportionThresholdClonal = 0.05, verbose=FALSE)
-#corrResults <- removeEmptyClusters(convergeParams, results, proportionThreshold = 0.05, proportionThresholdClonal = 0.05)
+results <- outputTitanResults(data,convergeParams,optimalPath,
+			filename=NULL,posteriorProbs=F,subcloneProfiles=TRUE,
+			proportionThreshold = 0.05, proportionThresholdClonal = 0.05)
 convergeParams <- results$convergeParams
 results <- results$corrResults
 numClustersToPlot <- nrow(convergeParams$s)
@@ -227,6 +201,7 @@ write.table(results, file = outfile, col.names = TRUE, row.names = FALSE, quote 
 outputModelParameters(convergeParams, results, outparam)
 
 # save specific objects to a file
+# if you don't specify the path, the cwd is assumed 
 convergeParams$rhoG <- NULL; convergeParams$rhoZ <- NULL
 #save(convergeParams, file=outImage)
 save.image(file=outImage)
@@ -240,38 +215,25 @@ norm <- tail(convergeParams$n,1)
 ploidy <- tail(convergeParams$phi,1)
 for (chr in chrs){
 	outfig <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_chr", chr, ".png")
-	#if (as.numeric(numClusters) <= 2){
-	#  png(outfig,width=1200,height=1250,res=100)
-	#	par(mfrow=c(5,1))
-	#}else{
-	  png(outfig,width=1200,height=1000,res=100)
-		par(mfrow=c(4,1))  
-	#}
-	#source("/home/unix/gavinha/software/code/git/scripts/10XGenomics/utils.R")
-	#source("/Volumes/software/code/git/scripts/10XGenomics/utils.R")
-	source(paste0(libdir, "R/plotting.R"))
-	plotCNlogRByChr(results, chr, segs = NULL, ploidy=ploidy, normal = norm, geneAnnot=NULL,  cex.axis=1.5, 
-					cex.lab=1.5, ylim=plotYlim, cex=0.5, xlab="", main=paste("Chr ",chr,sep=""))
-	plotAllelicRatio(results, chr, geneAnnot=NULL, spacing=4, cex.axis=1.5, cex.lab=1.5, 
-					ylim=c(0,1), xlab="", cex=0.5)
-	#plotHaplotypeFraction(data, type = "AllelicRatio", colType = "haplotypes", xlab="", chr="6", cex=0.25)
-	#plotHaplotypeFraction(results, chr, type = "AllelicRatio", colType = "haplotype", 
-	#  xlab="", cex=0.5, cex.axis=1.5, cex.lab=1.5)
-	plotHaplotypeFraction(results, chr, resultType = "HaplotypeRatio", colType = "Haplotypes", 
-	  xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5, cex.lab=1.5)
-	#plotHaplotypeFraction(results, chr, type = "HaplotypeRatio", colType = "titan", 
-	#  xlab="", cex=0.5, cex.axis=1.5, cex.lab=1.5)
-	#plotHaplotypeFraction(data, chr, type = "HaplotypeRatio", colType = "haplotype", xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5, cex.lab=1.5)
+	png(outfig,width=1200,height=1000,res=100)
+	if (as.numeric(numClusters) <= 2){
+		par(mfrow=c(4,1))
+	}else{
+		par(mfrow=c(3,1))  
+	}
+	plotCNlogRByChr(results, chr, segs = segs, ploidy=ploidy, normal = norm, geneAnnot=NULL,  cex.axis=1.5, 
+					ylim=plotYlim, cex=0.5, xlab="", main=paste("Chr ",chr,sep=""))
+	plotAllelicRatio(results, chr, geneAnnot=NULL, spacing=4, cex.axis=1.5,
+					ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
 	plotClonalFrequency(results, chr, normal=norm, geneAnnot=NULL, spacing=4, 
 					cex.axis=1.5, ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
-  
-  par(xpd = NA)
-	#if (as.numeric(numClustersToPlot) <= 2 && as.numeric(numClusters) <= 2){
-		#plotSubcloneProfiles(results, chr, cex = 2, spacing=6, main=paste("Chr ",chr,sep=""), cex.axis=1.5)
-		#pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-4.25, new=FALSE, ylim=c(-2,-1))
-	#}else{
+                    
+	if (as.numeric(numClustersToPlot) <= 2 && as.numeric(numClusters) <= 2){
+		plotSubcloneProfiles(results, chr, cex = 2, spacing=6, main=paste("Chr ",chr,sep=""), cex.axis=1.5)
+		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-4.25, new=FALSE, ylim=c(-2,-1))
+	}else{
 		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-0.35, new=FALSE, ylim=c(-0.2,-0.1))
-	#}
+	}
 	
 	dev.off()
 }
@@ -291,31 +253,11 @@ pdf(outFile,width=20,height=6)
 plotAllelicRatio(dataIn=results, chr=NULL, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)	
 dev.off()
 
-outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_PHASE.pdf")
-#png(outFile,width=1000,height=300)
-pdf(outFile,width=20,height=6)
-par(mfrow=c(1,1))
-plotHaplotypeFraction(results, chr=NULL, resultType = "HaplotypeRatio", colType = "Haplotypes", xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5, cex.lab=1.5)
-dev.off()
-
-outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_HAPLO.pdf")
-#png(outFile,width=1000,height=300)
-pdf(outFile,width=20,height=6)
-par(mfrow=c(1,1))
-plotHaplotypeFraction(results, chr=NULL, resultType = "HaplotypeRatio", colType = "CopyNumber", xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5, cex.lab=1.5)
-dev.off()
-
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CF.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
 plotClonalFrequency(dataIn=results, chr=NULL, norm, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=c(0,1), cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
-
-outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_LOH-SEG.pdf")
-pdf(outFile, width=20, height=6)
-plotSegmentMedians(dataIn=segs, chr=NULL, resultType = "AllelicRatio", plotType = "CopyNumber", plot.new=T, ylim=c(0,8), cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
-
-
 
 if (as.numeric(numClusters) <= 2){
 	outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_subclone.pdf")
