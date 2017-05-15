@@ -24,7 +24,7 @@ Date: May 13, 2017
 
 ## Links
 TitanCNA GitHub: https://github.com/gavinha/TitanCNA  
-KRONOS TITAN Workflow: https://github.com/MO-BCCRC/titan_workflow
+KRONOS TITAN Workflow: https://github.com/MO-BCCRC/titan_workflow  
 Google Groups: https://groups.google.com/forum/#!forum/titancna   
 TitanCNA website: http://compbio.bccrc.ca/software/titan/  
 Publication in Genome Research: http://genome.cshlp.org/content/24/11/1881
