@@ -1,4 +1,4 @@
-#' getPhasedHETsitesFromLRVCF.R
+#' selectSolutions.R
 #' author: Gavin Ha 
 #' Dana-Farber Cancer Institute
 #' Broad Institute
