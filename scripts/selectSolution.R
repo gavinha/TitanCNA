@@ -127,7 +127,7 @@ for (i in 1:numPatients){
   }
 
   ## select ploidy based on which set of ploidy solutions has consistently lower loglik
-  maxInd <- apply(cbind(phi2Params$loglik * (threshold + 1), phi3Params$loglik, phi4Params$loglik), 1, which.max)
+  maxInd <- apply(cbind(phi2Params$loglik * (abs(phi2Params$loglik)*threshold + 1), phi3Params$loglik, phi4Params$loglik), 1, which.max)
   ploidySolInd <- as.numeric(names(which.max(table(maxInd))))
   optPloidy <- switch(ploidySolInd, phi2Params, phi3Params, phi4Params)
   optSolution <- optPloidy[which.min(optPloidy$sdbw), ]

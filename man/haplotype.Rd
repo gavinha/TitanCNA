@@ -3,7 +3,9 @@
 
 
 \title{
-  Function to load tumour allele counts from a text file or data.frame and returns a \link[data.table]{data.table}.
+  Function to load tumour allele counts from a text file or data.frame and returns a \link[data.table]{data.table} (\code{loadHaplotypeAlleleCounts}).
+  Function to load phased heterozygous sites from a VCF file (\code{getHaplotypesFromVCF}) 
+  
 }
 
 \description{
@@ -14,11 +16,19 @@
     loadHaplotypeAlleleCounts(inCounts, fun = "sum", haplotypeBinSize = 1e5, 
       minSNPsInBin = 3, chrs = c(1:22, "X"), minNormQual = 200, 
       genomeStyle = "NCBI", sep = "\t", header = TRUE, seqinfo = NULL)
+    
+    getHaplotypesFromVCF(vcfFile, chrs = c(1:22, "X"), build = "hg19", 
+      filterFlags = c("PASS", "10X_RESCUED_MOLECULE_HIGH_DIVERSITY"), 
+      minQUAL = 100, minDepth = 10, minVAF = 0.25, altCountField = "AD", 
+      keepGenotypes = c("1|0", "0|1", "0/1"))
 }
 
 \arguments{
   \item{inCounts}{
     Full file path to text file or data.frame containing tumour allele count data. \code{inCounts} must be 6 columns: chromosome, position, reference base, reference read counts, non-reference base, non-reference read counts.  \sQuote{chromosome} column can be in \sQuote{NCBI} or \sQuote{UCSC} genome style; only autosomes, sex chromosomes, and mitochondrial chromosome are included (e.g. 1-22,X,Y,MT). The reference and non-reference base columns can be any arbitrary character; it is not used by \pkg{TitanCNA}.
+  }
+  \item{vcfFile}{
+    Path to phased variant VCF file from LongRanger 2.1.  The file name must have the suffix \code{*phase_variants.vcf.gz}. 
   }
   \item{fun}{
     The function (\sQuote{SNP}, \sQuote{sum}, \sQuote{mean}) to use to summarize within each user defined bin using \code{haplotypeBinSize} and haplotype block defined by the phaseSet ID from thte 9th column of \code{inCounts}. 
@@ -40,6 +50,27 @@
   }
   \item{genomeStyle}{
   	The genome style to use for chromosomes. Use one of \sQuote{NCBI} or \sQuote{UCSC}. It does not matter what style is found in \code{inCounts}, \code{genomeStyle} will be the style returned. Invokes \code{\link{setGenomeStyle}}. 
+  }
+  \item{build}{
+    Human genome reference build. Default: hg19.
+  }
+  \item{minQUAL}{
+    Variants with quality (QUAL field) greater or equal to this value will be retained.
+  }
+  \item{minDepth}{
+    Variants with read depth greater than or equal to this value will be retained. 
+  }
+  \item{minVAF}{
+    Variants with a variant/reference allele fraction of greater than or equal to this value will be retained. 
+  }
+  \item{altCountField}{
+    Specify the alternate count field name. Defaulat is "AD".
+  }
+  \item{keepGenotypes}{
+    Genotypes to retain. Default is to keep these genotypes strings: 1|0, 0|1, 0/1
+  }
+  \item{filterFlags}{
+    Specify the FILTER flags to retain. 
   }
   \item{sep}{
     Character indicating the delimiter used for the columns for \code{infile}. Default is tab-delimited, "\\t".
@@ -64,6 +95,10 @@
   \item{tumDepth}{Mean or sum of SNP read coverage; numeric}
   \item{HapltypeRatio}{Sum of read coverage of phased alleles of higher coverage haplotype normalized by \code{tumDepth}; numeric}
   \item{haplotypeCount}{Phased allele read count; numeric}
+  
+  \code{getHaplotypesFromVCF} returns a \link[list]{list} containing 2 components
+  \item{vcf.filtered}{VCF object containing the list of heterozygous variants after filtering.}
+  \item{geno.gr}{GRanges object containing the genotype information of the VCF}
 }
 
 \references{
@@ -89,6 +124,15 @@ Ha, G., Roth, A., Khattra, J., Ho, J., Yap, D., Prentice, L. M., Melnyk, N., McP
       haplotypeBinSize = haplotypeBinSize, minSNPsInBin = 3, 
       chrs = c(1:22, "X"), minNormQual = 200, 
       genomeStyle = "NCBI", seqinfo = NULL)
+  }
+  
+  \dontrun{
+  vcfFile <- "test.vcf"
+  hap <- getHaplotypesFromVCF(vcfFile, chrs = c(1:22,"X"), build = "hg19",
+    filterFlags = c("PASS", "10X_RESCUED_MOLECULE_HIGH_DIVERSITY"), 
+    minQUAL = 100, minDepth = 10, minVAF = 0.25, 
+    keepGenotypes = ("1|0", "0|1", "0/1"))
+  
   }
 }
 

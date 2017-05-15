@@ -57,11 +57,11 @@ R script (`titanCNA.R`) for running TitanCNA analysis on standard whole genome a
 
         --maxCN=MAXCN
                 Maximum number of copies to model; integer (Default: 8)
-        ...
+        (... additional arguments)
   ```
 
-2. Additional arguments to consider are the following:  
-These arguments can be used to tune the model based on variance in the read coverage data and data-type (whole-exome sequencing or whole-genome sequencing).
+  Additional arguments to consider are the following:  
+  These arguments can be used to tune the model based on variance in the read coverage data and data-type (whole-exome sequencing or whole-genome sequencing).
   ```
   --alphaK=ALPHAK
               Hyperparameter on Gaussian variance; for WES, use 1000; for WGS, use 10000; 
@@ -71,7 +71,7 @@ These arguments can be used to tune the model based on variance in the read cove
               Hyperparameter on Gaussian variance for extreme copy number states; 
               for WES, use 1000; for WGS, use 10000; float (Default: 10000)
   ```
-3. Example usage of R script
+2. Example usage of R script
   ```
   # normalized coverage file: test.cn.txt
   # allelic read count file: test.het.txt
@@ -80,7 +80,7 @@ These arguments can be used to tune the model based on variance in the read cove
      --chrs "c(1:22, \"X\")" --estimatePloidy TRUE --outDir ./
   ``` 
 
-4. Running TitanCNA for multiple restarts and model selection
+3. Running TitanCNA for multiple restarts and model selection
   `titanCNA.R` should be run with multiple restarts for different values of (a) Ploidy (2,3,4) and (b) Number of clonal clusters. This will lead to multiple solutions. Each set of solutions for a given initialization of ploidy value will be saved to a directory (e.g. run_ploidy2, run_ploidy3, run_ploidy4).
   The R script `selectSolution.R` will help select the optimal cluster from all these solutions.  The output is a 
   ```
@@ -243,6 +243,6 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
   ```
   
 3. Running TitanCNA for multiple restarts and model selection
-  Use the same approach as for Step 4 of [Standard Whole Genome/Exome Sequencing Analysis](#wgs).
+  Use the same approach as for Step 3 of [Standard Whole Genome/Exome Sequencing Analysis](#wgs).
 
 
