@@ -1,5 +1,27 @@
+#' getPhasedHETsitesFromLRVCF.R
+#' author: Gavin Ha 
+#' Dana-Farber Cancer Institute
+#' Broad Institute
+#' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+#' date:	  May 14, 2017
+
+library(optparse)
+
+option_list <- list(
+  make_option(c("--ploidyRun2"), type = "character", help = "Directory containing TitanCNA results for initialized ploidy=2. [Required]"),
+  make_option(c("--ploidyRun3"), type = "character", help = "Directory containing TitanCNA results for initialized ploidy=3. [Required if --ploidyRun4 not given]"),
+  make_option(c("--ploidyRun4"), type = "character", help = "Directory containing TitanCNA results for initialized ploidy=4. [Required if --ploidyRun3 not given]"),
+  make_option(c("--threshold"), type = "numeric", default=0.05, help = "Proportion ploidyRun2 likelihood greater than than ploidyRun3/4 by at least this value. [Default %default]"),
+  make_option(c("-o","--outFile"), type = "character", help = "Output file containing a list of solutions chosen for all samples. [Required]")
+)
+
+parseobj <- OptionParser(option_list=option_list, usage = "usage: Rscript %prog [options]")
+opt <- parse_args(parseobj)
+print(opt)
+
 library(stringr)
 library(data.table)
+
 args <- commandArgs(TRUE)
 
 phi2Dir <- args[1]
@@ -82,8 +104,8 @@ getParamAllClusters <- function(phiSamples, phiStr = "2"){
 ################### MAIN FUNCTION ######################
 ########################################################
 #optSolution <- matrix(NA, ncol = 9, nrow = numSamples, dimnames = list(c(), c("SampleID_cluster", "SampleID_Barcode", "NumClonalClusters", "CellularPrevalence", "Purity", "NormalContam", "Ploidy", "LogLik", "Selected.Solution")))
-outLink <- paste0(basename(outDir), ".sh")
-fc <- file(outLink, "w+")
+#outLink <- paste0(basename(outDir), ".sh")
+#fc <- file(outLink, "w+")
 optSolutionAll <- NULL
 for (i in 1:numPatients){
 	id <- patients[i]
@@ -111,12 +133,12 @@ for (i in 1:numPatients){
   optSolution <- optPloidy[which.min(optPloidy$sdbw), ]
   optSolutionAll <- rbind(optSolutionAll, optSolution)
   
-  lnCmd <- paste0("cp -r ", optSolution$path, "* ", outDir, "/")
+  #lnCmd <- paste0("cp -r ", optSolution$path, "* ", outDir, "/")
 	## apply link command ##
-	write.table(lnCmd, file = fc, col.names=F, row.names=F, quote=F, sep="\t", append=T)
+	#write.table(lnCmd, file = fc, col.names=F, row.names=F, quote=F, sep="\t", append=T)
 }
-outFile <- paste0(basename(outDir), ".txt")
+#outFile <- paste0(basename(outDir), ".txt")
 write.table(optSolutionAll, file = outFile, col.names = T, row.names = F, quote = F, sep = "\t")
-close(fc)
+#close(fc)
 
 
