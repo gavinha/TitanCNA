@@ -3,6 +3,7 @@
 # *TitanCNA*
 
 TitanCNA a R/Bioconductor package for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome and exome sequencing of tumours.  
+
 Ha, G., et al. (2014). [TITAN: Inference of copy number architectures in clonal cell populations from tumour whole genome sequence data. Genome Research, 24: 1881-1893.](http://genome.cshlp.org/content/24/11/1881) (PMID: 25060187)
 
 ## Contact
@@ -23,15 +24,10 @@ Date: May 13, 2017
 
 ## Links
 TitanCNA GitHub: https://github.com/gavinha/TitanCNA  
-TitanCNA utils: https://github.com/gavinha/TitanCNA-utils  
+KRONOS TITAN Workflow: https://github.com/MO-BCCRC/titan_workflow
 Google Groups: https://groups.google.com/forum/#!forum/titancna   
 TitanCNA website: http://compbio.bccrc.ca/software/titan/  
 Publication in Genome Research: http://genome.cshlp.org/content/24/11/1881
-
-Thank you for your interest in the TitanCNA software.
-
-## Latest version notes 
-
 
 ## News
 (See [NEWS](NEWS) for previous version notes)
