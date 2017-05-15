@@ -3,6 +3,7 @@
 # *TitanCNA*
 
 TitanCNA a R/Bioconductor package for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome and exome sequencing of tumours.  
+
 Ha, G., et al. (2014). [TITAN: Inference of copy number architectures in clonal cell populations from tumour whole genome sequence data. Genome Research, 24: 1881-1893.](http://genome.cshlp.org/content/24/11/1881) (PMID: 25060187)
 
 ## Contact
@@ -13,38 +14,35 @@ contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 Date: May 13, 2017  
 
 ## Table of Contents
-* [Links](#Links)
-* [Latest version notes](#news)
+* [Links](#links)
+* [News](#news)
 * [Installation](#installation)
 * [Usage](#usage)
-* [Vignette](#vignette)
+* [Vignette in TitanCNA R package](#vignette-in-titancna-r-package)
 * [License](#license)
 * [Acknowledgements](#acknowledgements)
 
 ## Links
 TitanCNA GitHub: https://github.com/gavinha/TitanCNA  
-TitanCNA utils: https://github.com/gavinha/TitanCNA-utils  
+KRONOS TITAN Workflow: https://github.com/MO-BCCRC/titan_workflow  
 Google Groups: https://groups.google.com/forum/#!forum/titancna   
 TitanCNA website: http://compbio.bccrc.ca/software/titan/  
 Publication in Genome Research: http://genome.cshlp.org/content/24/11/1881
 
-Thank you for your interest in the TitanCNA software.
-
-## Latest version notes 
-(See NEWS for previous version notes)
-
+## News
+(See [NEWS](NEWS) for previous version notes)
 ### TitanCNA version 1.15.0 changes 
 1) 10X Genomics analysis
-  - Please see https://github.com/gavinha/TitanCNA-utils for instructions on running the 10X Genomics data
+  - Please see [scripts](scripts/) for instructions on running the 10X Genomics analysis.
 
 2) New function
-  - plotSegmentMedians()
-  - loadHaplotypeAlleleCounts(): loads input allele counts with phasing information
-  - plotHaplotypeFraction(): results from 10X Genomics WGS data with phasing of haplotype blocks
+  - `plotSegmentMedians()`
+  - `loadHaplotypeAlleleCounts()`: loads input allele counts with phasing information
+  - `plotHaplotypeFraction()`: results from 10X Genomics WGS data with phasing of haplotype blocks
   
 3) Modified features (no changes for user-accessible functions)
   - updateParameters: coordinate descent estimate of ploidy update uses previously estimated normal parameter from the same corodinate descent iteration ; leads to faster convergence
-  - fwd_back_clonalCN.c: returns 2-slice marginals 
+  
 
 ## Installation
 ### Install TitanCNA R package from github
@@ -169,7 +167,7 @@ Please go to the [scripts](scripts/) directory and look at the README there for 
   Rscript selectSolution.R run_ploidy2 run_ploidy3 run_ploidy4 0.05 ./
   ```
 
-## Vignette in R package
+## Vignette in TitanCNA R package
 The PDF of the vignette can be accessed from R
 ```
 library(TitanCNA)
@@ -180,7 +178,7 @@ The path of the file can also be located using
 pathToInstall <- system.file(package = "TitanCNA")
 pathToPdf <- paste0(pathToInstall, "/int/doc/TitanCNA.pdf)
 ```
-The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
+The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based on the analysis of chr2, not genome-wide.
 
 ## License
 TitanCNA R code is open source and is R/Bioconductor package is under GPLv3.  This applies to the v1.9.0 and all subsequent versions within and obtained from Bioconductor.  
