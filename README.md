@@ -125,12 +125,12 @@ Please go to the [scripts](scripts/) directory and look at the README there for 
   These arguments can be used to tune the model based on variance in the read coverage data and data-type (whole-exome sequencing or whole-genome sequencing).
     ```
     --alphaK=ALPHAK
-                Hyperparameter on Gaussian variance; for WES, use 1000; for WGS, use 10000; 
+                Hyperparameter on Gaussian variance; for WES, use 2500; for WGS, use 10000; 
                 float (Default: 10000)
 
     --alphaKHigh=ALPHAKHIGH
                 Hyperparameter on Gaussian variance for extreme copy number states; 
-                for WES, use 1000; for WGS, use 10000; float (Default: 10000)
+                for WES, use 2500; for WGS, use 10000; float (Default: 10000)
     ```
     
 2. Example usage of R script
@@ -186,7 +186,7 @@ Users who are using TitanCNA earlier than v1.9.0 not for the purpose of academic
 
 # Acknowledgements
 TitanCNA was developed by Gavin Ha while in the laboratories of Sohrab Shah (sshah@bccrc.ca) and Sam Aparicio (saparicio@bccrc.ca) at the Dept of Molecular Oncology, BC Cancer Agency, Vancouver, Canada.  
-Yikan Wang and Daniel Lai have contributed code and discussions to this project. 
+Yikan Wang and Daniel Lai have contributed code and discussions to this project.  
 The KRONOS TITAN workflow was developed by Diljot Grewal (<dgrewal@bccrc.ca>) and Jafar Taghiyar (<jtaghiyar@bccrc.ca>).  
 HMMcopy was co-developed by Daniel Lai and Gavin Ha.  
  

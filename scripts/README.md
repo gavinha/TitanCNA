@@ -64,12 +64,12 @@ R script (`titanCNA.R`) for running TitanCNA analysis on standard whole genome a
   These arguments can be used to tune the model based on variance in the read coverage data and data-type (whole-exome sequencing or whole-genome sequencing).
   ```
   --alphaK=ALPHAK
-              Hyperparameter on Gaussian variance; for WES, use 1000; for WGS, use 10000; 
+              Hyperparameter on Gaussian variance; for WES, use 2500; for WGS, use 10000; 
               float (Default: 10000)
 
   --alphaKHigh=ALPHAKHIGH
               Hyperparameter on Gaussian variance for extreme copy number states; 
-              for WES, use 1000; for WGS, use 10000; float (Default: 10000)
+              for WES, use 2500; for WGS, use 10000; float (Default: 10000)
   ```
 2. Example usage of R script
   ```
@@ -127,7 +127,7 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
       ```
       # from the command line
       >Rscript TenX_scripts/getMoleculeCoverage.R --help
-      Usage: TenX_scriptsgetMoleculeCoverage.R [options]
+      Usage: TenX_scripts/getMoleculeCoverage.R [options]
       
       
       Options:
@@ -147,7 +147,7 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
       ```
       Here is an example 
       ```
-      Rscript correctBXcounts_purity_tumNorm_v1.R --id test --datadir TenX_scripts/data/ \
+      Rscript getMoleculeCoverage.R --id test --datadir TenX_scripts/data/ \
         --tumorBXDir tumour_bxTile/ --normalBXDir normal_bxTile/ --minReadsPerBX 2 \
         --chrs "c(1:22, \"X\")" --outDir ../ \
         --centromere TenX_scripts/data/GRCh37.p13_centromere_UCSC-gapTable.txt \
