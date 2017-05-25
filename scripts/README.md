@@ -116,45 +116,45 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
     a. Get molecule coverage by counting unique barcodes in non-overlapping bins.  To do this, you will need the following installed:
       * [bxtools](https://github.com/walaj/bxtools#tile)
       * samtools
-    To extract the molecule coverage at 10kb bins across chromosome 1 for both tumour and normal samples:
+    To extract the molecule coverage at 10kb bins across chromosome 1 for both tumour and normal samples:  
       ```
-      samtools view -h -F 0x4 -q 60 tumour.bam 1 | bxtools tile - -b chr1.10kb.bed > tumour_bxTile/chr1.10kb.bxTile.bed
+      samtools view -h -F 0x4 -q 60 tumour.bam 1 | bxtools tile - -b chr1.10kb.bed > tumour_bxTile/chr1.10kb.bxTile.bed  
       ```
       
       The chromosome bed files for 10kb bins is provided in `TenX_scripts/data/10kb.bed.tar.gz`. Just `tar xvzf 10kb.bed.tar.gz` to extract the files.
     
-    b. Normalize the molecule coverage
-      ```
+    b. Normalize the molecule coverage  
       # from the command line
       >Rscript TenX_scripts/getMoleculeCoverage.R --help
       Usage: TenX_scripts/getMoleculeCoverage.R [options]
-      
-      
+
+
       Options:
               -d DATADIR, --datadir=DATADIR
                       Data library path containing gc/map wig files
-      
+
               -t TUMORBXDIR, --tumorBXDir=TUMORBXDIR
                       Path to directory containing tumor bed files for each chromosome containing BX tags.
-      
+
               -n NORMALBXDIR, --normalBXDir=NORMALBXDIR
                       Path to directory containing normal bed files for each chromosome containing BX tags.
-      
+
               --minReadsPerBX=MINREADSPERBX
                       Minimum number of reads per barcode.
-              
-              (... plus other options)
-      ```
-      Here is an example  
-      ```
-      Rscript getMoleculeCoverage.R --id test --datadir TenX_scripts/data/ \
-        --tumorBXDir tumour_bxTile/ --normalBXDir normal_bxTile/ --minReadsPerBX 2 \
-        --chrs "c(1:22, \"X\")" --outDir ../ \
-        --centromere TenX_scripts/data/GRCh37.p13_centromere_UCSC-gapTable.txt \
+
+              (... plus other options)  
+
+  Here is an example  
+    
         
-      ```
+          Rscript getMoleculeCoverage.R --id test --datadir TenX_scripts/data/ \
+            --tumorBXDir tumour_bxTile/ --normalBXDir normal_bxTile/ --minReadsPerBX 2 \
+            --chrs "c(1:22, \"X\")" --outDir ../ \
+            --centromere TenX_scripts/data/GRCh37.p13_centromere_UCSC-gapTable.txt \
+
+        
   
-  2. Tumour sample allelic read counts at heterozygous SNPs (identifed from the matched normal sample).
+  2. Tumour sample allelic read counts at heterozygous SNPs (identifed from the matched normal sample).  
     a. Identify the phased heterozygous SNPs (excluding indels) from the LongRanger 2.1 analysis on the matched normal sample.  
       Use this R script from the command line to process the phased variant file (`*phased_variants.vcf.gz`) and extracts heterozygous sites after filtering.  The output VCF file suffix `*_phasedHets.vcf`
       ```
@@ -181,10 +181,11 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
       
               -h, --help
                       Show this help message and exit
-      ```
-    
-    b. Extract allelic read counts from the tumour sample
-      Using this python script, extract the allele read counts at the heterozygous SNP sites identified in the previous step.  This script is meant to be run per chromosome so that users can parallelize this step.  Users will need to combine the chromosome files into a single tab-delimited file for input into the R script.  
+      ```  
+
+    b. Extract allelic read counts from the tumour sample  
+      Using this python script, extract the allele read counts at the heterozygous SNP sites identified in the previous step.  This script is meant to be run per chromosome so that users can parallelize this step.  Users will need to combine the chromosome files into a single tab-delimited file for input into the R script.   
+      
       ```
       # from the command line
       # run per chromosome
@@ -200,7 +201,8 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
       # $mapuality - Minimum mapping quality of reads to include in counts
       # $vcfQuality - Exclude HET sites with lower QUAL than this value
       # $tumCountsFile - Output tab-delimited file 
-      ```
+      ```  
+      
 **Running the R script**  
 1. Look at the usage of the R script  
   ```
