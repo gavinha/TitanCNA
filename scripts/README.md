@@ -82,7 +82,7 @@ R script (`titanCNA.R`) for running TitanCNA analysis on standard whole genome a
 
 3. Running TitanCNA for multiple restarts and model selection
   `titanCNA.R` should be run with multiple restarts for different values of (a) Ploidy (2,3,4) and (b) Number of clonal clusters. This will lead to multiple solutions. Each set of solutions for a given initialization of ploidy value will be saved to a directory (e.g. run_ploidy2, run_ploidy3, run_ploidy4).
-  The R script `selectSolution.R` will help select the optimal cluster from all these solutions.  The output is a 
+  The R script `selectSolution.R` will help select the optimal cluster from all these solutions.  The output is a tab-delimited file indicating the selected solution, along with parameters for that run.  It also includes the path to the results so users can collect the results.
   ```
   numClusters=3
   numCores=4
@@ -119,8 +119,8 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
     To extract the molecule coverage at 10kb bins across chromosome 1 for both tumour and normal samples:
       ```
       samtools view -h -F 0x4 -q 60 tumour.bam 1 | bxtools tile - -b chr1.10kb.bed > tumour_bxTile/chr1.10kb.bxTile.bed
-    samtools view -h -F 0x4 -q 60 normal.bam 1 | bxtools tile - -b chr1.10kb.bed > normal_bxTile/chr1.10kb.bxTile.bed
       ```
+      
       The chromosome bed files for 10kb bins is provided in `TenX_scripts/data/10kb.bed.tar.gz`. Just `tar xvzf 10kb.bed.tar.gz` to extract the files.
     
     b. Normalize the molecule coverage
@@ -145,7 +145,7 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
               
               (... plus other options)
       ```
-      Here is an example 
+      Here is an example  
       ```
       Rscript getMoleculeCoverage.R --id test --datadir TenX_scripts/data/ \
         --tumorBXDir tumour_bxTile/ --normalBXDir normal_bxTile/ --minReadsPerBX 2 \
@@ -184,7 +184,7 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
       ```
     
     b. Extract allelic read counts from the tumour sample
-      Using this python script, extract the allele read counts at the heterozygous SNP sites identified in the previous step.  This script is meant to be run per chromosome so that users can parallelize this step.  Users will need to combine the chromosome files into a single tab-delimited file for input into the R script.
+      Using this python script, extract the allele read counts at the heterozygous SNP sites identified in the previous step.  This script is meant to be run per chromosome so that users can parallelize this step.  Users will need to combine the chromosome files into a single tab-delimited file for input into the R script.  
       ```
       # from the command line
       # run per chromosome
@@ -242,7 +242,7 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
     --haplotypeBinSize 1e5 --phaseSummarizeFun sum --alleleModel Gaussian --alphaR 5000
   ```
   
-3. Running TitanCNA for multiple restarts and model selection
+3. Running TitanCNA for multiple restarts and model selection  
   Use the same approach as for Step 3 of [Standard Whole Genome/Exome Sequencing Analysis](#wgs).
 
 

@@ -141,10 +141,10 @@ data <- loadAlleleCounts(hetfile, header=T, genomeStyle = genomeStyle)
 if (!is.null(centromere)){
 	centromere <- read.delim(centromere,header=T,stringsAsFactors=F,sep="\t")
 }
-save.image()
+
 #### LOAD GC AND MAPPABILITY CORRECTED COVERAGE LOG RATIO FILE ####
 message('titan: Loading GC content and mappability corrected log2 ratios...')
-cnData <- read.delim(cnfile, header=T, stringsAsFactors=F, sep="\t")
+cnData <- fread(cnfile) #read.delim(cnfile, header=T, stringsAsFactors=F, sep="\t")
 cnData$chr <- setGenomeStyle(cnData$chr, genomeStyle = genomeStyle)
 
 #### ADD CORRECTED LOG RATIOS TO DATA OBJECT ####
@@ -157,11 +157,12 @@ rm(logR,cnData)
 if (!is.null(mapWig)){
 	mScore <- as.data.frame(wigToRangedData(mapWig))
 	mScore <- getPositionOverlap(data$chr,data$posn,mScore[,-4])
-	data <- filterData(data,chrs,minDepth=minDepth,maxDepth=maxDepth,map=mScore,mapThres=mapThres, centromeres = centromere)
-	rm(mScore)
 }else{
-	data <- filterData(data,chrs,minDepth=minDepth,maxDepth=maxDepth,centromeres = centromere)
+  mScore <- NULL
 }
+data <- filterData(data,chrs,minDepth=minDepth,maxDepth=maxDepth,
+                   centromeres = centromere, centromere.flankLength = 1e6,
+                   map=mScore,mapThres=mapThres)
 
 #### LOAD PARAMETERS ####
 message('titan: Loading default parameters')
@@ -174,6 +175,7 @@ options(cores=numCores)
 message("Using ",getDoParWorkers()," cores.")
 K <- length(params$genotypeParams$rt)
 params$genotypeParams$alphaKHyper <- rep(alphaK,K)
+params$genotypeParams$betaKHyper <- rep(25,K)
 #params$genotypeParams$alphaKHyper[c(1,7:K)] <- alphaHigh 
 params$ploidyParams$phi_0 <- ploidy_0
 params$normalParams$n_0 <- norm_0
@@ -213,7 +215,7 @@ segs <- outputTitanSegments(results, id, convergeParams, filename = outseg, igvf
 dir.create(outplot)
 norm <- tail(convergeParams$n,1)
 ploidy <- tail(convergeParams$phi,1)
-for (chr in chrs){
+for (chr in unique(results$Chr)){
 	outfig <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_chr", chr, ".png")
 	png(outfig,width=1200,height=1000,res=100)
 	if (as.numeric(numClusters) <= 2){

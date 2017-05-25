@@ -1,3 +1,11 @@
+#' titanCNA_v1.15.0_TenX.R
+#' author: Gavin Ha 
+#' Dana-Farber Cancer Institute
+#' Broad Institute
+#' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+#' date:	  May 24, 2017
+#' Notes: This script was tested for TitanCNA v1.15.0 and higher
+
 library(optparse)
 
 option_list <- list(

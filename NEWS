@@ -9,7 +9,7 @@
 # TitanCNA website: http://compbio.bccrc.ca/software/titan/
 # TitanCNA KRONOS workflow: https://github.com/MO-BCCRC/titan_workflow
 
-# date:	  May 10, 2017
+# date:	  May 24, 2017
 #
 # description: TitanCNA is a probabilistic framework for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome sequencing of tumours. The main software is implemented as a R Bioconductor package with preprocessing tools implemented in Python and BAMtools (C++). The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
 
@@ -27,8 +27,10 @@ TitanCNA version 1.15.0 changes
   - plotHaplotypeFraction(): results from 10X Genomics WGS data with phasing of haplotype blocks
   - loadDefaultParameters(): now accepts the argument "alleleEmissionModel" to specify "binomial" for standard WGS depth data or "Gaussian" for haplotype counts (summarized over a given bin size - see loadHaplotypeAlleleCounts())
   
+3) Modified functions
+  -filterData: will remove chromosomes with a single data point to avoid the error (task 23 failed - "INTEGER() can only be applied to a 'integer', not a 'NULL'")
 
-3) Modified features (no changes for user-accessible functions)
+4) Modified features (no changes for user-accessible functions)
   - updateParameters: coordinate descent estimate of ploidy update uses previously estimated normal parameter from the same corodinate descent iteration and leads to faster convergence
 
 

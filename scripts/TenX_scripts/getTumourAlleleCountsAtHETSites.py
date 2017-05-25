@@ -1,13 +1,16 @@
+# requires python3
+# requires pysam-0.11.2.1
+
 import sys
 import pysam
 
 chromToUse = sys.argv[1]  # 0 for all chromosomes
 norm_hetpsns = sys.argv[2]
 bam_file = sys.argv[3]
-ref_file = sys.argv[4]
-base_quality = int(sys.argv[5])
-map_quality = int(sys.argv[6])
-vcf_quality = int(sys.argv[7])
+#ref_file = sys.argv[4]
+base_quality = int(sys.argv[4])
+map_quality = int(sys.argv[5])
+vcf_quality = int(sys.argv[6])
 positions = {}
 
 #  add (position,depth) from the normal hetpositions input file to a dictionary of lists

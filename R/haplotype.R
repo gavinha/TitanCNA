@@ -203,7 +203,7 @@ getPhasedAlleleFraction <- function(x){
 getHaplotypesFromVCF <- function(vcfFile, chrs = c(1:22, "X"), build = "hg19",
                                  filterFlags = c("PASS", "10X_RESCUED_MOLECULE_HIGH_DIVERSITY"), 
                                  minQUAL = 100, minDepth = 10, minVAF = 0.25, altCountField = "AD",
-                                 keepGenotypes = c("1|0", "0|1", "0/1")){
+                                 keepGenotypes = c("1|0", "0|1", "0/1"), snpDB = NULL){
   #require(data.table)
   message("Loading ", vcfFile)
   vcf <- readVcf(vcfFile, genome = build)
@@ -239,6 +239,17 @@ getHaplotypesFromVCF <- function(vcfFile, chrs = c(1:22, "X"), build = "hg19",
   indVAR <- (altCounts / depth) >= minVAF
   vcf <- vcf[which(indDP & indVAR)]
   rm(depth)
+  
+  if (!is.null(snpDB)){
+    message (" by SNP VCF file ", snpDB)
+    snp <- readVcf(snpDB, genome = build)
+    snpInd <- nchar(unstrsplit(CharacterList(rowRanges(snp)$ALT), sep=",")) == 1 & 
+      nchar(unstrsplit(rowRanges(snp)$REF, sep=",")) == 1
+    snp <- snp[which(snpInd)]
+    hits <- findOverlaps(query = rowRanges(vcf), subject = rowRanges(snp))
+    indSNPDB <- queryHits(hits)
+    vcf <- vcf[indSNPDB]
+  }
   ## 
   #acounts <- do.call(rbind, geno(vcf)$AD)
   # phased snps

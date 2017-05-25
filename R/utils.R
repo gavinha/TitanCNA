@@ -283,26 +283,22 @@ filterData <- function(data, chrs = NULL, minDepth = 10,
         keepPosn <- !logical(length = length(data$chr))
     }
     keepTumDepth <- data$tumDepth <= maxDepth & data$tumDepth >= minDepth
-    if (is.null(chrs)){
-   		keepChrs <- logical(length = length(data$chr))
-   	}else{
-   		keepChrs <- is.element(data$chr, chrs)
-   	}
-    cI <- keepChrs & keepTumDepth & !is.na(data$logR) & 
+    cI <- keepTumDepth & !is.na(data$logR) & 
         keepMap & keepPosn
-    if (class(data)[1] == "list"){
-      for (i in 1:length(data)) {
-          if (!is.null(data[[i]])) {
-              data[[i]] <- data[[i]][cI]
-          }
-      }
-    }else{
-      data <- data[which(cI), ]
-    }
+    data <- data[which(cI), ]
+
     ## remove centromere SNPs ##
     if (!is.null(centromeres)){
     	colnames(centromeres)[1:3] <- c("Chr", "Start", "End") 
     	data <- removeCentromere(data, centromeres, flankLength = centromere.flankLength)
+    }
+    if (is.null(chrs)){
+      keepChrs <- logical(length = length(data$chr))
+    }else{
+      keepChrs <- is.element(data$chr, chrs)
+      data <- data[keepChrs, ]
+      message("Removed Chrs: ", names(which(table(data$chr) < 2)))
+      data <- data[data$chr %in% names(which(table(data$chr) > 1)), ]
     }
     return(data)
 }
@@ -320,13 +316,9 @@ removeCentromere <- function(data, centromere, flankLength = 0){
 		keepInd[ind] <- FALSE			
 	}	
 	message("Removed ", sum(!keepInd), " centromeric positions")
-		## remove positions in all elements of list
-	for (i in 1:length(data)) {
-        if (!is.null(data[[i]])) {
-            data[[i]] <- data[[i]][keepInd]
-        }        
-    }
-    return(data)
+	## remove positions in all elements of list	  
+	data <- data[which(keepInd), ]
+  return(data)
 }
 
 

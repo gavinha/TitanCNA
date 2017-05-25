@@ -9,8 +9,8 @@ library(optparse)
 
 option_list <- list(
   make_option(c("--ploidyRun2"), type = "character", help = "Directory containing TitanCNA results for initialized ploidy=2. [Required]"),
-  make_option(c("--ploidyRun3"), type = "character", help = "Directory containing TitanCNA results for initialized ploidy=3. [Required if --ploidyRun4 not given]"),
-  make_option(c("--ploidyRun4"), type = "character", help = "Directory containing TitanCNA results for initialized ploidy=4. [Required if --ploidyRun3 not given]"),
+  make_option(c("--ploidyRun3"), type = "character", default = 0, help = "Directory containing TitanCNA results for initialized ploidy=3. [Required if --ploidyRun4 not given]"),
+  make_option(c("--ploidyRun4"), type = "character", default = 0, help = "Directory containing TitanCNA results for initialized ploidy=4. [Required if --ploidyRun3 not given]"),
   make_option(c("--threshold"), type = "numeric", default=0.05, help = "Proportion ploidyRun2 likelihood greater than than ploidyRun3/4 by at least this value. [Default %default]"),
   make_option(c("-o","--outFile"), type = "character", help = "Output file containing a list of solutions chosen for all samples. [Required]")
 )
@@ -22,26 +22,24 @@ print(opt)
 library(stringr)
 library(data.table)
 
-args <- commandArgs(TRUE)
-
-phi2Dir <- args[1]
-phi3Dir <- args[2]
-phi4Dir <- args[3]
-threshold <- as.numeric(args[4])
-outDir <- args[5]
-#outFile <- args[5]
+phi2Dir <- opt$ploidyRun2
+phi3Dir <- opt$ploidyRun3
+phi4Dir <- opt$ploidyRun4
+threshold <- opt$threshold
+#outDir <- args[5]
+outFile <- opt$outFile
 #outLink <- args[6]
 
 homd.snp.thres <- 1500
 homd.snp.prop <- 0.02
 
 phi2Files <- list.files(phi2Dir, pattern="params.txt", full.names=T)
-if (phi3Dir != "0"){
+if (!is.null(phi3Dir) && phi3Dir != "NULL"){
   phi3Files <- list.files(phi3Dir, pattern="params.txt", full.names=T)
 }else{
   phi3Files <- NULL
 }
-if (phi4Dir != "0"){
+if (!is.null(phi4Dir) && phi4Dir != "NULL"){
   phi4Files <- list.files(phi4Dir, pattern="params.txt", full.names=T)
 }else{
   phi4Files <- NULL
@@ -72,7 +70,7 @@ formatParams <- function(params){
 	return(list(id=id, barcode=barcode, numClust=numClust, cellPrev=cellPrev, 
 	  purity=purity, norm=norm, ploidy=ploidy, loglik=loglik, sdbw=sdbw))
 }
-save.image()
+#save.image()
 
 getParamAllClusters <- function(phiSamples, phiStr = "2"){
 	phiParams <- data.frame(id=NA, barcode=NA, numClust=NA, 
@@ -108,7 +106,7 @@ getParamAllClusters <- function(phiSamples, phiStr = "2"){
 #fc <- file(outLink, "w+")
 optSolutionAll <- NULL
 for (i in 1:numPatients){
-	id <- patients[i]
+  id <- patients[i]
 	phi2Samples <- grep(id, phi2Files, value=T)
 	phi2Params <- getParamAllClusters(phi2Samples, "2")
 
