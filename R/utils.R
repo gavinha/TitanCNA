@@ -1007,6 +1007,8 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 		segs[j, "Cellular_Frequency"] <- segDF[1, "CellularPrevalence"]
 		if (!is.null(segDF$HaplotypeRatio)){
 		  segs[j, "Median_HaplotypeRatio"] <- round(median(segDF$HaplotypeRatio, na.rm = TRUE), digits = 6)
+		}else{
+		  segs[j, "Median_HaplotypeRatio"] <- NA
 		}
 		if (segDF[1, "Chr"] == segDF[numR, "Chr"]){
 			segs[j, "End_Position.bp."] <- segDF[numR, "Position"]
