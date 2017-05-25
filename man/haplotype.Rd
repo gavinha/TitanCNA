@@ -1,5 +1,6 @@
 \name{haplotype-analysis-methods}
 \alias{loadHaplotypeAlleleCounts}
+\alias{getHaplotypesFromVCF}
 
 
 \title{
@@ -20,7 +21,7 @@
     getHaplotypesFromVCF(vcfFile, chrs = c(1:22, "X"), build = "hg19", 
       filterFlags = c("PASS", "10X_RESCUED_MOLECULE_HIGH_DIVERSITY"), 
       minQUAL = 100, minDepth = 10, minVAF = 0.25, altCountField = "AD", 
-      keepGenotypes = c("1|0", "0|1", "0/1"))
+      keepGenotypes = c("1|0", "0|1", "0/1"), snpDB = NULL)
 }
 
 \arguments{
@@ -53,6 +54,9 @@
   }
   \item{build}{
     Human genome reference build. Default: hg19.
+  }
+  \item{snpDB}{
+    Path to SNP VCF file to use for specifying sites to retain.
   }
   \item{minQUAL}{
     Variants with quality (QUAL field) greater or equal to this value will be retained.
