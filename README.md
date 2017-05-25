@@ -122,16 +122,16 @@ Please go to the [scripts](scripts/) directory and look at the README there for 
   ```
 
   Additional arguments to consider are the following:  
-  These arguments can be used to tune the model based on variance in the read coverage data and data-type (whole-exome sequencing or whole-genome sequencing).
-    ```
+  These arguments can be used to tune the model based on variance in the read coverage data and data-type (whole-exome sequencing or whole-genome sequencing).   
+  ```
     --alphaK=ALPHAK
                 Hyperparameter on Gaussian variance; for WES, use 2500; for WGS, use 10000; 
                 float (Default: 10000)
 
     --alphaKHigh=ALPHAKHIGH
                 Hyperparameter on Gaussian variance for extreme copy number states; 
-                for WES, use 2500; for WGS, use 10000; float (Default: 10000)
-    ```
+                for WES, use 2500; for WGS, use 10000; float (Default: 10000)  
+  ```
     
 2. Example usage of R script
   ```
