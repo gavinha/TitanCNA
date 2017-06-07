@@ -8,6 +8,7 @@ This workflow will run the TITAN a set of tumour-normal pairs, starting from the
  - R-3.3
    - TitanCNA (v1.15.0)
    		- TitanCNA imports: GenomicRanges, dplyr, data.table, doMC
+   - [ichorCNA](<https://github.com/broadinstitute/ichorCNA>) (v0.1.0) 
    - HMMcopy
    - optparse
    - stringr
@@ -18,26 +19,26 @@ This workflow will run the TITAN a set of tumour-normal pairs, starting from the
    - PyYAML-3.12
  - samtools v1.3.1
  - bcftools v1.1
- - HMMcopy Suite (<http://compbio.bccrc.ca/software/hmmcopy/>).  
+ - [HMMcopy Suite](<http://compbio.bccrc.ca/software/hmmcopy/>).  
  		-In particular, `readCounter` is used.
 
 ### Scripts/executables
  - readCounter (C++ executable; HMMcopy Suite)
- - ulp_wgs_hmm.R (ichorCNA tool for normalizing and correcting read coverage)
- - countPysam.py (generates input allele counts)
- - titanCNA.R (main R script to run TitanCNA)
- - selectSolution.R (R script to select optimal solution for each sample)
+ - ichorCNA.R (ichorCNA tool for normalizing and correcting read coverage)
+ - [countPysam.py](code/countPysam.py) (generates input allele counts)
+ - [titanCNA.R](../R_script/titanCNA.R) (main R script to run TitanCNA)
+ - [selectSolution.R](../R_script/selectSolution.R) (R script to select optimal solution for each sample)
 
 ## Tumour-Normal sample list
 The list of tumour-normal paired samples should be defined in a YAML file.  See `config/samples.yaml` for an example.  Both fields `samples` and `pairings` must to be provided.  `pairings` key must match the tumour sample while the value must match the normal sample.
 ```
 samples:
-  01115_466.TM.EX:  /xchip/bloodbiopsy/gavinha/cfDNA_WES/PRAD/samples/01115_466.TM.EX.bam
-  01115_466.BN.EX:  /xchip/bloodbiopsy/gavinha/cfDNA_WES/PRAD/samples/01115_466.BN.EX.bam
+  tumor_sample_1:  /path/to/bam/tumor.bam
+  normal_sample_1:  /path/to/bam/normal.bam
 
 
 pairings:
-  01115_466.TM.EX:  01115_466.BN.EX
+  tumor_sample_1:  normal_sample_1
 ```
 
 
