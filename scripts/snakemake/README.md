@@ -26,8 +26,8 @@ This workflow will run the TITAN a set of tumour-normal pairs, starting from the
  - readCounter (C++ executable; HMMcopy Suite)
  - ichorCNA.R (ichorCNA tool for normalizing and correcting read coverage)
  - [countPysam.py](code/countPysam.py) (generates input allele counts)
- - [titanCNA.R](../R_script/titanCNA.R) (main R script to run TitanCNA)
- - [selectSolution.R](../R_script/selectSolution.R) (R script to select optimal solution for each sample)
+ - [titanCNA.R](../R_scripts/titanCNA.R) (main R script to run TitanCNA)
+ - [selectSolution.R](../R_scripts/selectSolution.R) (R script to select optimal solution for each sample)
 
 ## Tumour-Normal sample list
 The list of tumour-normal paired samples should be defined in a YAML file.  See `config/samples.yaml` for an example.  Both fields `samples` and `pairings` must to be provided.  `pairings` key must match the tumour sample while the value must match the normal sample.
