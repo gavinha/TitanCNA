@@ -108,20 +108,26 @@ optSolutionAll <- NULL
 for (i in 1:numPatients){
   id <- patients[i]
 	phi2Samples <- grep(id, phi2Files, value=T)
-	phi2Params <- getParamAllClusters(phi2Samples, "2")
-
+	if (length(phi2Samples) > 0){
+	  phi2Params <- getParamAllClusters(phi2Samples, "2")
+	}
+	
   phi3Params <- NULL
   phi3Params$loglik <- NA
   if (!is.null(phi3Files)){
     phi3Samples <- grep(id, phi3Files, value=T)	
-    phi3Params <- getParamAllClusters(phi3Samples, "3")
+    if (length(phi3Samples) > 0){
+      phi3Params <- getParamAllClusters(phi3Samples, "3")
+    }
   }
 	
 	phi4Params <- NULL
 	phi4Params$loglik <- NA
   if (!is.null(phi4Files)){
     phi4Samples <- grep(id, phi4Files, value=T)
-	  phi4Params <- getParamAllClusters(phi4Samples, "4")
+    if (length(phi4Samples) > 0){
+	    phi4Params <- getParamAllClusters(phi4Samples, "4")
+    }
   }
 
   ## select ploidy based on which set of ploidy solutions has consistently lower loglik

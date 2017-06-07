@@ -195,7 +195,8 @@ save.image(file=outImage)
 #### PRINT RESULTS TO FILES ####
 results <- outputTitanResults(data,convergeParams,optimalPath,
 			filename=NULL,posteriorProbs=F,subcloneProfiles=TRUE,
-			proportionThreshold = 0.05, proportionThresholdClonal = 0.05)
+			proportionThreshold = 0.05, proportionThresholdClonal = 0.05,
+			recomputeLogLik = TRUE, rerunViterbi = FALSE)
 convergeParams <- results$convergeParams
 results <- results$corrResults
 numClustersToPlot <- nrow(convergeParams$s)
@@ -246,7 +247,7 @@ for (chr in unique(results$Chr)){
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CNA.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
-plotCNlogRByChr(dataIn=results, chr=NULL, segs = segs, ploidy=ploidy,  normal = norm, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=plotYlim, cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
+plotCNlogRByChr(dataIn=results, chr=NULL, segs = segs, ploidy=ploidy, normal = norm, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=plotYlim, cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
 
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_LOH.pdf")
