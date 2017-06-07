@@ -84,10 +84,14 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     var_base <- 1/20 #var(data$logR, na.rm = TRUE)
     var0_base <- 1/20 #var(data$ref / data$tumDepth, na.rm = TRUE)
     if (!is.null(data)){
-      alphaK <- 1 / (var(data$logR, na.rm = TRUE) / sqrt(N))
-      betaK <- alphaK * var(data$logR, na.rm = TRUE)
-      alphaR <- 1 / (var(data$ref / data$tumDepth, na.rm = TRUE) / sqrt(N))
-      betaR <- alphaK * var(data$ref / data$tumDepth, na.rm = TRUE)
+      #alphaK <- 1 / (var(data$logR, na.rm = TRUE) / sqrt(K))
+      #betaK <- alphaK * var(data$logR, na.rm = TRUE)
+      #alphaR <- 1 / (var(data$ref / data$tumDepth, na.rm = TRUE) / sqrt(K))
+      #betaR <- alphaK * var(data$ref / data$tumDepth, na.rm = TRUE)
+      betaK <- 25 
+      alphaK <- betaK / var(data$logR) 
+      betaR <- 25 
+      alphaR <- betaR / var(data$ref / data$tumDepth, na.rm = TRUE)
     }else{
       alphaK <- 10000   
       betaK <- 25
@@ -774,7 +778,7 @@ decodeLOH <- function(G, symmetric = TRUE) {
 outputTitanResults <- function(data, convergeParams, 
     optimalPath, filename = NULL, is.haplotypeData = FALSE, posteriorProbs = FALSE, 
     subcloneProfiles = TRUE, correctResults = TRUE, proportionThreshold = 0.05, 
-    proportionThresholdClonal = 0.05, verbose = TRUE) {
+    proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, rerunViterbi = TRUE, verbose = TRUE) {
     
     # check if useOutlierState is in convergeParams
     if (length(convergeParams$useOutlierState) == 0) {
@@ -864,7 +868,10 @@ outputTitanResults <- function(data, convergeParams,
         message("outputTitanResults: Correcting results...")
       corrResults <- removeEmptyClusters(data, convergeParams, outmat, 
                                          proportionThreshold = proportionThreshold, 
-                                         proportionThresholdClonal = proportionThresholdClonal, verbose = verbose)
+                                         proportionThresholdClonal = proportionThresholdClonal, 
+                                         recomputeLogLik = recomputeLogLik, rerunViterbi = rerunViterbi, 
+                                         subcloneProfiles = subcloneProfiles, is.haplotypeData = is.haplotypeData,
+                                         verbose = verbose)
       convergeParams <- corrResults$convergeParams
     }else{
       corrResults <- NULL
@@ -882,59 +889,51 @@ outputModelParameters <- function(convergeParams, results, filename,
         index.return = TRUE)
     s <- sortS$x
     fc <- file(filename, "w+")
-    norm_str <- sprintf("Normal contamination estimate:\t%0.4f", 
-        convergeParams$n[i])
+    norm_str <- paste0("Normal contamination estimate:\t", signif(convergeParams$n[i], digits = 4))
     write.table(norm_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
-    ploid_str <- sprintf("Average tumour ploidy estimate:\t%0.4f", 
-        convergeParams$phi[i])
+    ploid_str <- paste0("Average tumour ploidy estimate:\t", signif(convergeParams$phi[i], digits = 4))
     write.table(ploid_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
-    s_str <- sprintf("%0.4f ", 1 - s)
+    s_str <- signif(1 - s, digits = 4)
     s_str <- gsub(" ", "", s_str)
-    outStr <- sprintf("Clonal cluster cellular prevalence Z=%d:\t%s", 
-        Z, paste(s_str, collapse = " "))
+    outStr <- paste0("Clonal cluster cellular prevalence Z=", Z , ":\t", paste(s_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
     for (j in 1:Z) {
-        musR_str <- sprintf("%0.2f ", convergeParams$muR[, j, i])
+        musR_str <- signif(convergeParams$muR[, j, i], digits = 4)
         musR_str <- gsub(" ", "", musR_str)
-        outStr <- sprintf("AllelicRatio %s means for clonal cluster Z=%d:\t%s", 
-                          convergeParams$genotypeParams$alleleEmissionModel, j, 
-                          paste(musR_str, collapse = " "))
+        outStr <- paste0("AllelicRatio ", convergeParams$genotypeParams$alleleEmissionModel, 
+                         " means for clonal cluster Z=", j, ":\t", paste(musR_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
-        musC_str <- sprintf("%0.2f ", log2(exp(convergeParams$muC[, j, i])))
+        musC_str <- signif(log2(exp(convergeParams$muC[, j, i])), digits = 4)
         musC_str <- gsub(" ", "", musC_str)
-        outStr <- sprintf("logRatio Gaussian means for clonal cluster Z=%d:\t%s", j, paste(musC_str, collapse = " "))
+        outStr <- paste0("logRatio Gaussian means for clonal cluster Z=", j, ":\t",paste(musC_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
     }
     if (convergeParams$genotypeParams$alleleEmissionModel == "Gaussian"){
-        varR_str <- sprintf("%0.5f ", convergeParams$varR[, i])
+        varR_str <- signif(convergeParams$varR[, i], digits = 4)
         varR_str <- gsub(" ", "", varR_str)
-        outStr <- sprintf("AllelicRatio Gaussian variance:\t%s",
-                      paste(varR_str, collapse = " "))
+        outStr <- paste0("AllelicRatio Gaussian variance:\t", paste(varR_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
           row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
     }
-    var_str <- sprintf("%0.4f ", convergeParams$var[, i])
+    var_str <- signif(convergeParams$var[, i], digits = 4)
     var_str <- gsub(" ", "", var_str)
-    outStr <- sprintf("logRatio Gaussian variance:\t%s", 
-        paste(var_str, collapse = " "))
+    outStr <- paste0("logRatio Gaussian variance:\t", paste(var_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
-    iter_str <- sprintf("Number of iterations:\t%d", 
-        length(convergeParams$phi))
+    iter_str <- paste0("Number of iterations:\t", length(convergeParams$phi))
     write.table(iter_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
-    loglik_str <- sprintf("%0.4f ", convergeParams$loglik[i])
+    loglik_str <- signif(convergeParams$loglik[i], digits = 4)
     loglik_str <- gsub(" ", "", loglik_str)
-    outStr <- sprintf("Log likelihood:\t%s", paste(loglik_str, 
-        collapse = " "))
+    outStr <- paste0("Log likelihood:\t", paste(loglik_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
@@ -953,7 +952,7 @@ outputModelParameters <- function(convergeParams, results, filename,
     sdbw <- mapply('+', sdbw.LR, sdbw.AR, SIMPLIFY = FALSE)        
     
     ## print out combined S_Dbw ##
-	printSDbw(sdbw.LR, fc, S_Dbw.scale, "LogRatio")
+	  printSDbw(sdbw.LR, fc, S_Dbw.scale, "LogRatio")
     printSDbw(sdbw.AR, fc, S_Dbw.scale, "AllelicRatio")
     printSDbw(sdbw, fc, S_Dbw.scale, "Both")
     close(fc)
@@ -1112,7 +1111,8 @@ printSDbw <- function(sdbw, fc, scale, data.type = ""){
 
 ## TODO: Add documentation
 removeEmptyClusters <- function(data, convergeParams, results, proportionThreshold = 0.001, 
-	proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, verbose = TRUE){
+	proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, rerunViterbi = TRUE, 
+	subcloneProfiles = FALSE, is.haplotypeData = FALSE, verbose = TRUE){
 	clust <- 1:nrow(convergeParams$s)
 	names(clust) <- clust
 	#newClust <- clust #original clusters
@@ -1129,13 +1129,13 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
 	convergeParams$s <- convergeParams$s[order(convergeParams$s[, k], decreasing = FALSE), , drop = FALSE]
 	# if there is at least 1 cluster with sufficient data
 	if (length(which(clust > 0)) > 0){
-		#set new normal estimate as cluster 1
-		#purity <- as.numeric(unique(results$CellularPrevalence[which(results$ClonalCluster == which(!is.na(clust))[1])]))
+		#set new normal estimate as cluster 1 -> lowers purity from original estimate
 		purity <- (1 - convergeParams$s[which(!is.na(clust))[1], k]) * (1 -  convergeParams$n[k])
 		convergeParams$n[k] <- 1 - purity
 		#set new cellular prevalence using new clusters and renormalize to new cluster 1		
 		convergeParams$s <- convergeParams$s[which(!is.na(clust)), , drop = FALSE]
 		convergeParams$s[, k] <- 1 - (1 - convergeParams$s[, k]) / (1 - convergeParams$s[1, k])
+		convergeParams$piZ <- convergeParams$piZ[which(!is.na(clust)), , drop = FALSE]
 		#names(newClust) <- 1:length(newClust)
 		clust[!is.na(clust)] <- 1:sum(!is.na(clust))
 
@@ -1143,15 +1143,15 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
 		for (cl in 1:length(clust)){
 			# assign data in removed cluster cl to next non-NA cluster
 			if (is.na(clust[cl])){
-				# assign to the right (larger cluster number)
-				if (length(which(!is.na(clust) & names(clust) > cl)) > 0){
-					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[which(!is.na(clust) & names(clust) > cl)[1]], k]
-					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[which(!is.na(clust) & names(clust) > cl)][1]
-				# assign to the left (smaller cluster number)
-				}else if (length(which(!is.na(clust) & names(clust) < cl)) > 0){
-					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[tail(which(!is.na(clust) & names(clust) < cl), 1)], k]
-					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[tail(which(!is.na(clust) & names(clust) < cl), 1)]
-				}
+			    # assign to the right (larger cluster number)
+  				if (length(which(!is.na(clust) & names(clust) > cl)) > 0){
+  					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[which(!is.na(clust) & names(clust) > cl)[1]], k]
+  					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[which(!is.na(clust) & names(clust) > cl)][1]
+  				# assign to the left (smaller cluster number)
+  				}else if (length(which(!is.na(clust) & names(clust) < cl)) > 0){
+  					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[tail(which(!is.na(clust) & names(clust) < cl), 1)], k]
+  					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[tail(which(!is.na(clust) & names(clust) < cl), 1)]
+  				}
 			}else{ # update cluster and cellPrev info for kept clusters
 				results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[cl], k]
 				results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[cl]		
@@ -1174,6 +1174,16 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
 		results[which(results$TITANcall != "HET"), "ClonalCluster"] <- 1
 	}	
 	
+	# rerun viterbi with new adjusted param settings
+	if (rerunViterbi){
+	  optimalPath <- viterbiClonalCN(data,convergeParams)
+	  newResults <- outputTitanResults(data,convergeParams,optimalPath,
+	                                filename=NULL,posteriorProbs=F,subcloneProfiles=subcloneProfiles,
+	                                correctResults=FALSE, proportionThreshold = 0, is.haplotypeData=is.haplotypeData,
+	                                proportionThresholdClonal = 0, rerunViterbi = FALSE, recomputeLogLik = FALSE)
+	  results <- newResults$results
+	}
+	
 	if (recomputeLogLik){
 	  if (verbose)
   	  message("outputTitanResults: Recomputing log-likelihood.")
@@ -1193,6 +1203,8 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
   	                   txnZstrength=convergeParams$txn_z_strength, useOutlierState=FALSE, 
   	                   normalEstimateMethod="fixed", estimateS=FALSE,estimatePloidy=F, verbose=verbose)
     convergeParams$loglik[iter] <- tail(p$loglik, 1)
+    convergeParams$muC[, , iter] <- p$muC[, , 2]
+    convergeParams$muR[, , iter] <- p$muR[, , 2]
 	}
 	return(list(convergeParams = convergeParams, results = results))
 }
