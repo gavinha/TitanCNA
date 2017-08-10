@@ -325,6 +325,99 @@ removeCentromere <- function(data, centromere, flankLength = 0){
   return(data)
 }
 
+## segs is a data.table object
+extendSegments <- function(segs, removeCentromeres = FALSE, centromeres = NULL,
+	extendToTelomeres = FALSE, seqInfo = NULL){
+	newSegs <- copy(segs)
+	newStartStop <- newSegs[, {totalLen = c(Start[-1], NA) - End
+					extLen = round(totalLen / 2)
+					End.ext = c(End[-.N] + round(extLen)[-.N], End[.N])
+					Start.ext = c(Start[1], End.ext[-.N] + 1)
+					list(Start=Start.ext, End=End.ext) 
+				  }, by=Chromosome]
+	newSegs[, Start.snp := Start]
+	newSegs[, End.snp := End]
+	newSegs[, Start := newStartStop[, Start]]
+	newSegs[, End := newStartStop[, End]]
+	stopColInd <- which(names(newSegs) == "End")
+	setcolorder(newSegs, c(names(newSegs)[1:stopColInd], "Start.snp", "End.snp", names(newSegs)[(stopColInd+1):(ncol(newSegs)-2)]))
+	
+	if (removeCentromeres){
+		if (is.null(centromeres)){
+			stop("If removeCentromeres=TRUE, must provide centromeres data.table object.")
+		}
+		message("Removing centromeres from segments.")
+		newSegs <- removeCentromereSegs(newSegs, centromeres)
+	}
+	
+	if (extendToTelomeres){
+		if (is.null(seqInfo)){
+			stop("If extendToTelomeres=TRUE, must provide SeqInfo object with chromosome lengths.")
+		}
+		message("Extending segments to telomeres.")
+		newSegs[, Start.telo := { endCoord = End
+				endCoord[.N] = seqlengths(seq.info)[seqnames(seqInfo)[.GRP]]		
+				endCoord
+				}, by=Chromosome]		
+	}
+	return(copy(newSegs))
+}
+
+
+removeCentromereSegs <- function(segs, centromeres){	
+	segs <- copy(segs)
+	for (i in 1:nrow(centromeres)){
+		x <- as.data.frame(centromeres[i,]); 
+		names(x)[1:3] <- c("Chr","Start","End")
+		chrInd <- which(segs[, Chromosome == x$Chr])
+		## start is in centromere ##
+		## NOT POSSIBLE ##
+		ind <- which(segs[chrInd, Start >= x$Start & Start <= x$End])
+		if (length(ind)){
+			#message("Chr:", i, "Start in centromere.")
+			# move start to end of centromere
+			segs[chrInd[ind], Start := x$End + 1]
+			#segs[chrInd[ind], Length.snp. := NA]
+		}
+		## end is in centromere ##
+		## NOT POSSIBLE ##
+		ind <- which(segs[chrInd, End >= x$Start & End <= x$End])
+		if (length(ind)){
+			#message("Chr:", i, "Stop in centromere.")
+			# move end to start of centromere
+			segs[chrInd[ind], End := x$Start - 1]
+			#segs[chrInd[ind], Length.snp. := NA]
+		}
+		## both start and end in centromere ##
+		## NOT POSSIBLE ##
+		ind <- which(segs[chrInd, Start >= x$Start & End <= x$End])
+		if (length(ind)){
+			#message("Chr:", i, "Seg in centromere.")
+			# remove segment #
+			segs <- segs[-chrInd[ind]]
+		}		
+		## segment spans centromere ##
+		ind <- which(segs[chrInd, Start <= x$Start & End >= x$End])
+		if (length(ind)){
+			#message("Chr:", i, "Seg span centromere.")
+			# break into 2 segments #
+			newRegion1 <- copy(segs[chrInd[ind]])
+			#newRegion1[, Length.snp. := NA]
+			newRegion2 <- copy(newRegion1)
+			newRegion1[, End := x$Start - 1] #left segment before centromere
+			newRegion2[, Start := x$End + 1] #right segment after centromere
+			
+			# remove old segment and add in 2 new ones
+			segs <- segs[-chrInd[ind]]
+			segs <- rbind(segs, newRegion1, newRegion2)
+		}		
+	}
+	## re-order the segments ##
+	segs[, Chromosome := factor(Chromosome, levels = c(1:22, "X", "Y"))]
+	segs <- segs[do.call(order, segs[, c("Chromosome", "Start")])]
+	return(copy(segs))
+}
+
 
 excludeGarbageState <- function(params, K) {
     newParams <- params
@@ -335,6 +428,34 @@ excludeGarbageState <- function(params, K) {
     }
     return(newParams)
 }
+
+getOverlap <- function(x, y, type = "within", colToReturn = "Copy_Number", method = "common"){
+  if (!type %in% c("any", "within")){
+    stop("getOverlap type must be \'any\' or \'within\'.")
+  }
+  cn <- rep(NA, nrow(x))
+  x <- as(x, "GRanges")
+  y <- as(y, "GRanges")
+  hits <- findOverlaps(query = x, subject = y, type = type)
+  cn[queryHits(hits)] <- values(y)[subjectHits(hits), colToReturn]
+  
+  # find genes split by segment #
+  runs <- rle(queryHits(hits))
+  splitInd <- which(runs$lengths > 1)
+  if (length(splitInd) > 0){ # take the larger overlap
+  	if (method == "common"){
+  		for (i in 1:length(splitInd)){
+  			hitInd <- which(queryHits(hits)==runs$values[splitInd[i]])
+				ind <- which.max(width(ranges(hits[hitInd], ranges(x), ranges(y))))
+				cn[unique(queryHits(hits)[hitInd])] <- values(y)[subjectHits(hits)[hitInd][ind], colToReturn]
+			}
+		}else{
+			stop("Method other than 'common' is not yet supported.")
+		}  
+  }
+  return(cn)
+}
+
 
 getPositionOverlap <- function(chr, posn, dataVal) {
 # use RangedData to perform overlap
@@ -358,32 +479,6 @@ getPositionOverlap <- function(chr, posn, dataVal) {
     #indReorder <- order(match(chrDF[, 1], chr))
     #return(hitVal[indReorder])
 	return(hitVal) 
- 
-    #cnChr <- cnData[, 1]
-    #cnStart <- as.numeric(cnData[, 2])
-    #cnStop <- as.numeric(cnData[, 3])
-    #cnVal <- as.numeric(cnData[, 4])
-    
-    #N = length(posn)
-    #valByPosn = rep(NA, N)
-    
-    #for (c in unique(chr)) {
-    #    indData <- chr == c
-    #    indCN <- cnChr == c
-    #    cnStartC <- cnStart[indCN]
-    #    cnStopC <- cnStop[indCN]
-    #    cnValC <- cnVal[indCN]
-    #    posnC <- posn[indData]
-    #    cnInd <- .Call("getPositionOverlapC", posnC, 
-    #        cnStartC, cnStopC)
-    #    if (sum(cnInd > 0) > 0) {
-    #        cnValToUse <- rep(NA, length(cnInd))
-    #        cnValToUse[which(cnInd > 0)] <- cnValC[cnInd]
-    #        valByPosn[indData] <- cnValToUse
-    #    }
-    #}
-    
-    #return(as.numeric(valByPosn))
 }
 
 setGenomeStyle <- function(x, genomeStyle = "NCBI", species = "Homo_sapiens"){
@@ -778,7 +873,7 @@ decodeLOH <- function(G, symmetric = TRUE) {
 outputTitanResults <- function(data, convergeParams, 
     optimalPath, filename = NULL, is.haplotypeData = FALSE, posteriorProbs = FALSE, 
     subcloneProfiles = TRUE, correctResults = TRUE, proportionThreshold = 0.05, 
-    proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, rerunViterbi = TRUE, verbose = TRUE) {
+    proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, rerunViterbi = FALSE, verbose = TRUE) {
     
     # check if useOutlierState is in convergeParams
     if (length(convergeParams$useOutlierState) == 0) {
@@ -840,6 +935,22 @@ outputTitanResults <- function(data, convergeParams,
         CopyNumber = CN, TITANstate = G, TITANcall = Gcalls, 
         ClonalCluster = Zclust, CellularPrevalence = 1 - Sout)
    	
+    ## filter results to remove empty clusters or set normal contamination to 1.0 if few events 
+    if (correctResults){
+      if (verbose)
+        message("outputTitanResults: Correcting results...")
+      corrResults <- removeEmptyClusters(data, convergeParams, outmat, 
+                                         proportionThreshold = proportionThreshold, 
+                                         proportionThresholdClonal = proportionThresholdClonal, 
+                                         recomputeLogLik = recomputeLogLik, verbose = verbose)
+      #rerunViterbi = rerunViterbi, subcloneProfiles = subcloneProfiles, is.haplotypeData = is.haplotypeData)
+      outmatOriginal <- outmat
+      outmat <- corrResults$results
+      convergeParams <- corrResults$convergeParams
+    }else{
+      corrResults <- NULL
+    }
+    
    	## INCLUDE SUBCLONE PROFILES 
    	if (subcloneProfiles & numClust <= 2){
    		#outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
@@ -861,23 +972,15 @@ outputTitanResults <- function(data, convergeParams,
         write.table(format(outmat, digits = 2, scientific = FALSE), file = filename, col.names = TRUE, 
             row.names = FALSE, quote = FALSE, sep = "\t")
     }
-  
-    ## filter results to remove empty clusters or set normal contamination to 1.0 if few events 
+    
     if (correctResults){
-      if (verbose)
-        message("outputTitanResults: Correcting results...")
-      corrResults <- removeEmptyClusters(data, convergeParams, outmat, 
-                                         proportionThreshold = proportionThreshold, 
-                                         proportionThresholdClonal = proportionThresholdClonal, 
-                                         recomputeLogLik = recomputeLogLik, rerunViterbi = rerunViterbi, 
-                                         subcloneProfiles = subcloneProfiles, is.haplotypeData = is.haplotypeData,
-                                         verbose = verbose)
-      convergeParams <- corrResults$convergeParams
+      corrmat <- outmat
+      outmat <- outmatOriginal
     }else{
-      corrResults <- NULL
+      corrmat <- NULL
     }
-
-    return(list(results = outmat, corrResults = corrResults$results, convergeParams = convergeParams))
+  
+    return(list(results = outmat, corrResults = corrmat, convergeParams = convergeParams))
 }
 
 outputModelParameters <- function(convergeParams, results, filename, 
@@ -1032,6 +1135,52 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
   return(segs)
 }
 
+## Recompute integer CN for high-level amplifications ##
+## compute logR-corrected copy number ##
+correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes = NULL, 
+		maxCNtoCorrect.X = NULL, gender = "male", chrs = c(1:22, "X")){
+	cn <- copy(cn)
+	segs <- copy(segs)
+	if (is.null(maxCNtoCorrect.autosomes)){
+		maxCNtoCorrect.autosomes <- segs[Chromosome %in% c(1:22), max(Copy_Number)]
+	}
+	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidyT, cn=2)]
+	cn[Chr %in% c(1:22), logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidyT, cn=2)]
+	if (gender == "male"){ ## analyze chrX separately
+		segs[Chromosome == "X", logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidyT, cn=1)]
+		cn[Chr == "X", logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidyT, cn=1)]
+	}
+	## assign copy number to use - Corrected_Copy_Number and Corrected_Call
+	# same TITAN calls for autosomes - no change in copy number
+	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Copy_Number := Copy_Number]
+	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Call := TITAN_call]
+	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Copy_Number := CopyNumber]
+	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Call := TITANcall]
+
+	# TITAN calls adjusted for >= copies - HLAMP
+	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := round(logR_Copy_Number)]
+	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
+	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := round(logR_Copy_Number)]
+	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
+	
+	if (!is.null(maxCNtoCorrect.X)){
+		segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
+		segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
+		cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
+		cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
+	}
+	
+	return(list(cn = cn, segs = segs))	
+}
+
+## compute copy number using corrected log ratio ##
+logRbasedCN <- function(x, purity, ploidyT, cn = 2){
+	ct <- (2^x * (cn * (1 - purity) + purity * ploidyT) - cn * (1 - purity)) / purity
+	ct <- sapply(ct, max, 1/2^6)
+	return(ct)
+}
+
+
 getMajorMinorCN <- function(state, symmetric = TRUE){
 	majorCN <- NA
 	minorCN <- NA
@@ -1111,8 +1260,8 @@ printSDbw <- function(sdbw, fc, scale, data.type = ""){
 
 ## TODO: Add documentation
 removeEmptyClusters <- function(data, convergeParams, results, proportionThreshold = 0.001, 
-	proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, rerunViterbi = TRUE, 
-	subcloneProfiles = FALSE, is.haplotypeData = FALSE, verbose = TRUE){
+	proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, verbose = TRUE){
+  #rerunViterbi = TRUE, subcloneProfiles = FALSE, is.haplotypeData = FALSE){
 	clust <- 1:nrow(convergeParams$s)
 	names(clust) <- clust
 	#newClust <- clust #original clusters
@@ -1130,12 +1279,17 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
 	# if there is at least 1 cluster with sufficient data
 	if (length(which(clust > 0)) > 0){
 		#set new normal estimate as cluster 1 -> lowers purity from original estimate
-		purity <- (1 - convergeParams$s[which(!is.na(clust))[1], k]) * (1 -  convergeParams$n[k])
+	  clustToKeep <- which(!is.na(clust))
+		purity <- (1 - convergeParams$s[clustToKeep[1], k]) * (1 -  convergeParams$n[k])
 		convergeParams$n[k] <- 1 - purity
 		#set new cellular prevalence using new clusters and renormalize to new cluster 1		
-		convergeParams$s <- convergeParams$s[which(!is.na(clust)), , drop = FALSE]
+		convergeParams$s <- convergeParams$s[clustToKeep, , drop = FALSE]
 		convergeParams$s[, k] <- 1 - (1 - convergeParams$s[, k]) / (1 - convergeParams$s[1, k])
-		convergeParams$piZ <- convergeParams$piZ[which(!is.na(clust)), , drop = FALSE]
+		convergeParams$piZ <- convergeParams$piZ[clustToKeep, , drop = FALSE]
+		convergeParams$rhoZ <- convergeParams$rhoZ[clustToKeep, , drop = FALSE]
+		convergeParams$muC <- convergeParams$muC[, clustToKeep, , drop = FALSE]
+		convergeParams$muR <- convergeParams$muR[, clustToKeep, , drop = FALSE]
+		convergeParams$cellPrevParams <- lapply(convergeParams$cellPrevParams, "[", clustToKeep)
 		#names(newClust) <- 1:length(newClust)
 		clust[!is.na(clust)] <- 1:sum(!is.na(clust))
 
@@ -1168,6 +1322,7 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
 		convergeParams$n[k] <- 1 - convergeParams$s[clustData, k]
 		convergeParams$s <- convergeParams$s[clustData, , drop = FALSE]
 		convergeParams$s[, k] <- 0.0
+		convergeParams$cellPrevParams <- lapply(convergeParams$cellPrevParams, "[", clustData)
 		
 			# set all clusters to 1 and all cellular prevalence to 1.0; leave HET as NA
 		results[which(results$TITANcall != "HET"), "CellularPrevalence"] <- 1
@@ -1175,14 +1330,14 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
 	}	
 	
 	# rerun viterbi with new adjusted param settings
-	if (rerunViterbi){
-	  optimalPath <- viterbiClonalCN(data,convergeParams)
-	  newResults <- outputTitanResults(data,convergeParams,optimalPath,
-	                                filename=NULL,posteriorProbs=F,subcloneProfiles=subcloneProfiles,
-	                                correctResults=FALSE, proportionThreshold = 0, is.haplotypeData=is.haplotypeData,
-	                                proportionThresholdClonal = 0, rerunViterbi = FALSE, recomputeLogLik = FALSE)
-	  results <- newResults$results
-	}
+	#if (rerunViterbi){
+	#  optimalPath <- viterbiClonalCN(data,convergeParams)
+	#  newResults <- outputTitanResults(data,convergeParams,optimalPath,
+	#                                filename=NULL,posteriorProbs=F,subcloneProfiles=subcloneProfiles,
+	#                                correctResults=FALSE, proportionThreshold = 0, is.haplotypeData=is.haplotypeData,
+	#                                proportionThresholdClonal = 0, rerunViterbi = FALSE, recomputeLogLik = FALSE)
+	#  results <- newResults$results
+	#}
 	
 	if (recomputeLogLik){
 	  if (verbose)
@@ -1195,7 +1350,6 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
   	newParams$genotypeParams$piG_0 <- newParams$piG[, iter]
   	newParams$normalParams$n_0 <- newParams$n[iter]
   	newParams$ploidyParams$phi_0 <- newParams$phi[iter]
-  	newParams$cellPrevParams <- lapply(newParams$cellPrevParams, function(x){ x[1:newNumClust] })
   	newParams$cellPrevParams$s_0 <- newParams$s[, iter]
   	newParams$cellPrevParams$piZ_0 <- newParams$piZ[1:newNumClust, iter]
   	
@@ -1205,6 +1359,8 @@ removeEmptyClusters <- function(data, convergeParams, results, proportionThresho
     convergeParams$loglik[iter] <- tail(p$loglik, 1)
     convergeParams$muC[, , iter] <- p$muC[, , 2]
     convergeParams$muR[, , iter] <- p$muR[, , 2]
+    convergeParams$rhoZ <- p$rhoZ
+    convergeParams$rhoG <- p$rhoG
 	}
 	return(list(convergeParams = convergeParams, results = results))
 }

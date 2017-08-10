@@ -4,6 +4,7 @@ configfile: "config/samples.yaml"
 rule correctDepth:
   input: 
   	expand("results/ichorCNA/{tumor}/{tumor}.cna.seg", tumor=config["pairings"]),
+  	expand("results/ichorCNA/{tumor}/{tumor}.correctedDepth.txt", tumor=config["pairings"]),
   	expand("results/readDepth/{samples}.bin{binSize}.wig", samples=config["samples"], binSize=str(config["binSize"]))
 
 rule read_counter:
@@ -28,9 +29,9 @@ rule ichorCNA:
 		tum="results/readDepth/{tumor}.bin" + str(config["binSize"]) + ".wig",
 		norm=lambda wildcards: "results/readDepth/" + config["pairings"][wildcards.tumor] + ".bin" + str(config["binSize"]) + ".wig"
 	output:
-		#corrDepth="results/ichorCNA/{tumor}/{tumor}.correctedDepth.txt",
+		corrDepth="results/ichorCNA/{tumor}/{tumor}.correctedDepth.txt",
 		#param="results/ichorCNA/{tumor}/{tumor}.params.txt",
-		#cna="results/ichorCNA/{tumor}/{tumor}.cna.seg",
+		cna="results/ichorCNA/{tumor}/{tumor}.cna.seg",
 		#segTxt="results/ichorCNA/{tumor}/{tumor}.seg.txt",
 		#seg="results/ichorCNA/{tumor}/{tumor}.seg",
 		#rdata="results/ichorCNA/{tumor}/{tumor}.RData",

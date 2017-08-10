@@ -55,9 +55,9 @@ TitanCNA_estimateNormal:  map
 TitanCNA_estimatePloidy:  TRUE
 TitanCNA_estimateClonality: TRUE
 TitanCNA_alleleModel: binomial
-TitanCNA_alphaK:  2500
-TitanCNA_alphaR:  2500
-TitanCNA_txnExpLen: 1e13
+TitanCNA_alphaK:  NULL
+TitanCNA_alphaR:  NULL
+TitanCNA_txnExpLen: 1e15
 TitanCNA_plotYlim:  c(-4,6)
 TitanCNA_solutionThreshold: 0.05
 
