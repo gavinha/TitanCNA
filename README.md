@@ -35,12 +35,17 @@ Publication in Genome Research: http://genome.cshlp.org/content/24/11/1881
 1) 10X Genomics analysis
   - Please see [scripts](scripts/) for instructions on running the 10X Genomics analysis.
 
-2) New function
+2) New script to help **select optimal solutions**.  Please see [scripts/R_scripts](https://github.com/gavinha/TitanCNA/tree/master/scripts/R_scripts)
+
+3) Added snakemake pipeline for entire TITAN workflow.
+Please see [scripts/snakemake](scripts/snakemake).
+
+4) New function
   - `plotSegmentMedians()`
   - `loadHaplotypeAlleleCounts()`: loads input allele counts with phasing information
   - `plotHaplotypeFraction()`: results from 10X Genomics WGS data with phasing of haplotype blocks
   
-3) Modified features (no changes for user-accessible functions)
+5) Modified features (no changes for user-accessible functions)
   - updateParameters: coordinate descent estimate of ploidy update uses previously estimated normal parameter from the same corodinate descent iteration ; leads to faster convergence
   
 
