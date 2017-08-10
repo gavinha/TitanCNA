@@ -7,28 +7,25 @@
   Function to run the Expectation Maximization Algorithm for inference of model parameters: cellular prevalence, normal proportion, tumour ploidy. This is a key function in the \pkg{TitanCNA} package and is the most computationally intense. This function makes calls to a C subroutine that allows the algorithm to be run more efficiently.
 }
 \usage{
-runEMclonalCN(data, gParams, nParams, pParams, sParams,
+runEMclonalCN(data, params,
               txnExpLen = 1e15, txnZstrength = 5e05, maxiter = 15,
               maxiterUpdate = 1500, pseudoCounts = 1e-300,
               normalEstimateMethod = "map", estimateS = TRUE, 
-              estimatePloidy = TRUE, useOutlierState = FALSE, verbose = TRUE)
+              estimatePloidy = TRUE, useOutlierState = FALSE, 
+              likChangeThreshold = 0.001, verbose = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{data}{
     \code{\link[base:list]{list}} object that contains the components for the data to be analyzed. \code{chr}, \code{posn}, \code{ref}, and \code{tumDepth} that can be obtained using \code{\link{loadAlleleCounts}}, and \code{logR} that can be obtained using \code{\link{correctReadDepth}} and \code{\link{getPositionOverlap}} (see Example).
   }
-  \item{gParams}{
-    \code{\link[base:list]{list}} object that contains the copy number and allelic ratio genotype parameters. Can be obtained from \code{\link{loadDefaultParameters}}.
-  }
-  \item{nParams}{
-    \code{\link[base:list]{list}} object that contains the normal contamination parameters. Can be obtained from \code{\link{loadDefaultParameters}}.
-  }
-  \item{pParams}{
-    \code{\link[base:list]{list}} object that contains the tumour ploidy parameters. Can be obtained from \code{\link{loadDefaultParameters}}.
-  }
-  \item{sParams}{
-    \code{\link[base:list]{list}} object that contains the subclonality (cellular prevalence and clonal cluster) parameters. Can be obtained from \code{\link{loadDefaultParameters}}.
+  \item{params}{
+    \code{\link[base:list]{list}} object that contains major parameters:
+    \code{\link[base:list]{list}} object containing copy number and allelic ratio genotype parameters. 
+    \code{\link[base:list]{list}} object containing the normal contamination parameters. 
+    \code{\link[base:list]{list}} object containing the tumour ploidy parameters. 
+    \code{\link[base:list]{list}} object containing the subclonality (cellular prevalence and clonal cluster) parameters. 
+    \code{params} can be obtained from \code{\link{loadDefaultParameters}}.
   }
   \item{txnExpLen}{
     Influences prior probability of genotype transitions in the HMM. Smaller value have lower tendency to change state; however, too small and it produces underflow problems. \code{1e-9} works well for up to 3 million total positions.
@@ -56,6 +53,9 @@ runEMclonalCN(data, gParams, nParams, pParams, sParams,
   }
   \item{useOutlierState}{
     Logical indicating whether an additional outlier state should be used. In practice, this is usually not necessary.
+  }
+  \item{likChangeThreshold}{
+    EM convergence criteria - stop EM when complete log likelihood changes less than the proportion specified by this argument.
   }
   \item{verbose}{
     Set to FALSE to suppress program messages.
@@ -138,10 +138,7 @@ data <- filterData(data, 1:24, minDepth = 10, maxDepth = 200, map = NULL)
 K <- length(params$genotypeParams$alphaKHyper)
 params$genotypeParams$alphaKHyper <- rep(500, K)
 params$ploidyParams$phi_0 <- 1.5
-convergeParams <- runEMclonalCN(data, gParams = params$genotypeParams, 
-                                nParams = params$normalParams, 
-                                pParams = params$ploidyParams, 
-                                sParams = params$cellPrevParams, 
+convergeParams <- runEMclonalCN(data, params,
                                 maxiter = 3, maxiterUpdate = 500, 
                                 txnExpLen = 1e15, txnZstrength = 5e5, 
                                 useOutlierState = FALSE, 

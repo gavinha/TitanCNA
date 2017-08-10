@@ -2,49 +2,57 @@
 # 		  Dana-Farber Cancer Institute
 #		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-# date:	  November 13, 2014
+# date:	  March 17, 2017
 
 #### EM (FWD-BACK) Algorithm ####
-runEMclonalCN <- function(data, gParams, nParams, pParams, 
-    sParams, txnExpLen = 1e+15, txnZstrength = 5e+5, 
-    maxiter = 15, maxiterUpdate = 1500, pseudoCounts = 1e-300, 
-    normalEstimateMethod = "map", estimateS = TRUE, 
-    estimatePloidy = TRUE, useOutlierState = FALSE, 
-    verbose = TRUE) {
-    ## check that arguments contain necessary list
-    ## elements
-    if (length(data$chr) == 0 || length(data$posn) == 
-        0 || length(data$ref) == 0 || length(data$tumDepth) == 
-        0 || length(data$logR) == 0) {
+runEMclonalCN <- function(data, params,
+                          #gParams = NULL, nParams = NULL, pParams = NULL, sParams = NULL, 
+                          txnExpLen = 1e+15, txnZstrength = 5e+5, 
+                          maxiter = 15, maxiterUpdate = 1500, pseudoCounts = 1e-300, 
+                          normalEstimateMethod = "map", estimateS = TRUE, estimatePloidy = TRUE, 
+                          useOutlierState = FALSE, likChangeThreshold = 0.001, verbose = TRUE) {
+    ## check that arguments contain necessary list elements
+    if (is.null(params$genotypeParams) || is.null(params$ploidyParams) ||
+        is.null(params$normalParams) || is.null(params$cellPrevParams)){
+      stop("params must include genotypeParams, ploidyParams, normalParams, cellPrevParams.")
+    }else{
+      gParams <- params$genotypeParams
+      pParams <- params$ploidyParams
+      sParams <- params$cellPrevParams
+      nParams <- params$normalParams
+    }
+  
+    if (is.null(data$chr) || is.null(data$posn) || 
+        is.null(data$ref) || is.null(data$tumDepth) ||
+        is.null(data$logR)) {
         stop("data must contain named list elements: chr, posn, ref, tumDepth, 
              logR. See loadDataFromFile()")
     }
-    if (length(gParams$rt) == 0 || length(gParams$ct) == 
-        0 || length(gParams$rn) == 0 || length(gParams$ZS) == 
-        0 || length(gParams$var_0) == 0 || length(gParams$alphaKHyper) == 
-        0 || length(gParams$betaKHyper) == 0 || length(gParams$kappaGHyper) == 
-        0) {
+    if (is.null(gParams$rt) || is.null(gParams$ct) || 
+        is.null(gParams$rn)  || is.null(gParams$ZS) || 
+        is.null(gParams$var_0) || is.null(gParams$alphaKHyper) || 
+        is.null(gParams$betaKHyper) || is.null(gParams$kappaGHyper)) {
         stop("genotypeParams must contain named list elements: rt, rn, ct, ZS, 
              var_0, alphaKHyper, betaKHyper, kappaGHyper.\n         
              See loadDefaultParameters().")
     }
-    if (length(pParams$phi_0) == 0 || length(pParams$alphaPHyper) == 
-        0 || length(pParams$betaPHyper) == 0) {
+    if (is.null(pParams$phi_0) || is.null(pParams$alphaPHyper) ||
+        is.null(pParams$betaPHyper)) {
         stop("ploidyParams must contain named list elements: phi_0, alphaPHyper, 
              betaPHyper. See loadDefaultParameters()")
     }
-    if (length(nParams$n_0) == 0 || length(nParams$alphaNHyper) == 
-        0 || length(nParams$betaNHyper) == 0) {
+    if (is.null(nParams$n_0) || is.null(nParams$alphaNHyper) || 
+        is.null(nParams$betaNHyper)) {
         stop("normalParams must contain named list elements: n_0, alphaNHyper, 
              betaNHyper. See loadDefaultParameters()")
     }
-    if (length(sParams$s_0) == 0 || length(sParams$kappaZHyper) == 
-        0 || length(sParams$alphaSHyper) == 0 || length(sParams$betaSHyper) == 
-        0) {
+    if (is.null(sParams$s_0) || is.null(sParams$kappaZHyper) || 
+        is.null(sParams$alphaSHyper) || is.null(sParams$betaSHyper)) {
         stop("sParams (clonal parameters) must contain named list elements: s_0, 
              kappaSHyper, alphaSHyper, betaSHyper. \n         
              See setupClonalParameters().")
     }
+   
     
     ## track the total time
     ticTotalId <- proc.time()
@@ -68,8 +76,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         gParams$alphaKHyper <- c(0, gParams$alphaKHyper)
         gParams$betaKHyper <- c(0, gParams$betaKHyper)
         K <- length(gParams$rt)
-        gNoOUTStateParams <- excludeGarbageState(gParams, 
-            K)
+        gNoOUTStateParams <- excludeGarbageState(gParams, K)
         KnoOutlier <- K - 1
         kRange <- 2:K
         Ktotal <- KnoOutlier * Z + 1
@@ -89,7 +96,8 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     piG <- matrix(0, K, maxiter)  # initial state distribution of genotypes + outlier state
     piZ <- matrix(0, Z, maxiter)  # initial state assignments for clonal clusters
     s <- matrix(0, Z, maxiter)  # clonal frequency parameter
-    var <- matrix(0, K, maxiter)  # clonal frequency parameter + outlier state
+    var <- matrix(0, K, maxiter)  # variance parameter (logR) + outlier state
+    varR <- matrix(0, K, maxiter) # variance parameter (allelic) + outlier state
     phi <- rep(0, maxiter)  # global ploidy parameter
     n <- rep(0, maxiter)  # global normal contamination parameter
     loglik <- rep(0, maxiter)  #log likelihood
@@ -112,7 +120,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     for (i in 1:numChrs) {
         chrsI[[i]] <- which(data$chr == chrs[i])
     }
-    
+    chrPos_0 <- unlist(lapply(chrsI, head, 1)) # index of first datapoint for each chromosome
     ## INITIALIZATION ##
     piG_0 <- estimateDirichletParamsMap(gParams$kappaGHyper)  #add the outlier state
     piZ_0 <- estimateDirichletParamsMap(sParams$kappaZHyper)
@@ -121,15 +129,15 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     converged <- 0  # flag for convergence
     s[, i] <- sParams$s_0
     var[, i] <- gParams$var_0
+    varR[, i] <- gParams$varR_0
     # var[1,i] <- gParams$outlierVar
     phi[i] <- pParams$phi_0
     n[i] <- nParams$n_0
-    piG[, i] <- piG_0
-    if (useOutlierState) 
-        {
-            piG[1, i] <- piG_0[1] * piZ_0[1]
-        }  #initialize outlier state 
-    piZ[, i] <- piZ_0
+    piG[, i] <- gParams$piG_0
+    if (useOutlierState){ #initialize outlier state 
+      piG[1, i] <- gParams$piG_0[1] * gParams$piZ_0[1]
+    }  
+    piZ[, i] <- sParams$piZ_0
     musTmp <- clonalTwoComponentMixtureCN(gNoOUTStateParams$rt, 
         gParams$rn, nParams$n_0, sParams$s_0, gNoOUTStateParams$ct, 
         pParams$phi_0)
@@ -138,30 +146,41 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     
     # compute likelihood conditional on k and z
     # (K-by-Z-by-N)
-    pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
-        matrix(mus$R[, , i], KnoOutlier, Z))
-    pyC <- computeNormalObslik(data$logR, matrix(mus$C[, 
-        , i], KnoOutlier, Z), gNoOUTStateParams$var_0)
-    if (useOutlierState == 1) {
+    if (gParams$alleleEmissionModel == "Gaussian"){
+    #  pyR <- computeNormalObslik(data$ref / data$tumDepth, 
+    #                             matrix(mus$R[, , i], KnoOutlier, Z),
+    #                             gNoOUTStateParams$varR_0)
+      py <- computeBivariateNormalObslik(data$ref / data$tumDepth, data$logR, 
+                                        matrix(mus$R[, , i], KnoOutlier, Z), 
+                                        matrix(mus$C[, , i], KnoOutlier, Z),
+                                        gNoOUTStateParams$varR_0, gNoOUTStateParams$var_0,
+                                        gNoOUTStateParams$corRho_0)
+      py <- py + pseudoCounts
+    }else{ # if (gParams$alleleEmissionModel == "binomial"){
+      pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
+                                   matrix(mus$R[, , i], KnoOutlier, Z))
+      pyC <- computeNormalObslik(data$logR, matrix(mus$C[, , i], KnoOutlier, Z), 
+                               gNoOUTStateParams$var_0)
+      if (useOutlierState == 1) {
         pyO <- outlierObslik(data$ref, data$tumDepth, 
             data$logR, gParams$outlierVar)
         py <- exp(rbind(pyO$R, pyR) 
         			+ rbind(pyO$C, pyC)) + pseudoCounts  #add the outlier state
-    } else {
-        #joint likelihood between Binomial and Gaussian
-        py <- pyR + pyC + pseudoCounts
+      } else {
+          #joint likelihood between Binomial and Gaussian
+          py <- pyR + pyC + pseudoCounts
+          rm(pyR, pyC)
+      }
     }
-        
     ## EXPECTATION MAXIMIZATION
     while (!converged && (i < (maxiter))) {
         # clear the previous iteration of rho and garbage
         # collect
-        rm(fwdBackPar, rhoZ, rhoG, musTmp, pyR, pyC)
+        rm(fwdBackPar, rhoZ, rhoG, musTmp)
         gc(verbose = FALSE, reset = TRUE)
         ticId <- proc.time()
         i <- i + 1
         ## E-STEP: FORWARDS-BACKWARDS ALGORITHM;
-        ## PARALLELIZATION
         loglik[i] <- 0
         if (verbose == TRUE) {
             message("fwdBack: Iteration ", i - 1, " chr: ", 
@@ -173,18 +192,15 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         for (c in 1:numChrs) {
             piZi[[c]] <- piZ[, i - 1, drop = FALSE]
             piGi[[c]] <- piG[kRange, i - 1, drop = FALSE]
-            piGiZi[c, KtotalRange] <- as.vector(piGi[[c]] %*% 
-                t(piZi[[c]]))  #inner product then flatten to 1-by-K*Z
-            if (useOutlierState) 
-                {
-                  piGiZi[c, ] <- c(piG[1, i - 1], piGiZi[c, 
-                    KtotalRange])
-                }  #add outlier state
+            #inner product then flatten to 1-by-K*Z
+            piGiZi[c, KtotalRange] <- as.vector(piGi[[c]] %*% t(piZi[[c]]))  
+            if (useOutlierState) { #add outlier state
+                  piGiZi[c, ] <- c(piG[1, i - 1], piGiZi[c, KtotalRange])
+            }  
         }
         gc(verbose = FALSE, reset = TRUE)
         ## PARALLELIZATION
-        fwdBackPar <- foreach(c = 1:numChrs, .combine = rbind, .noexport = c("data")) %dopar% 
-            {
+        fwdBackPar <- foreach(c = 1:numChrs, .combine = rbind, .noexport = c("data")) %dopar% {
                 ## Fwd-back returns rho (responsibilities) and
                 ## loglik (log-likelihood, p(Data|Params)) include outlier state
                 if (verbose == TRUE) {
@@ -194,19 +210,20 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
                   log(piGiZi[c, ]), py[, chrsI[[c]]], gNoOUTStateParams$ct, 
                   gNoOUTStateParams$ZS, Z, posn[chrsI[[c]]], 
                   txnZstrength * txnExpLen, txnExpLen, O)
-            }
+        }
         if (verbose == TRUE) {
             message("")
         }
         if (numChrs > 1) {
-            loglik[i] <- sum(do.call(rbind, fwdBackPar[, 
-                2]))  #combine loglik
+            loglik[i] <- sum(do.call(rbind, fwdBackPar[, 2]))  #combine loglik
             # marginal probs or responsibilities,
             # p(G_t,Z_t|Data,Params)
             rho <- do.call(cbind, fwdBackPar[, 1])  #combine rho from parallel runs  
+            #Zcounts <- do.call(t(colSums(aperm(output$xi, c(3, 2, 1)))))
         } else {
             loglik[i] <- sum(do.call(rbind, fwdBackPar[2]))
             rho <- do.call(cbind, fwdBackPar[1])
+            #Zcounts <- do.call(cbind, )
         }
         
         outRhoRow <- rho[1, ]
@@ -221,8 +238,9 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         
         ## M-STEP: COORDINATE DESCENT UPDATE OF PARAMETERS
         estimateOut <- estimateClonalCNParamsMap(data$ref, data$tumDepth, 
-            data$logR, rho, n[i - 1], 
-            s[, i - 1], var[kRange, i - 1], phi[i - 1], 
+            data$logR, rho, rhoG, rhoZ, n[i - 1], s[, i - 1], phi[i - 1], 
+            var[kRange, i - 1], varR[kRange, i - 1], gNoOUTStateParams$corRho_0, 
+            piG[, i - 1, drop = FALSE], piZ[, i - 1, drop = FALSE], chrPos_0,
             gNoOUTStateParams, nParams, sParams, pParams, 
             maxiter = maxiterUpdate, 
             normalEstimateMethod = normalEstimateMethod, 
@@ -231,96 +249,72 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         n[i] <- estimateOut$n
         s[, i] <- estimateOut$s
         var[kRange, i] <- estimateOut$var
+        varR[kRange, i] <- estimateOut$varR
         phi[i] <- estimateOut$phi
-        if (useOutlierState) 
-            {
+        piZ[, i] <- estimateOut$piZ #estimateClonalMixWeightsParamMap(rhoZ, sParams$kappaZHyper)
+        piG[, i] <- estimateOut$piG #estimateGenotypeMixWeightsParamMap(rhoG, gParams$kappaGHyper)
+        if (useOutlierState) { #garbage state
                 var[1, i] <- gParams$outlierVar
-            }  #garbage state 
-        piZ[, i] <- estimateClonalMixWeightsParamMap(rhoZ, 
-            sParams$kappaZHyper)
-        piG[, i] <- estimateGenotypeMixWeightsParamMap(rhoG, 
-            gParams$kappaGHyper)
+        }   
         rm(rho, estimateOut, outRhoRow)  #clear rho and estimateOut
         ## Recompute the likelihood conditional on k and z
         musTmp <- clonalTwoComponentMixtureCN(gNoOUTStateParams$rt, 
-            gParams$rn, n[i], s[, i], gNoOUTStateParams$ct, 
-            phi[i])
+            gParams$rn, n[i], s[, i], gNoOUTStateParams$ct, phi[i])
         mus$R[, , i] <- musTmp$R
         mus$C[, , i] <- musTmp$C
-        pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
-            matrix(mus$R[, , i], KnoOutlier, Z))
-        pyC <- computeNormalObslik(data$logR, matrix(mus$C[, 
-            , i], KnoOutlier, Z), var[kRange, i])
-        if (useOutlierState == 1) {
-            pyO <- outlierObslik(data$ref, data$tumDepth, 
-                data$logR, gParams$outlierVar)
-            py <- exp(rbind(pyO$R, pyR) 
-            		+ rbind(pyO$C, pyC)) + pseudoCounts  #add the outlier state
-        } else {
-            #py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
-            py <- pyR + pyC + pseudoCounts
-        }
+        if (gParams$alleleEmissionModel == "Gaussian"){
+        #  pyR <- computeNormalObslik(data$ref / data$tumDepth, 
+        #                             matrix(mus$R[, , i], KnoOutlier, Z),
+        #                             varR[kRange, i])
+          py <- computeBivariateNormalObslik(data$ref / data$tumDepth, data$logR, 
+                                             matrix(mus$R[, , i], KnoOutlier, Z), 
+                                             matrix(mus$C[, , i], KnoOutlier, Z),
+                                             varR[kRange, i], var[kRange, i],
+                                             gNoOUTStateParams$corRho_0)
+          py <- py + pseudoCounts
+        }else{ # if (gParams$alleleEmissionModel == "binomial"){
+          pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
+                                       matrix(mus$R[, , i], KnoOutlier, Z))
         
-        ## Compute log-likelihood and check converge
-        priorS <- rep(0, Z)
-        if (estimateS) {
-            for (z in 1:Z) {
-                priorS[z] <- betapdflog(s[z, i], sParams$alphaSHyper[z], 
-                  sParams$betaSHyper[z])
+          pyC <- computeNormalObslik(data$logR, 
+                                   matrix(mus$C[, , i], KnoOutlier, Z), var[kRange, i])
+            if (useOutlierState == 1) {
+                pyO <- outlierObslik(data$ref, data$tumDepth, 
+                    data$logR, gParams$outlierVar)
+                py <- exp(rbind(pyO$R, pyR) 
+                		+ rbind(pyO$C, pyC)) + pseudoCounts  #add the outlier state
+            } else {
+                #py <- exp(pyR + pyC) + pseudoCounts  #joint likelihood between Binomial and Gaussian
+                py <- pyR + pyC + pseudoCounts
+                rm(pyR, pyC)
             }
-        } else {
-            priorS[1:Z] <- 0
         }
-        cnLevel <- unique(gParams$ct)
-        priorVar <- rep(0, length(cnLevel))
-        cnInd <- sapply(cnLevel, function(x) {
-            which(gParams$ct == x)[1]
-        })
-        for (k in cnInd) {
-            priorVar[k] <- invgammapdflog(var[k, i], 
-                gParams$alphaKHyper[k], gParams$betaKHyper[k])
-        }
-        if (estimatePloidy) {
-            priorPhi <- invgammapdflog(phi[i], pParams$alphaPHyper, 
-                pParams$betaPHyper)
-        } else {
-            priorPhi <- 0
-        }
-        if (normalEstimateMethod != "fixed") {
-            priorN <- betapdflog(n[i], nParams$alphaNHyper, 
-                nParams$betaNHyper)
-        } else {
-            priorN <- 0
-        }
-        priorPiG <- dirichletpdflog(piG[, i], gParams$kappaGHyper)
-        priorPiZ <- dirichletpdflog(piZ[, i], sParams$kappaZHyper)
-        if (verbose == TRUE) {
-            message("fwdBack: loglik=", sprintf("%0.4f", 
-                loglik[i]))
-        }
-        loglik[i] <- loglik[i] + priorPiG + priorPiZ + 
-            sum(priorS, na.rm = TRUE) + sum(priorVar, 
-            na.rm = TRUE) + priorPhi + priorN
-        if (verbose == TRUE) {
-            message("fwdBack: priorN=", sprintf("%0.4f", 
-                priorN))
-            message("fwdBack: priorS=", sprintf("%0.4f", 
-                sum(priorS, na.rm = TRUE)))
-            message("fwdBack: priorVar=", sprintf("%0.4f", 
-                sum(priorVar, na.rm = TRUE)))
-            message("fwdBack: priorPhi=", sprintf("%0.4f", 
-                priorPhi))
-            message("fwdBack: priorPiG=", sprintf("%0.4f", 
-                priorPiG))
-            message("fwdBack: priorPiZ=", sprintf("%0.4f", 
-                priorPiZ))
-            message("fwdBack: EM iteration ", i - 1, 
-                " complete loglik=", sprintf("%0.4f", 
-                  loglik[i]))
-        }
+        prior <- priorProbs(n[i], s[, i], phi[i], var[, i], varR[, i], piG[, i], piZ[, i], gParams, 
+                            normalEstimateMethod, estimateS, estimatePloidy,
+                            nParams$alphaNHyper, nParams$betaNHyper, sParams$alphaSHyper, 
+                            sParams$betaSHyper, pParams$alphaPHyper, pParams$betaPHyper,
+                            gNoOUTStateParams$alphaKHyper, gNoOUTStateParams$betaKHyper, 
+                            gNoOUTStateParams$alphaRHyper, gNoOUTStateParams$betaRHyper, 
+                            gNoOUTStateParams$kappaGHyper, sParams$kappaZHyper)
+        ## Compute log-likelihood and check converge
         
-        if (((abs(loglik[i] - loglik[i - 1])/abs(loglik[i])) <= 
-            0.001) && (loglik[i] >= loglik[i - 1])) {
+        if (verbose == TRUE) {
+            message("fwdBack: loglik=", sprintf("%0.4f", loglik[i]))
+            message("fwdBack: priorN=", sprintf("%0.4f", prior$n))
+            message("fwdBack: priorS=", sprintf("%0.4f", prior$s))
+            message("fwdBack: priorVar=", sprintf("%0.4f", prior$var))
+            message("fwdBack: priorVarR=", sprintf("%0.4f", prior$varR))
+            message("fwdBack: priorPhi=", sprintf("%0.4f", prior$phi))
+            message("fwdBack: priorPiG=", sprintf("%0.4f", prior$piG))
+            message("fwdBack: priorPiZ=", sprintf("%0.4f", prior$piZ))
+        }
+        loglik[i] <- loglik[i] + prior$prior
+        if (verbose == TRUE){
+          message("fwdBack: EM iteration ", i - 1, 
+                " complete loglik=", sprintf("%0.4f", loglik[i]))
+        }
+        if (((abs(loglik[i] - loglik[i - 1])/abs(loglik[i])) <= likChangeThreshold) 
+            && (loglik[i] >= loglik[i - 1])) {
             converged <- 1
         } else if (loglik[i] < loglik[i - 1]) {
             # stop('Failed EM!')
@@ -332,9 +326,8 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
         
         elapsedTime <- (proc.time() - ticId)/60
         if (verbose == TRUE) {
-            message("fwdBack: Elapsed time for iteration ", 
-                i - 1, ": ", sprintf("%0.4f", elapsedTime[3]), 
-                "m")
+            message("fwdBack: Elapsed time for iteration ", i - 1, 
+                    ": ", sprintf("%0.4f", elapsedTime[3]), "m")
         }
         gc(verbose = FALSE, reset = TRUE)
     }
@@ -352,6 +345,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     output$n <- n[1:i]
     output$s <- s[, 1:i, drop = FALSE]
     output$var <- var[, 1:i, drop = FALSE]
+    output$varR <- varR[, 1:i, drop = FALSE]
     output$phi <- phi[1:i]
     output$piG <- piG[, 1:i, drop = FALSE]
     output$piZ <- piZ[, 1:i, drop = FALSE]
@@ -368,7 +362,7 @@ runEMclonalCN <- function(data, gParams, nParams, pParams,
     output$genotypeParams <- gNoOUTStateParams
     output$ploidyParams <- pParams
     output$normalParams <- nParams
-    output$clonalParams <- sParams
+    output$cellPrevParams <- sParams
     output$symmetric <- gParams$symmetric
     return(output)
 }
@@ -378,8 +372,7 @@ viterbiClonalCN <- function(data, convergeParams, genotypeParams = NULL) {
     ## use genotypeParams found in convergeParams unless
     ## genotypeParams given
     if (is.null(genotypeParams)) {
-        if (length(convergeParams$genotypeParams) > 
-            0) {
+        if (length(convergeParams$genotypeParams) > 0) {
             genotypeParams <- convergeParams$genotypeParams
         } else {
             stop("convergeParams does not contain list element: genotypeParams. 
@@ -395,6 +388,9 @@ viterbiClonalCN <- function(data, convergeParams, genotypeParams = NULL) {
         0) {
         stop("convergeParams does not contain list elements: txnExpLen, 
              txnZstrength and/or useOutlierState. ")
+    }
+    if (is.null(genotypeParams$alleleEmissionModel)){
+      genotypeParams$alleleEmissionModel <- "binomial" #default
     }
     txnExpLen <- convergeParams$txnExpLen
     txnZstrength <- convergeParams$txnZstrength
@@ -439,33 +435,41 @@ viterbiClonalCN <- function(data, convergeParams, genotypeParams = NULL) {
     }
     
     ## compute likelihood
-    pseudoCounts <- 1e-200
-    pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
-        matrix(convergeParams$muR[, , i], KnoOutlier, 
-            Z))
-    pyC <- computeNormalObslik(data$logR, matrix(convergeParams$muC[, 
-        , i], KnoOutlier, Z), convergeParams$var[kRange, 
-        i])
-    if (useOutlierState) {
+    pseudoCounts <- 1e-300
+    if (genotypeParams$alleleEmissionModel == "Gaussian"){
+      #pyR <- computeNormalObslik(data$ref / data$tumDepth, 
+      #                             matrix(convergeParams$muR[, , i], KnoOutlier, Z),
+      #                             convergeParams$varR[kRange, i])
+      py <- computeBivariateNormalObslik(data$ref / data$tumDepth, data$logR, 
+                                  matrix(convergeParams$muR[, , i], KnoOutlier, Z), 
+                                  matrix(convergeParams$muC[, , i], KnoOutlier, Z),
+                                  convergeParams$varR[kRange, i], convergeParams$var[kRange, i],
+                                  convergeParams$corRho_0)
+    }else{ # if (gParams$alleleEmissionModel == "binomial"){
+      pyR <- computeBinomialObslik(data$ref, data$tumDepth, 
+                                  matrix(convergeParams$muR[, , i], KnoOutlier, Z))
+      pyC <- computeNormalObslik(data$logR, matrix(convergeParams$muC[, , i], KnoOutlier, Z), 
+                               convergeParams$var[kRange, i])
+      if (useOutlierState) {
         pyO <- outlierObslik(data$ref, data$tumDepth, 
             data$logR, genotypeParams$outlierVar)
         py <- rbind(pyO$R, pyR) 
         		+ rbind(pyO$C, pyC) + pseudoCounts  #add the outlier state
-    } else {
-        py <- pyR + pyC + pseudoCounts  #joint likelihood between Binomial and Gaussian
+      } else {
+          py <- pyR + pyC + pseudoCounts  #joint likelihood between Binomial and Gaussian
+          rm(pyR, pyC)
+      }
     }
     
     piGiZi <- matrix(0, numChrs, Ktotal)
     for (c in 1:numChrs) {
         piZi[[c]] <- convergeParams$piZ[, i - 1, drop = FALSE]
-        piGi[[c]] <- convergeParams$piG[kRange, i - 
-            1, drop = FALSE]
+        piGi[[c]] <- convergeParams$piG[kRange, i - 1, drop = FALSE]
         piGiZi[c, KtotalRange] <- as.vector(piGi[[c]] %*% 
             t(piZi[[c]]))  #inner product then flatten to 1-by-K*Z
         if (useOutlierState) 
             {
-                piGiZi[c, ] <- c(convergeParams$piG[1, 
-                  i - 1], piGiZi[c, KtotalRange])
+                piGiZi[c, ] <- c(convergeParams$piG[1, i - 1], piGiZi[c, KtotalRange])
             }  #add outlier state
     }
     G <- foreach(c = 1:numChrs, .combine = c) %dopar% 
@@ -511,13 +515,63 @@ computeNormalObslik <- function(x, mus, var) {
     py <- matrix(0, K * Z, N)  #local evidence is 2-D matrix: K*ZxN
     for (z in 1:Z) {
         for (k in 1:K) {
-            py[k + (z - 1) * K, ] <- normalpdflog(x, 
-                mus[k, z], var[k])
+            py[k + (z - 1) * K, ] <- normalpdflog(x, mus[k, z], var[k])
         }
     }
     # py <- t(matrix(py,N,K*Z))
     return(py)
 }
+
+computeBivariateNormalObslik <- function(x1, x2, mu1, mu2, var1 = NULL, var2 = NULL, corRho = NULL){
+  N <- length(x1)
+  K <- nrow(mu1)
+  Z <- ncol(mu1)
+  coVar <- getBivariateCovariance(x1, x2)
+  if (is.null(var1) || is.null(var2)){
+    coVar <- getBivariateCovariance(x1, x2)
+    var1 <- rep(coVar$covar[1, 1], K)
+    var2 <- rep(coVar$covar[2, 2], K)
+    corRho <- rep(coVar$cor, K)
+  }
+  if (is.null(corRho)){
+    corRho <- coVar$cor
+  }
+  py <- matrix(0, K * Z, N)  #local evidence is 2-D matrix: K*ZxN
+  for (k in 1:K) {
+    for (z in 1:Z) {
+      py[k + (z - 1) * K, ] <- bivariateNormalpdflog(x1, x2, mu1[k, z], mu2[k, z], 
+                            var1[k], var2[k], corRho)
+    }
+  }
+  return(py)
+}
+
+# Bivariate Gaussian density function, return in log scale #
+bivariateNormalpdflog <- function(x1, x2, mu1, mu2, var1, var2, corRho){
+  c <- log(2 * pi * sqrt(var1 * var2 * (1 - corRho ^ 2)))
+  l_0 <- 1 / (2 * (1 - corRho ^ 2))
+  l_1 <- ((x1 - mu1) ^ 2) / var1
+  l_2 <- ((x2 - mu2) ^ 2) / var2 
+  l_3 <-  2 * corRho * (x1 - mu1) * (x2 - mu2) / sqrt(var1 * var2)
+  y <- -c - l_0 * (l_1 + l_2 - l_3)
+  y[is.na(y)] <- 1
+  return(y)
+}
+
+getBivariateCovariance <- function(x1, x2){
+  # sample covariance 
+  covar <- cov(cbind(x1, x2), use = "pairwise.complete.obs")
+  # correlation
+  cor <- covar[1, 2] / sqrt(covar[1, 1] * covar[2, 2])
+  return(list(covar = covar, cor = cor))
+}
+
+asCovarianceMatrix <- function(varA, varB, rho){
+  covMat <- matrix(c(varA, rho * sqrt(varA * varB), rho * sqrt(varA * varB), varB), 
+                   ncol = 2, nrow = 2, byrow = TRUE)
+  return(covMat)
+}
+
 
 # 2-component mixtures for the Binomial mean given
 # stromal contamination parameter (s) and Gaussian
@@ -625,3 +679,106 @@ estimateBetaParamsMap <- function(alpha, beta) {
     mu <- (alpha - 1)/(alpha + beta - 2)
     return(mu)
 } 
+
+# likelihood function for covariance #
+covarLikelihoodFun <- function(covar, mu, params, D, rho){
+  #print(covar)
+  covar <- asCovarianceMatrix(covar[1], covar[2], params$cor_0)
+  lik <- rho %*% bivariateNormalpdflog(D, mu, covar, params$cor_0)
+  prior <- invWishartpdflog(covar, params$psi, params$nu)
+  f <- lik + prior
+  return(f)
+}
+
+
+
+# Multivariate gamma function 
+multiGammaFunlog <- function(p, a){
+  if (p == 1){
+    return(lgamma(a))
+  }else{
+    return(log(pi ^ ((p - 1) / 2) + multiGammaFunlog(p - 1, a) + multiGammaFunlog(1, a + (1 - p) / 2)))
+  }
+}
+
+# Inverse Wishart density function in log scale 
+invWishartpdflog <- function(covar, psi, nu){
+  p <- ncol(covar)
+  const <- log(det(psi)) * (nu / 2) - log(2) * (nu * p / 2) + multiGammaFunlog(p, nu / 2)
+  lik <- log(det(covar)) * -((nu + p + 1) / 2) - 0.5 * sum(diag(psi %*% solve(covar)))
+  y <- const + lik
+  return(y)
+}
+
+
+
+priorProbs <- function(n, s, phi, var, varR, piG, piZ, gParams,
+                       normalEstimateMethod, estimateS, estimatePloidy,
+                       alphaN, betaN, alphaS, betaS, alphaP, betaP,
+                       alphaK, betaK, alphaR, betaR, kappaG, kappaZ){
+  Z <- length(s)
+  K <- length(var)
+  ## prior for pi's ##
+  priorPiG <- dirichletpdflog(piG, kappaG)
+  priorPiZ <- dirichletpdflog(piZ, kappaZ)
+  ## prior for S ##
+  prior_beta_s <- 0
+  if (estimateS) {
+    for (z in 1:Z) {
+      #prior_beta_s <- prior_beta_s + log(1/beta(alphaS[z], 
+      #    betaS[z])) + (alphaS[z] - 1) * log(s[z]) + 
+      #    (betaS[z] - 1) * log(1 - s[z])
+      prior_beta_s <- prior_beta_s + 
+        betapdflog(s[z], alphaS[z], betaS[z])
+    }
+  } else {
+    prior_beta_s <- 0
+  }
+  ## prior for n ##
+  if (normalEstimateMethod == "map") {
+    #prior_beta_n <- log(1/beta(alphaN, betaN)) + 
+    (alphaN - 1) * log(n) + (betaN - 1) * log(1 - n)
+    prior_beta_n <- betapdflog(n, alphaN, betaN)
+  } else {
+    prior_beta_n <- 0
+  }
+  ## prior for variance var ##
+  cnLevel <- unique(gParams$ct)
+  cnInd <- sapply(cnLevel, function(x) {
+    which(gParams$ct == x)[1]
+  })
+  prior_gamma_var <- 0
+  for (k in cnInd) {
+    #prior_gamma_var <- prior_gamma_var + 
+    #  alphaK[k] * log(betaK[k]) - lgamma(alphaK[k]) + # constant term
+    #  (-alphaK[k] - 1) * log(var[k]) - betaK[k]/var[k] # beta likelihood
+    prior_gamma_var <- prior_gamma_var + invgammapdflog(var[k], alphaK[k], betaK[k])
+  }
+  
+  ## prior for phi ##
+  if (estimatePloidy) {
+    #prior_gamma_phi <- alphaP * log(betaP) - lgamma(alphaP) + 
+    #    (-alphaP - 1) * log(phi) - betaP/phi
+    prior_gamma_phi <- invgammapdflog(phi, alphaP, betaP)
+  } else {
+    prior_gamma_phi <- 0
+  }
+  
+  prior_gamma_varR <- 0
+  if (gParams$alleleEmissionModel == "Gaussian"){
+    for (k in 1:K){
+      #prior_gamma_varR <- prior_gamma_varR + 
+      #  alphaR[k] * log(betaR[k]) - lgamma(alphaR[k]) + #constant term
+      #  (-alphaR[k] - 1) * log(varR[k]) - betaR[k]/varR[k]
+      prior_gamma_varR <- prior_gamma_varR + invgammapdflog(varR[k], alphaR[k], betaR[k])
+    }
+  }
+  
+  prior <- prior_beta_s + prior_beta_n + prior_gamma_phi + 
+    prior_gamma_var + prior_gamma_varR + priorPiG + priorPiZ
+  return(list(prior = prior, s = prior_beta_s, n = prior_beta_n, 
+              phi = prior_gamma_phi,
+              var = prior_gamma_var, varR = prior_gamma_varR, 
+              piG = priorPiG, piZ = priorPiZ))
+}
+

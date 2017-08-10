@@ -68,8 +68,12 @@ optimalPath <- viterbiClonalCN(data, convergeParams)
 
 #### FORMAT RESULTS ####
 results <- outputTitanResults(data, convergeParams, optimalPath, 
-                              filename = NULL, posteriorProbs = FALSE)
-
+                              filename = NULL, posteriorProbs = FALSE,
+                              correctResults = TRUE, 
+                              proportionThreshold = 0.05,
+															proportionThresholdClonal = 0.05)
+															
+results <- results$corrResults ## use corrected results
 #### COMPUTE S_Dbw Validity Index FOR MODEL SELECTION ####
 s_dbw <- computeSDbwIndex(results, data.type = "LogRatio", 
 					centroid.method = "median", S_Dbw.method = "Tong")

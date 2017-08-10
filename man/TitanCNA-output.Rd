@@ -1,4 +1,4 @@
-\name{Formatting and output of Titan results}
+\name{output-methods}
 \alias{outputTitanResults}
 \alias{outputModelParameters}
 \alias{outputTitanSegments}
@@ -12,7 +12,9 @@
 
 \usage{
   outputTitanResults(data, convergeParams, optimalPath, filename = NULL, 
-      posteriorProbs = FALSE, subcloneProfiles = TRUE)
+      is.haplotypeData = FALSE, posteriorProbs = FALSE, subcloneProfiles = TRUE,
+      correctResults = TRUE, proportionThreshold = 0.05, 
+      proportionThresholdClonal = 0.05, verbose = TRUE)
       
   outputModelParameters(convergeParams, results, filename, 
   		S_Dbw.scale = 1, S_Dbw.method = "Tong")
@@ -47,14 +49,29 @@
   \item{posteriorProbs}{
     \code{Logical TRUE} to include the posterior marginal probabilities in printing to \code{filename}. 
   }
+  \item{is.haplotypeData}{
+    \code{Logical TRUE} if the \code{data} contains the haplotype information. In particular, the column headers \code{HaplotypeCount}, \code{HaplotypeDepth}, \code{HaplotypeRatio} are included.
+  }
   \item{subcloneProfiles}{
   	\code{Logical TRUE} to include the subclone profiles to the output \code{data.frame}. Currently, this only works for 1 or 2 clonal clusters.
+  }
+  \item{correctResults}{
+    \code{Logical TRUE} to correct the results by removing empty clusters and adjusting cellular prevalence and normal contamination parameters accordingly. 
+  }
+   \item{proportionThreshold}{
+  	Minimum proportion of the genome altered (by SNPs) for a cluster to be retained.  Clonal clusters having lower proportion of alteration are removed. 
+  }
+  \item{proportionThresholdClonal}{
+  	Minimum proportion of genome altered by clonal events (by SNPs) for the highest cellular prevalence cluster. If the highest prevalence cluster contains lower proportion of events than this threshold, this cluster will be removed and the next highest (subclonal) cluster will be readjusted to be the clonal cluster.
   }
   \item{S_Dbw.scale}{
   	The S_Dbw validity index can be adjusted to account for differences between datasets. \code{SDbw.scale} can be used to penalize the S_Dbw \code{dens.bw} component.  The default is 1.
   }
   \item{S_Dbw.method}{
   	Compute S_Dbw validity index using \code{Halkidi} or \code{Tong} method. See \code{\link{computeSDbwIndex}}.
+  }
+  \item{verbose}{
+    Print status messages.
   }
 }
 \details{
@@ -88,7 +105,12 @@
 }
 
 \value{
-  \code{\link{outputTitanResults}} also returns a \code{\link[base:data.frame]{data.frame}}, where each row corresponds to a position in the analysis, and with the following columns:
+  \code{\link{outputTitanResults}} also returns a list containing the following:
+  \item{results}{TITAN results, uncorrected for cluster number and parameters}
+  \item{corrResults}{TITAN results, corrected by removing empty clusters and parameters adjusted accordingly.}
+  \item{convergeParams}{Corrected parameter object}
+
+The \code{results} and \code{corrResults} are \link[data.table]{data.table} objects, where each row corresponds to a position in the analysis, and with the following columns:
   \item{Chr}{character denoting chromosome number.  ChrX and ChrY uses \sQuote{X} and \sQuote{Y}.}
   \item{Position}{genomic coordinate}
   \item{RefCount}{number of reads matching the reference base}
@@ -132,9 +154,16 @@ data(EMresults)
 optimalPath <- viterbiClonalCN(data, convergeParams)
 
 #### FORMAT RESULTS ####
-results <- outputTitanResults(data, convergeParams, optimalPath, 
+results <- outputTitanResults(data, convergeParams, optimalPath,
                               filename = NULL, posteriorProbs = FALSE,
-                              subcloneProfiles = TRUE)
+                              subcloneProfiles = TRUE, correctResults = TRUE, 
+                              proportionThreshold = 0.05, 
+                              proportionThresholdClonal = 0.05,
+                              is.haplotypeData = FALSE)
+## use corrected parameters
+convergeParams <- results$convergeParam 
+## use corrected results
+results <- results$corrResults 
 
 #### OUTPUT RESULTS TO FILE ####
 outparam <- paste0("cluster2_params.txt")
@@ -143,7 +172,8 @@ outputModelParameters(convergeParams, results, outparam)
 #### OUTPUT SEGMENTS TO FILE ####
 outseg <- paste0("cluster2_segs.txt")
 outigv <- paste0("cluster2.seg")
-segs <- outputTitanSegments(results, id = "test", convergeParams, filename = outseg, igvfilename = outigv)
+segs <- outputTitanSegments(results, id = "test", convergeParams, 
+  filename = outseg, igvfilename = outigv)
 # segment results also stored in data.frame "segs" 
 }
 

@@ -20,28 +20,25 @@ plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
     names(lohCol) <- c("HOMD", "DLOH", "NLOH", "GAIN", 
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
     
-    
+    dataIn <- copy(dataIn)
     if (!is.null(chr)) {
         for (i in chr) {
-            dataByChr <- dataIn[dataIn[, "Chr"] == 
-                i, ]
-            dataByChr <- dataByChr[dataByChr[, "TITANcall"] != 
-                "OUT", ]
+            dataByChr <- dataIn[Chr == i]
+            dataByChr <- dataByChr[TITANcall != "OUT"]
             # plot the data if (outfile!=''){
             # pdf(outfile,width=10,height=6) }
             par(mar = c(spacing, 8, 2, 2))
             # par(xpd=NA)
             if (missing(xlim)) {
-                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), 
-                  "Position"]))
+                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), Position]))
             }
-            plot(dataByChr[, "Position"], dataByChr[, 
-                "AllelicRatio"], col = lohCol[dataByChr[, 
-                "TITANcall"]], pch = 16, xaxt = "n", 
+            plot(dataByChr[, Position], dataByChr[, 
+                AllelicRatio], col = lohCol[dataByChr[, 
+                TITANcall]], pch = 16, xaxt = "n", 
                 las = 1, ylab = "Allelic Ratio", xlim = xlim, 
                 ...)
             lines(as.numeric(c(1, dataByChr[nrow(dataByChr), 
-                "Position"])), rep(0.5, 2), type = "l", 
+                Position])), rep(0.5, 2), type = "l", 
                 col = "grey", lwd = 3)
             
             if (!is.null(geneAnnot)) {
@@ -50,16 +47,16 @@ plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
         }
     } else {
         # plot for all chromosomes
-        coord <- getGenomeWidePositions(dataIn[, "Chr"], 
-            dataIn[, "Position"])
-        plot(coord$posns, as.numeric(dataIn[, "AllelicRatio"]), 
-            col = lohCol[dataIn[, "TITANcall"]], pch = 16, 
+        coord <- getGenomeWidePositions(dataIn[, Chr], 
+            dataIn[, Position])
+        plot(coord$posns, as.numeric(dataIn[, AllelicRatio]), 
+            col = lohCol[dataIn[, TITANcall]], pch = 16, 
             xaxt = "n", bty = "n", las = 1, ylab = "Allelic Fraction", 
             ...)
         lines(as.numeric(c(1, coord$posns[length(coord$posns)])), 
             rep(0.5, 2), type = "l", col = "grey", 
             lwd = 3)
-        plotChrLines(unique(dataIn[, "Chr"]), coord$chrBkpt, 
+        plotChrLines(unique(dataIn[, Chr]), coord$chrBkpt, 
             c(-0.1, 1.1))
         
     }
@@ -81,33 +78,28 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
     # get unique set of cluster and estimates table:
     # 1st column is cluster number, 2nd column is
     # clonal freq
-    clusters <- unique(dataIn[, c("ClonalCluster", 
-        "CellularPrevalence")])
-    clusters <- clusters[!is.na(clusters[, 1]), , drop = FALSE]  #exclude NA
+    clusters <- unique(dataIn[, list(ClonalCluster, CellularPrevalence)])
+    clusters <- clusters[!is.na(ClonalCluster), ]  #exclude NA
     if (!is.null(normal)) {
-        clusters[, 2] <- (as.numeric(clusters[, 2])) * 
-            (1 - as.numeric(normal))
+        clusters[, CellularPrevalence := CellularPrevalence * (1 - as.numeric(normal))]
     }
-    
-    dataToUse <- dataIn[dataIn[, "TITANcall"] != "OUT", ]
-    dataToUse[dataToUse[, "CellularPrevalence"] == 
-        "NA" | is.na(dataToUse[, "CellularPrevalence"]), 
-        c("ClonalCluster", "CellularPrevalence")] <- c(NA, NA)
+    dataToUse <- copy(dataIn)
+    dataToUse <- dataToUse[TITANcall != "OUT", ]
+    #dataToUse[CellularPrevalence == "NA" | is.na(CellularPrevalence), 
+    #          list(ClonalCluster, CellularPrevalence) := c(NA, NA)]
     # extract clonal info
-    clonalFreq <- cbind(as.numeric(dataToUse[, "ClonalCluster"]), 
-        as.numeric(dataToUse[, "CellularPrevalence"]))
-    # mode(clonalFreq) <- 'numeric' clonalFreq[,2] <- 1
-    # - clonalFreq[,2]
+    clonalFreq <- dataToUse[, list(ClonalCluster, CellularPrevalence)]
+    # mode(clonalFreq) <- 'numeric' clonalFreq[,2] <- 1 - clonalFreq[,2]
     if (!is.null(normal)) {
-        clonalFreq[, 2] <- clonalFreq[, 2] * (1 - normal)
+        clonalFreq[, CellularPrevalence := CellularPrevalence * (1 - normal)]
     }
-    clonalFreq[is.na(clonalFreq[, 2]) | clonalFreq[, 
-        2] == "0" | clonalFreq[, 2] == "NA", 2] <- 0
+    clonalFreq[is.na(CellularPrevalence) | CellularPrevalence == "0" | 
+                 CellularPrevalence == "NA", CellularPrevalence := 0]
     
     # plot per chromosome
     if (!is.null(chr)) {
         for (i in chr) {
-            ind <- dataToUse[, "Chr"] == as.character(i)
+            ind <- dataToUse[, Chr] == as.character(i)
             dataByChr <- dataToUse[ind, ]
             clonalFreq <- clonalFreq[ind, ]
             # plot the data
@@ -116,37 +108,30 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
             
             # PLOT CLONAL FREQUENCIES
             if (missing(xlim)) {
-                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), 
-                  "Position"]))
+                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), Position]))
             }
-            plot(dataByChr[, "Position"], clonalFreq[, 
-                2], type = "h", col = lohCol[dataByChr[, 
-                "TITANcall"]], las = 1, xaxt = "n", 
-                ylab = "Cellular Prevalence", xlim = xlim, 
-                ...)
+            plot(dataByChr[, Position], clonalFreq[, CellularPrevalence], type = "h", 
+                 col = lohCol[dataByChr[, TITANcall]], las = 1, xaxt = "n", 
+                ylab = "Cellular Prevalence", xlim = xlim, ...)
             
             # plot cluster lines and labels
             if (nrow(clusters) > 0){
 				for (j in 1:length(clusters[, 1])) {
-					chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], 
-					  "Position"])
-					lines(c(1 - chrLen * 0.02, chrLen * 
-					  1.02), rep(clusters[j, 2], 2), type = "l", 
-					  col = "grey", lwd = 3)
+					chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], Position])
+					lines(c(1 - chrLen * 0.02, chrLen * 1.02), 
+					      rep(clusters[j, 2], 2), type = "l", col = "grey", lwd = 3)
 					mtext(side = 4, at = clusters[j, 2], 
-					  text = paste("Z", clusters[j, 1], 
-						"", sep = ""), cex = 1, padj = 0.5, 
-					  adj = 1, las = 2, outer = FALSE)
+					  text = paste("Z", clusters[j, 1], "", sep = ""), 
+					  cex = 1, padj = 0.5, adj = 1, las = 2, outer = FALSE)
 					mtext(side = 2, at = clusters[j, 2], 
-					  text = paste("Z", clusters[j, 1], 
-						"", sep = ""), cex = 1, padj = 0.5, 
+					      text = paste("Z", clusters[j, 1], "", sep = ""), 
+					      cex = 1, padj = 0.5, 
 					  adj = 0, las = 2, outer = FALSE)
 				}
 			}
             
             if (!is.null(normal)) {
-                chrLen <- as.numeric(dataByChr[nrow(dataByChr), 
-                  "Position"])
+                chrLen <- as.numeric(dataByChr[nrow(dataByChr), Position])
                 lines(c(1 - chrLen * 0.02, chrLen * 
                   1.02), rep((1 - normal), 2), type = "l", 
                   col = "#000000", lwd = 3)
@@ -164,13 +149,13 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
         }
     } else {
         # plot genome-wide
-        coord <- getGenomeWidePositions(dataIn[, "Chr"], 
-            dataIn[, "Position"])
-        plot(coord$posns, clonalFreq[, 2], type = "h", 
-            col = lohCol[dataIn[, "TITANcall"]], pch = 16, 
+        coord <- getGenomeWidePositions(dataIn[, Chr], 
+            dataIn[, Position])
+        plot(coord$posns, clonalFreq[, CellularPrevalence], type = "h", 
+            col = lohCol[dataIn[, TITANcall]], pch = 16, 
             xaxt = "n", las = 1, bty = "n", ylab = "Cellular Prevalence", 
             ...)
-        plotChrLines(unique(dataIn[, "Chr"]), coord$chrBkpt, 
+        plotChrLines(unique(dataIn[, Chr]), coord$chrBkpt, 
             c(-0.1, 1.1))
         
         # plot cluster lines and labels
@@ -217,43 +202,41 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
     # col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
     names(cnCol) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
     
+    dataIn <- copy(dataIn)
     ## adjust logR values for ploidy ##
     if (!is.null(ploidy)) {
     	if (is.null(normal)){
     		stop("plotCNlogRByChr: Please provide \"normal\" contamination estimate.")
     	}
-        dataIn[, "LogRatio"] <- as.numeric(dataIn[, "LogRatio"]) + log2(((1-normal)*ploidy+normal*2)/2)
+        dataIn[, LogRatio := LogRatio + log2(((1-normal)*ploidy+normal*2)/2)]
         
       if (!is.null(segs)){
-				segs[, "Median_logR"] <- segs[, "Median_logR"] + log2(((1-normal)*ploidy+normal*2) / 2)
+        segs.sample <- copy(segs)
+				segs.sample[, Median_logR := Median_logR + log2(((1-normal)*ploidy+normal*2) / 2)]
 			}
     }
 
     if (!is.null(chr)) {
         for (i in chr) {
-            dataByChr <- dataIn[dataIn[, "Chr"] == 
-                i, ]
-            dataByChr <- dataByChr[dataByChr[, "TITANcall"] != "OUT", ]
+            dataByChr <- dataIn[dataIn[, Chr] == i, ]
+            dataByChr <- dataByChr[dataByChr[, TITANcall] != "OUT", ]
             # plot the data if (outfile!=''){
             # pdf(outfile,width=10,height=6) }
             par(mar = c(spacing, 8, 2, 2))
             # par(xpd=NA)
             if (missing(xlim)) {
-                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), 
-                  "Position"]))
+                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), Position]))
             }
-            coord <- as.numeric(dataByChr[, "Position"])
-            plot(coord, as.numeric(dataByChr[, "LogRatio"]), 
-                col = cnCol[as.character(dataByChr[, 
-                  "CopyNumber"])], pch = 16, xaxt = "n", 
-                las = 1, ylab = "Copy Number (log ratio)", 
-                xlim = xlim, ...)
+            coord <- as.numeric(dataByChr[, Position])
+            plot(coord, as.numeric(dataByChr[, LogRatio]), 
+                col = cnCol[as.character(dataByChr[, CopyNumber])], pch = 16, xaxt = "n", 
+                las = 1, ylab = "Copy Number (log ratio)", xlim = xlim, ...)
             lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
             if (!is.null(segs)){
-							segsByChr <- segs[segs[,"Chromosome"]==as.character(i), , drop=FALSE]
+							segsByChr <- segs.sample[Chromosome == as.character(i), ]
 							tmp <- apply(segsByChr, 1, function(x){
 								lines(x[c("Start_Position.bp.","End_Position.bp.")], 
-										rep(x["Median_logR"], 2), col = "green", lwd = 3)
+										rep(x["Median_logR"], 2), col = "green", lwd = 3, lend = 1)
 							})
 						}
   
@@ -264,26 +247,25 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
         }
     } else {
         # plot for all chromosomes
-        coord <- getGenomeWidePositions(dataIn[, "Chr"], 
-            dataIn[, "Position"])
-        plot(coord$posns, as.numeric(dataIn[, "LogRatio"]), 
-            col = cnCol[as.character(dataIn[, "CopyNumber"])], 
+        coord <- getGenomeWidePositions(dataIn[, Chr], dataIn[, Position])
+        plot(coord$posns, as.numeric(dataIn[, LogRatio]), 
+            col = cnCol[as.character(dataIn[, CopyNumber])], 
             pch = 16, xaxt = "n", las = 1, bty = "n", 
             ylab = "Copy Number (log ratio)", ...)
         lines(as.numeric(c(1, coord$posns[length(coord$posns)])), 
             rep(0, 2), type = "l", col = "grey", lwd = 2)
-        plotChrLines(dataIn[, "Chr"], coord$chrBkpt, par("yaxp")[1:2])
+        plotChrLines(dataIn[, Chr], coord$chrBkpt, par("yaxp")[1:2])
         #plot segments
 				if (!is.null(segs)){
-					coordEnd <- getGenomeWidePositions(segs[, "Chromosome"], segs[, "End_Position.bp."])
-					coordStart <- coordEnd$posns - (segs[, "End_Position.bp."] - segs[, "Start_Position.bp."] + 1)
+					coordEnd <- getGenomeWidePositions(segs.sample[, Chromosome], segs.sample[, End_Position.bp.])
+					coordStart <- coordEnd$posns - (segs.sample[, End_Position.bp.] - segs.sample[, Start_Position.bp.] + 1)
 					xlim <- as.numeric(c(1, coordEnd$posns[length(coordEnd$posns)]))
-					col <- cnCol[as.character(segs[, "Copy_Number"])]
-					value <- as.numeric(segs[, "Median_logR"])
+					col <- cnCol[as.character(segs.sample[, Copy_Number])]
+					value <- as.numeric(segs.sample[, Median_logR])
 					mat <- as.data.frame(cbind(coordStart, coordEnd$posns, value, col))
 					rownames(mat) <- 1:nrow(mat)
 					tmp <- apply(mat, 1, function(x){
-						lines(x[1:2], rep(x[3], 2), col = x[4], lwd = 3)
+						lines(x[1:2], rep(x[3], 2), col = x[4], lwd = 3, lend = 1)
 					})
 				}
 
@@ -303,18 +285,18 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
     ## pull out params from dots ##
     if (!is.null(args$cex.axis)) cex.axis <- args$cex.axis else cex.axis <- 0.75
     if (!is.null(args$cex.lab)) cex.lab <- args$cex.lab else cex.lab <- 0.75
-            
+    dataIn <- copy(dataIn)
     numClones <- sum(!is.na(unique(as.numeric(dataIn$ClonalCluster))))
     if (numClones == 0){ numClones <- 1 }
          # plot per chromosome
     if (!is.null(chr)) {
         for (i in chr) {
-            ind <- dataIn[, "Chr"] == as.character(i)
+            ind <- dataIn[, Chr == as.character(i)]
             dataByChr <- dataIn[ind, ]
             
             ## find x domain #
             if (missing(xlim)) {
-    			xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), "Position"]))
+    			xlim <- c(1, dataByChr[.N, Position])
     		}
             
             # plot the data
@@ -322,30 +304,28 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
           
             # PLOT SUBCLONE PROFILES
             # setup plot to include X number of clones (numClones)
-            maxCN <- max(as.numeric(dataByChr$CopyNumber)) + 1
+            maxCN <- dataByChr[, max(CopyNumber)] + 1
             ylim <- c(0, numClones * (maxCN + 2) - 1)
             plot(0, type = "n", xaxt = "n", ylab = "", xlab = "", 
             	xlim = xlim, ylim = ylim, yaxt = "n", ...)
             axis(2, at = seq(ylim[1], ylim[2], 1), las = 1,
             	labels = rep(c(0:maxCN, "---"), numClones), cex.axis=cex.axis)
             for (i in 1:numClones){
-            	val <- dataByChr[, paste("Subclone", i, ".CopyNumber", sep = "")]
-            	cellPrev <- suppressWarnings(as.numeric(unique(dataByChr[, 
-            					paste0("Subclone", i, ".Prevalence")])))
+            	val <- dataByChr[, get(paste0("Subclone", i, ".CopyNumber"))]
+            	cellPrev <- suppressWarnings(unique(dataByChr[, get(paste0("Subclone", i, ".Prevalence"))]))
             	cellPrev <- cellPrev[!is.na(cellPrev)] ## remove NA prevalence, leave subclonal prev
             	if (length(cellPrev) == 0){ cellPrev <- 0.0 } ## if only NA, then assign 0 prev
             	if (i > 1){
             		# shift values up for each subclone
             		val <- val + (numClones - 1) * (maxCN + 2)
             	}
-            	call <- dataByChr[, paste("Subclone", i, ".TITANcall", sep = "")]
-            	points(dataByChr[, "Position"], val, col = lohCol[call], 
-            		pch = 15, ...)
-            	#lines(dataIn[, "Position"], val, col = lohCol[call], type = "l", lwd = 3, ...)
-               	mtext(text = paste("Subclone", i, "\n", format(cellPrev, digits = 2), sep = ""), 
+            	call <- dataByChr[, get(paste0("Subclone", i, ".TITANcall"))]
+            	points(dataByChr[, Position], val, col = lohCol[call], pch = 15, ...)
+            	#lines(dataIn[, Position], val, col = lohCol[call], type = "l", lwd = 3, ...)
+               	mtext(text = paste0("Subclone", i, "\n", format(cellPrev, digits = 2)), 
                		side = 2, las = 0, line = 3, 
                		at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = cex.lab)
-               	chrLen <- as.numeric(dataByChr[dim(dataByChr)[1], "Position"])
+               	chrLen <- as.numeric(dataByChr[.N, Position])
                 lines(c(1 - chrLen * 0.035, chrLen * 
                   1.035), rep(i * (maxCN + 2) - 1, 2), type = "l", 
                   col = "black", lwd = 1.5)
@@ -357,9 +337,9 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
         }
     } else {
         # plot genome-wide
-        coord <- getGenomeWidePositions(dataIn[, "Chr"], dataIn[, "Position"])
+        coord <- getGenomeWidePositions(dataIn[, Chr], dataIn[, Position])
         # setup plot to include X number of clones (numClones)
-		maxCN <- max(as.numeric(dataIn$CopyNumber)) + 1
+		maxCN <- dataIn[, max(CopyNumber)] + 1
 		ylim <- c(0, numClones * (maxCN + 2) - 1)
 		xlim <- as.numeric(c(1, coord$posns[length(coord$posns)]))
 		plot(0, type = "n", xaxt = "n", bty = "n", ylab = "", xlim = xlim, 
@@ -367,28 +347,28 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
 		axis(2, at = seq(ylim[1], ylim[2], 1), las = 1,
 			labels = rep(c(0:maxCN, "---"), numClones))
 		for (i in 1:numClones){
-			val <- as.numeric(dataIn[, paste("Subclone", i, ".CopyNumber", sep = "")])
+			val <- dataIn[, get(paste0("Subclone", i, ".CopyNumber"))]
 			if (i > 1){
 				# shift values up for each subclone
 				val <- val + (numClones - 1) * (maxCN + 2)
 			}
-			call <- dataIn[, paste("Subclone", i, ".TITANcall", sep = "")]
-			points(coord$posns, val, col = lohCol[call], 
-				pch = 15, ...)
-			mtext(text = paste("Subclone", i, sep = ""), side = 2, las = 0, 
+			call <- dataIn[, get(paste0("Subclone", i, ".TITANcall"))]
+			points(coord$posns, val, col = lohCol[call], pch = 15, ...)
+			mtext(text = paste0("Subclone", i), side = 2, las = 0, 
 					line = 2, at = i * (maxCN + 2) - (maxCN + 2) / 2 - 1, cex = 0.75)
 				chrLen <- xlim[2]
 			lines(c(1 - chrLen * 0.035, chrLen * 
 			  1.035), rep(i * (maxCN + 2) - 1, 2), type = "l", 
 			  col = "black", lwd = 1.5)
 		}
-        plotChrLines(unique(dataIn[, "Chr"]), coord$chrBkpt, ylim)
+        plotChrLines(unique(dataIn[, Chr]), coord$chrBkpt, ylim)
     }
     
 }
 
 ## TODO: Not completed ##
-plotAllelicCN <- function(dataIn, chr = NULL, geneAnnot = NULL, 
+plotAllelicCN <- function(dataIn, resultType = "AllelicRatio", 
+                          chr = NULL, geneAnnot = NULL, 
     ploidy = 2, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
     # color coding
     alphaVal <- ceiling(alphaVal * 255)
@@ -400,29 +380,29 @@ plotAllelicCN <- function(dataIn, chr = NULL, geneAnnot = NULL,
     # cnCol <-
     # col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
     names(cnCol) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
-    
-    ## compute allelic copy number for each allele ##
-    
-        totalDepth <- 2^as.numeric(dataIn[, "LogRatio"]) * ploidy
-        
-    
-    
+    dataIn <- copy(dataIn)
+    ## compute allelic copy number for each
+    dataIn[, Allele.1 := get(resultType) * 2^LogRatio*ploidy]
+    dataIn[, Allele.2 := (1 - get(resultType)) * 2^LogRatio*ploidy]
+   
     if (!is.null(chr)) {
         for (i in chr) {
-            dataByChr <- dataIn[dataIn[, "Chr"] == i, ]
-            dataByChr <- dataByChr[dataByChr[, "TITANcall"] != "OUT", ]
+            dataByChr <- dataIn[Chr == i, ]
+            dataByChr <- dataByChr[dataByChr[, TITANcall] != "OUT", ]
             par(mar = c(spacing, 8, 2, 2))
             # par(xpd=NA)
             if (missing(xlim)) {
-                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), "Position"]))
+                xlim <- as.numeric(c(1, dataByChr[.N, Position]))
             }
-            coord <- as.numeric(dataByChr[, "Position"])
-            plot(coord, as.numeric(dataByChr[, "LogRatio"]), 
-                col = cnCol[as.character(dataByChr[, "CopyNumber"])], pch = 16, 
-                xaxt = "n", las = 1, ylab = "Copy Number (log ratio)", 
+            coord <- dataByChr[, Position]
+            plot(coord, dataByChr[, Allele.1], 
+                col = cnCol[as.character(dataByChr[, CopyNumber])], pch = 16, 
+                xaxt = "n", las = 1, ylab = "Copy Number", 
                 xlim = xlim, ...)
-            lines(xlim, rep(0, 2), type = "l", 
-                col = "grey", lwd = 0.75)
+            points(coord, dataByChr[, Allele.2],
+                   col = cnCol[as.character(dataByChr[, CopyNumber])], 
+                   pch = 16)
+            lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
             
             if (!is.null(geneAnnot)) {
                 plotGeneAnnotation(geneAnnot, i)
@@ -433,21 +413,28 @@ plotAllelicCN <- function(dataIn, chr = NULL, geneAnnot = NULL,
 
 
 
-plotSegmentMedians <- function(dataIn, resultType = "LogRatio", chr = NULL, 
+plotSegmentMedians <- function(dataIn, resultType = "LogRatio", 
+                               plotType = "CopyNumber", chr = NULL, 
 		geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, 
-		plot.new = FALSE, ...){
+		plot.new = FALSE, lwd = 8, ...){
 
 	## check for the possible resultType to plot ##
-	if (!resultType %in% c("LogRatio", "AllelicRatio")){
-		stop("plotSegmentMedians: resultType must be 'LogRatio' or 'AllelicRatio'")
+	if (!resultType %in% c("LogRatio", "AllelicRatio", "HaplotypeRatio")){
+		stop("plotSegmentMedians: resultType must be 'LogRatio', 'AllelicRatio', or 'HaplotypeRatio'")
 	}
-	dataType <- c("Median_logR", "Median_Ratio")
-	names(dataType) <- c("LogRatio", "AllelicRatio")
-	axisName <- c("Copy Number (log ratio)", "Allelic Ratio")
-	names(axisName) <- c("LogRatio", "AllelicRatio")
-	colName <- c("Copy_Number","TITAN_call")
-	names(colName) <- c("LogRatio", "AllelicRatio")
+  if (!plotType %in% c("CopyNumber", "Ratio")){
+    stop("plotSegmentMedians: plotType must be 'CopyNumber' or 'Ratio'")
+  }
+	dataType <- c("Median_logR", "Median_Ratio", "Median_HaplotypeRatio")
+	names(dataType) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
+	axisName <- c("Copy Number (log ratio)", "Allelic Ratio", "Haplotype Fraction")
+	names(axisName) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
+	axisNameCN <- c("Copy Number", "Allelic Copy Number")
+	names(axisNameCN) <- c("LogRatio", "AllelicRatio")
+	colName <- c("Copy_Number","TITAN_call", "TITAN_call")
+	names(colName) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
 	
+	dataIn <- copy(dataIn)
 	# color coding
     alphaVal <- ceiling(alphaVal * 255)
     class(alphaVal) = "hexmode"
@@ -459,7 +446,7 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio", chr = NULL,
 		# cnCol <-
 		# col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
 		names(cnCol) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
-	}else if (resultType == "AllelicRatio"){
+	}else if (resultType %in% c("AllelicRatio", "HaplotypeRatio")){
 		cnCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000", 
         	"#006400", "#BEBEBE", "#FF0000", "#BEBEBE", "#FF0000")
     # lohCol <- paste(lohCol,alphaVal,sep='') lohCol <-
@@ -467,57 +454,102 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio", chr = NULL,
     names(cnCol) <- c("HOMD", "DLOH", "NLOH", "GAIN", 
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
 	}
-    
+    if (plotType == "CopyNumber"){
+      axisName <- axisNameCN
+    }
+    if (is.null(ploidy)){
+      ploidy <- 2
+    }
     ## adjust logR values for ploidy ##
-    if (!is.null(ploidy) && resultType == "LogRatio") {
-        dataIn[, dataType[resultType]] <- as.numeric(dataIn[, dataType[resultType]]) + log2(ploidy/2)
+    if (resultType == "LogRatio") {
+      if (plotType == "CopyNumber"){
+        #dataIn[, (dataType[resultType]) := 2 ^ get(dataType[resultType]) * 2]
+      }else{
+        dataIn[, (dataType[resultType]) := get(dataType[resultType]) + log2(ploidy/2)]
+      }
+    }
+    ## allelic or haplotype copy number
+    if (resultType %in% c("AllelicRatio") && plotType == "CopyNumber"){
+      ## compute allelic copy number for each
+      #dataIn[, Allele.1 := get(dataType[resultType]) * 2 ^ Median_logR * ploidy]
+      #dataIn[, Allele.2 := (1 - get(dataType[resultType])) * 2 ^ Median_logR * ploidy]
     }
     
     # plot for specified chromosomes #
 	if (!is.null(chr)) {
     	for (i in chr) {
-    		dataByChr <- dataIn[dataIn[, "Chromosome"] == i, ]
-        	dataByChr <- dataByChr[dataByChr[, "TITAN_call"] != "OUT", ]
-            # plot the data 
-            par(mar = c(spacing, 8, 2, 2))
-            if (missing(xlim)) {
-                xlim <- as.numeric(c(1, dataByChr[nrow(dataByChr), "End_Position.bp."]))
-            }
-            col <- cnCol[as.character(dataByChr[, colName[resultType]])]
-            coord <- dataByChr[, c("Start_Position.bp.","End_Position.bp.")]
-            value <- as.numeric(dataByChr[, dataType[resultType]])
-            if (plot.new){
-            	plot(0, type = "n", col = col, xaxt = "n", las = 1, 
-            		ylab = axisName[resultType], xlim = xlim, ...)
-            }
-            tmp <- apply(cbind(coord, value, col), 1, function(x){
-            	lines(x[1:2], rep(x[3], 2), col = x[4], lwd = 2)
-            	})
-            lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
-            
-            if (!is.null(geneAnnot)) {
-                plotGeneAnnotation(geneAnnot, i)
-            }
+    		dataByChr <- dataIn[Chromosome == i, ]
+        dataByChr <- dataByChr[TITAN_call != "OUT", ]
+        # plot the data 
+        par(mar = c(spacing, 8, 2, 2))
+        if (missing(xlim)) {
+            xlim <- as.numeric(c(1, dataByChr[.N, End_Position.bp.]))
         }
+        col <- cnCol[as.character(dataByChr[, get(colName[resultType])])]
+        coord <- dataByChr[, .(Start_Position.bp., End_Position.bp.)]
+        if (plotType == "CopyNumber"){
+          if (resultType %in% c("AllelicRatio")){
+            value <- dataByChr[, MajorCN]
+            value2 <- dataByChr[, MinorCN]
+          }else{
+            value <- dataByChr[, Copy_Number]
+          }
+        }else{
+          value <- dataByChr[, get(dataType[resultType])]
+        }
+        if (plot.new){
+        	plot(0, type = "n", col = col, xaxt = "n", las = 1, 
+        		ylab = axisName[resultType], xlim = xlim, ...)
+        }
+        tmp <- apply(cbind(coord, value, col), 1, function(x){
+        	lines(x[1:2], rep(x[3], 2), col = x[4], lend = 1, lwd = lwd)
+        	})
+        if (plotType == "CopyNumber" && resultType %in% c("AllelicRatio")){
+           tmp <- apply(cbind(coord, value2, col), 1, function(x){
+             lines(x[1:2], rep(x[3], 2), col = x[4], lend = 1, lwd = lwd)
+             })
+        }
+        if (plotType == "Ratio"){
+          lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
+        }
+        if (!is.null(geneAnnot)) {
+            plotGeneAnnotation(geneAnnot, i)
+        }
+    	}
     } else {
         # plot for all chromosomes        
-        coordEnd <- getGenomeWidePositions(dataIn[, "Chromosome"], 
-        				dataIn[, "End_Position.bp."])
-    	coordStart <- coordEnd$posns - dataIn[, "Length.bp."]
+        coordEnd <- getGenomeWidePositions(dataIn[, Chromosome], dataIn[, End_Position.bp.])
+    	  coordStart <- coordEnd$posns - (dataIn[, End_Position.bp.] - dataIn[, Start_Position.bp.] + 1)
         xlim <- as.numeric(c(1, coordEnd$posns[length(coordEnd$posns)]))
-    	col <- cnCol[as.character(dataIn[, colName[resultType]])]
-        value <- as.numeric(dataIn[, dataType[resultType]])
-        mat <- as.data.frame(cbind(coordStart, coordEnd$posns, value, col))
-        rownames(mat) <- 1:nrow(mat)
+    	  col <- cnCol[as.character(dataIn[, get(colName[resultType])])]
+    	  if (plotType == "CopyNumber"){
+          if (resultType %in% c("AllelicRatio")){
+            value <- dataIn[, MajorCN]
+            value2 <- dataIn[, MinorCN]
+          }else{
+            value <- dataIn[, Copy_Number]
+          }
+    	  }else{
+          value <- dataIn[, get(dataType[resultType])]  
+        }
+        #mat <- data.table(cbind(coordStart, coordEnd$posns, value, col))
+        #rownames(mat) <- 1:nrow(mat)
         if (plot.new){
         	plot(0, type = "n", col = col, xaxt = "n", las = 1, 
            		ylab = axisName[resultType], xlim = xlim, ...)
         }
-        tmp <- apply(mat, 1, function(x){
-          		lines(x[1:2], rep(x[3], 2), col = x[4], lwd = 2)
+        tmp <- apply(data.table(coordStart, coordEnd$posns, value, col), 1, function(x){
+        	lines(x[1:2], rep(x[3], 2), col = x[4], lend = 1, lwd = lwd)
         	})
-        lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 2)
-        plotChrLines(dataIn[, "Chr"], coordEnd$chrBkpt, par("yaxp")[1:2])
+        if (plotType == "CopyNumber" && resultType %in% c("AllelicRatio")){
+           tmp <- apply(data.table(coordStart, coordEnd$posns, value2, col), 1, function(x){
+             lines(x[1:2], rep(x[3], 2), col = x[4], lend = 1, lwd = lwd)
+             })
+        }
+        if (plotType == "Ratio"){
+          lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 2)
+        }
+        plotChrLines(dataIn[, Chromosome], coordEnd$chrBkpt, par("yaxp")[1:2])
     }
 }
 

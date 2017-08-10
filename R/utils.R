@@ -1,14 +1,20 @@
-# author: Gavin Ha 
-# 		Dana-Farber Cancer Institute
-#		  Broad Institute
-# contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-# date:	  October 19, 2015
+#' author: Gavin Ha 
+#' 		Dana-Farber Cancer Institute
+#'		  Broad Institute
+#' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
+#' date:	  March 17, 2017
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
-    skew = 0, hetBaselineSkew = NULL, symmetric = TRUE, data = NULL) {
+    skew = 0, hetBaselineSkew = NULL, alleleEmissionModel = "binomial", symmetric = TRUE, data = NULL) {
     if (copyNumber < 3 || copyNumber > 8) {
         stop("loadDefaultParameters: Fewer than 3 or more than 8 copies are 
              being specified. Please use minimum 3 or maximum 8 'copyNumber'.")
+    }
+    if (!alleleEmissionModel %in% c("binomial", "Gaussian")){
+      stop("loadDefaultParameters: alleleEmissionModel must be either \"binomial\" or \"Gaussian\".")
+    }
+    if (!symmetric){
+      message("loadDefaultParameters: symmetric=FALSE is deprecated; using symmetric=TRUE.")
     }
     ## Data without allelic skew rn is theoretical
     ## normal reference allelic ratio initialize to
@@ -30,60 +36,91 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
         }else{
         	hetARshift <- 0.55
         }
-        rt[c(4, 9, 25)] <- hetARshift
+        hetState <- c(4, 9, 16, 25)
+        rt[hetState] <- hetARshift
         ZS = 0:24
         ct = c(0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 
             6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8)
-        highStates <- c(1,10:length(rt))
-        hetState <- c(4, 9, 16, 25)
-    } else {
-        rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
-            1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
-            4/5, 3/5, 2/5, 1/5, 1e-05, 1, 5/6, 4/6, 
-            3/6, 2/6, 1/6, 1e-05, 1, 6/7, 5/7, 4/7, 
-            3/7, 2/7, 1/7, 1e-05, 1, 7/8, 6/8, 5/8, 
-            4/8, 3/8, 2/8, 1/8, 1e-05)
-        rt = rt + skew
-        rt[rt > 1] <- 1
-        rt[rt < 0] <- 1e-05
-        ZS = c(0, 1, 1, 2, 3, 2, 4, 5, 5, 4, 6, 7, 
-            8, 7, 6, 9, 10, 11, 11, 10, 9, 12, 13, 
-            14, 15, 14, 13, 12, 16, 17, 18, 19, 19, 
-            18, 17, 16, 20, 21, 22, 23, 24, 23, 22, 
-            21, 20)
-        ct = c(0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 
-            4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 
-            6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
-            8, 8, 8, 8, 8, 8, 8)
-        highStates <- c(1,16:length(rt))
-        hetState <- c(5, 13, 25, 41)
-    }
+        
+    } #else {
+      #  rt = c(rn, 1, 1e-05, 1, 1/2, 1e-05, 1, 2/3, 
+      #      1/3, 1e-05, 1, 3/4, 2/4, 1/4, 1e-05, 1, 
+      #      4/5, 3/5, 2/5, 1/5, 1e-05, 1, 5/6, 4/6, 
+      #      3/6, 2/6, 1/6, 1e-05, 1, 6/7, 5/7, 4/7, 
+      #      3/7, 2/7, 1/7, 1e-05, 1, 7/8, 6/8, 5/8, 
+      #      4/8, 3/8, 2/8, 1/8, 1e-05)
+      #  rt = rt + skew
+      #  rt[rt > 1] <- 1
+      #  rt[rt < 0] <- 1e-05
+      #  ZS = c(0, 1, 1, 2, 3, 2, 4, 5, 5, 4, 6, 7, 
+      #      8, 7, 6, 9, 10, 11, 11, 10, 9, 12, 13, 
+      #      14, 15, 14, 13, 12, 16, 17, 18, 19, 19, 
+      #      18, 17, 16, 20, 21, 22, 23, 24, 23, 22, 
+      #      21, 20)
+      #  ct = c(0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 
+      #      4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 
+      #      6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 
+      #      8, 8, 8, 8, 8, 8, 8)
+      #  highStates <- c(1,16:length(rt))
+      #  hetState <- c(5, 13, 25, 41)
+    #}
     ZS[hetState[1]] <- -1
     rn = rn + skew
     ind <- ct <= copyNumber
+    hetState <- hetState[hetState <= sum(ind)]
     rt <- rt[ind]
     ZS <- ZS[ind]
     ct <- ct[ind]  #reassign rt and ZS based on specified copy number
-    K = length(rt)
-    ## VARIANCE for Gaussian to model copy number, var
-    var_0 = rep(1/20, K)
+    K <- length(rt)
+    N <- nrow(data)
     ## Dirichlet hyperparameter for initial state
     ## distribution, kappaG
-    kappaGHyper = rep(1, K) + 1
-    kappaGHyper[hetState[hetState %in% 1:K]] = 5
-    ## Gather all genotype related parameters into a
-    ## list
+    kappaGHyper_base <- 100
+    if (length(data$ref) > 0 && length(data$logR) > 0){
+      corRho_0 <- cor(data$ref / data$tumDepth, data$logR, use = "pairwise.complete.obs")
+    }else{
+      corRho_0 <- NULL
+    }
+    var_base <- 1/20 #var(data$logR, na.rm = TRUE)
+    var0_base <- 1/20 #var(data$ref / data$tumDepth, na.rm = TRUE)
+    if (!is.null(data)){
+      #alphaK <- 1 / (var(data$logR, na.rm = TRUE) / sqrt(K))
+      #betaK <- alphaK * var(data$logR, na.rm = TRUE)
+      #alphaR <- 1 / (var(data$ref / data$tumDepth, na.rm = TRUE) / sqrt(K))
+      #betaR <- alphaK * var(data$ref / data$tumDepth, na.rm = TRUE)
+      betaK <- 25 
+      alphaK <- betaK / var(data$logR) 
+      betaR <- 25 
+      alphaR <- betaR / var(data$ref / data$tumDepth, na.rm = TRUE)
+    }else{
+      alphaK <- 10000   
+      betaK <- 25
+      alphaR <- 10000
+      betaR <- 25
+    }
+    ## Gather all genotype related parameters into a list
     genotypeParams <- vector("list", 0)
     genotypeParams$rt <- rt
     genotypeParams$rn <- rn
     genotypeParams$ZS <- ZS
     genotypeParams$ct <- ct
-    genotypeParams$var_0 <- var_0
-    genotypeParams$alphaKHyper <- rep(15000, K)
-    varHyperHigh <- 15000
-    genotypeParams$alphaKHyper[highStates] <- varHyperHigh  #AMP(11-15),HLAMP(16-21) states
-    genotypeParams$betaKHyper <- rep(25, K)
-    genotypeParams$kappaGHyper <- kappaGHyper
+    ## VARIANCE for Gaussian to model copy number, var
+    genotypeParams$corRho_0 <- corRho_0
+    genotypeParams$var_0 <- rep(var_base, K) 
+    #genotypeParams$var_0[ct %in% c(2, 4, 8)] <- var_base / 10
+    genotypeParams$alphaKHyper <- rep(alphaK, K)
+    genotypeParams$alphaKHyper[ct >= 5] <- alphaK  #AMP(11-15),HLAMP(16-21) states
+    genotypeParams$betaKHyper <- rep(betaK, K)
+    genotypeParams$alleleEmissionModel <- alleleEmissionModel
+    ## VARIANCE for Gaussian to model allelic fraction, varR
+    genotypeParams$varR_0 <- rep(var0_base, K) 
+    #genotypeParams$varR_0[hetState] <- var0_base / 10
+    genotypeParams$alphaRHyper <- rep(alphaR, K)
+    genotypeParams$betaRHyper <- rep(betaR, K)
+    genotypeParams$kappaGHyper <- rep(kappaGHyper_base, K) + 1
+    genotypeParams$kappaGHyper[hetState] <- kappaGHyper_base * 5
+    genotypeParams$kappaGHyper[ct == 0] <- kappaGHyper_base / 50
+    genotypeParams$piG_0 <- estimateDirichletParamsMap(genotypeParams$kappaGHyper)  #add the outlier state
     genotypeParams$outlierVar <- 10000
     genotypeParams$symmetric <- symmetric
     ## NORMAL, n
@@ -91,8 +128,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     normalParams$n_0 <- 0.5
     normalParams$alphaNHyper <- 2
     normalParams$betaNHyper <- 2
-    rm(list = c("rt", "rn", "ZS", "ct", "var_0", "kappaGHyper", 
-        "skew"))
+    #rm(list = c("rt", "rn", "ZS", "ct", "var_0", "kappaGHyper", "skew"))
     ## PLOIDY, phi
     ploidyParams <- vector("list", 0)
     ploidyParams$phi_0 <- 2
@@ -101,7 +137,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
     
     ## CELLULAR PREVALENCE, s
     sParams <- setupClonalParameters(Z = numberClonalClusters)
-    
+    sParams$piZ_0 <- estimateDirichletParamsMap(sParams$kappaZHyper)
     # return
     output <- vector("list", 0)
     output$genotypeParams <- genotypeParams
@@ -115,7 +151,7 @@ loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1,
 loadAlleleCounts <- function(inCounts, symmetric = TRUE, 
 			genomeStyle = "NCBI", sep = "\t", header = TRUE) {
 	if (is.character(inCounts)){
-    #### LOAD INPUT READ COUNT DATA ####
+    ## LOAD INPUT READ COUNT DATA 
     	message("titan: Loading data ", inCounts)
     	data <- read.delim(inCounts, header = header, stringsAsFactors = FALSE, 
         		sep = sep)
@@ -148,12 +184,12 @@ loadAlleleCounts <- function(inCounts, symmetric = TRUE,
     nonRef <- as.numeric(data[, 6])
     tumDepth <- refOriginal + nonRef
     if (symmetric) {
-        ref <- apply(cbind(refOriginal, nonRef), 1, max, na.rm = TRUE)
+        ref <- pmax(refOriginal, nonRef)
     } else {
         ref <- refOriginal
     }
     
-    return(list(chr = data[, 1], posn = data[, 2], ref = ref, 
+    return(data.table(chr = data[, 1], posn = data[, 2], ref = ref, 
         refOriginal = refOriginal, nonRef = nonRef, 
         tumDepth = tumDepth))
 }
@@ -250,25 +286,23 @@ filterData <- function(data, chrs = NULL, minDepth = 10,
     } else {
         keepPosn <- !logical(length = length(data$chr))
     }
-    keepTumDepth <- data$tumDepth <= maxDepth & data$tumDepth >= 
-        minDepth
-    if (is.null(chrs)){
-   		keepChrs <- logical(length = length(data$chr))
-   	}else{
-   		keepChrs <- is.element(data$chr, chrs)
-   	}
-    cI <- keepChrs & keepTumDepth & !is.na(data$logR) & 
+    keepTumDepth <- data$tumDepth <= maxDepth & data$tumDepth >= minDepth
+    cI <- keepTumDepth & !is.na(data$logR) & 
         keepMap & keepPosn
-    for (i in 1:length(data)) {
-        if (!is.null(data[[i]])) {
-            data[[i]] <- data[[i]][cI]
-        }
-        
-    }
+    data <- data[which(cI), ]
+
     ## remove centromere SNPs ##
     if (!is.null(centromeres)){
     	colnames(centromeres)[1:3] <- c("Chr", "Start", "End") 
     	data <- removeCentromere(data, centromeres, flankLength = centromere.flankLength)
+    }
+    if (is.null(chrs)){
+      keepChrs <- logical(length = length(data$chr))
+    }else{
+      keepChrs <- is.element(data$chr, chrs)
+      data <- data[keepChrs, ]
+      message("Removed Chrs: ", names(which(table(data$chr) < 2)))
+      data <- data[data$chr %in% names(which(table(data$chr) > 1)), ]
     }
     return(data)
 }
@@ -286,13 +320,102 @@ removeCentromere <- function(data, centromere, flankLength = 0){
 		keepInd[ind] <- FALSE			
 	}	
 	message("Removed ", sum(!keepInd), " centromeric positions")
-		## remove positions in all elements of list
-	for (i in 1:length(data)) {
-        if (!is.null(data[[i]])) {
-            data[[i]] <- data[[i]][keepInd]
-        }        
-    }
-    return(data)
+	## remove positions in all elements of list	  
+	data <- data[which(keepInd), ]
+  return(data)
+}
+
+## segs is a data.table object
+extendSegments <- function(segs, removeCentromeres = FALSE, centromeres = NULL,
+	extendToTelomeres = FALSE, seqInfo = NULL){
+	newSegs <- copy(segs)
+	newStartStop <- newSegs[, {totalLen = c(Start[-1], NA) - End
+					extLen = round(totalLen / 2)
+					End.ext = c(End[-.N] + round(extLen)[-.N], End[.N])
+					Start.ext = c(Start[1], End.ext[-.N] + 1)
+					list(Start=Start.ext, End=End.ext) 
+				  }, by=Chromosome]
+	newSegs[, Start.snp := Start]
+	newSegs[, End.snp := End]
+	newSegs[, Start := newStartStop[, Start]]
+	newSegs[, End := newStartStop[, End]]
+	stopColInd <- which(names(newSegs) == "End")
+	setcolorder(newSegs, c(names(newSegs)[1:stopColInd], "Start.snp", "End.snp", names(newSegs)[(stopColInd+1):(ncol(newSegs)-2)]))
+	
+	if (removeCentromeres){
+		if (is.null(centromeres)){
+			stop("If removeCentromeres=TRUE, must provide centromeres data.table object.")
+		}
+		message("Removing centromeres from segments.")
+		newSegs <- removeCentromereSegs(newSegs, centromeres)
+	}
+	
+	if (extendToTelomeres){
+		if (is.null(seqInfo)){
+			stop("If extendToTelomeres=TRUE, must provide SeqInfo object with chromosome lengths.")
+		}
+		message("Extending segments to telomeres.")
+		newSegs[, Start.telo := { endCoord = End
+				endCoord[.N] = seqlengths(seq.info)[seqnames(seqInfo)[.GRP]]		
+				endCoord
+				}, by=Chromosome]		
+	}
+	return(copy(newSegs))
+}
+
+
+removeCentromereSegs <- function(segs, centromeres){	
+	segs <- copy(segs)
+	for (i in 1:nrow(centromeres)){
+		x <- as.data.frame(centromeres[i,]); 
+		names(x)[1:3] <- c("Chr","Start","End")
+		chrInd <- which(segs[, Chromosome == x$Chr])
+		## start is in centromere ##
+		## NOT POSSIBLE ##
+		ind <- which(segs[chrInd, Start >= x$Start & Start <= x$End])
+		if (length(ind)){
+			#message("Chr:", i, "Start in centromere.")
+			# move start to end of centromere
+			segs[chrInd[ind], Start := x$End + 1]
+			#segs[chrInd[ind], Length.snp. := NA]
+		}
+		## end is in centromere ##
+		## NOT POSSIBLE ##
+		ind <- which(segs[chrInd, End >= x$Start & End <= x$End])
+		if (length(ind)){
+			#message("Chr:", i, "Stop in centromere.")
+			# move end to start of centromere
+			segs[chrInd[ind], End := x$Start - 1]
+			#segs[chrInd[ind], Length.snp. := NA]
+		}
+		## both start and end in centromere ##
+		## NOT POSSIBLE ##
+		ind <- which(segs[chrInd, Start >= x$Start & End <= x$End])
+		if (length(ind)){
+			#message("Chr:", i, "Seg in centromere.")
+			# remove segment #
+			segs <- segs[-chrInd[ind]]
+		}		
+		## segment spans centromere ##
+		ind <- which(segs[chrInd, Start <= x$Start & End >= x$End])
+		if (length(ind)){
+			#message("Chr:", i, "Seg span centromere.")
+			# break into 2 segments #
+			newRegion1 <- copy(segs[chrInd[ind]])
+			#newRegion1[, Length.snp. := NA]
+			newRegion2 <- copy(newRegion1)
+			newRegion1[, End := x$Start - 1] #left segment before centromere
+			newRegion2[, Start := x$End + 1] #right segment after centromere
+			
+			# remove old segment and add in 2 new ones
+			segs <- segs[-chrInd[ind]]
+			segs <- rbind(segs, newRegion1, newRegion2)
+		}		
+	}
+	## re-order the segments ##
+	segs[, Chromosome := factor(Chromosome, levels = c(1:22, "X", "Y"))]
+	segs <- segs[do.call(order, segs[, c("Chromosome", "Start")])]
+	return(copy(segs))
 }
 
 
@@ -306,14 +429,42 @@ excludeGarbageState <- function(params, K) {
     return(newParams)
 }
 
+getOverlap <- function(x, y, type = "within", colToReturn = "Copy_Number", method = "common"){
+  if (!type %in% c("any", "within")){
+    stop("getOverlap type must be \'any\' or \'within\'.")
+  }
+  cn <- rep(NA, nrow(x))
+  x <- as(x, "GRanges")
+  y <- as(y, "GRanges")
+  hits <- findOverlaps(query = x, subject = y, type = type)
+  cn[queryHits(hits)] <- values(y)[subjectHits(hits), colToReturn]
+  
+  # find genes split by segment #
+  runs <- rle(queryHits(hits))
+  splitInd <- which(runs$lengths > 1)
+  if (length(splitInd) > 0){ # take the larger overlap
+  	if (method == "common"){
+  		for (i in 1:length(splitInd)){
+  			hitInd <- which(queryHits(hits)==runs$values[splitInd[i]])
+				ind <- which.max(width(ranges(hits[hitInd], ranges(x), ranges(y))))
+				cn[unique(queryHits(hits)[hitInd])] <- values(y)[subjectHits(hits)[hitInd][ind], colToReturn]
+			}
+		}else{
+			stop("Method other than 'common' is not yet supported.")
+		}  
+  }
+  return(cn)
+}
+
+
 getPositionOverlap <- function(chr, posn, dataVal) {
 # use RangedData to perform overlap
-    dataIR <- RangedData(space = dataVal[, 1], 
-    				IRanges(start = dataVal[, 2], end = dataVal[, 3]),
-    				val = as.numeric(dataVal[, 4]))
+    dataIR <- RangedData(space = dataVal[[1]], 
+    				IRanges(start = dataVal[[2]], end = dataVal[[3]]),
+    				val = dataVal[[4]])
     				
     ## load chr/posn as data.frame first to use proper chr ordering by factors/levels
-    chrDF <- data.frame(space=chr,start=posn,end=posn)
+    chrDF <- data.frame(space=chr, start=posn, end=posn)
     chrDF$space <- factor(chrDF$space, levels = unique(chr))    
     chrIR <- as(chrDF, "RangedData")
     
@@ -321,39 +472,13 @@ getPositionOverlap <- function(chr, posn, dataVal) {
     
     ## create full dataval list ##
     hitVal <- rep(NA, length = length(chr))
-    hitVal[queryHits(hits)] <- dataIR$val[subjectHits(hits)]
+    hitVal[from(hits)] <- dataIR$val[to(hits)]
     #chrIR$hitVal <- hitVal
     ## reorder to match input chr and posn arguments
     #chrDF <- as.data.frame(chrIR)
     #indReorder <- order(match(chrDF[, 1], chr))
     #return(hitVal[indReorder])
 	return(hitVal) 
- 
-    #cnChr <- cnData[, 1]
-    #cnStart <- as.numeric(cnData[, 2])
-    #cnStop <- as.numeric(cnData[, 3])
-    #cnVal <- as.numeric(cnData[, 4])
-    
-    #N = length(posn)
-    #valByPosn = rep(NA, N)
-    
-    #for (c in unique(chr)) {
-    #    indData <- chr == c
-    #    indCN <- cnChr == c
-    #    cnStartC <- cnStart[indCN]
-    #    cnStopC <- cnStop[indCN]
-    #    cnValC <- cnVal[indCN]
-    #    posnC <- posn[indData]
-    #    cnInd <- .Call("getPositionOverlapC", posnC, 
-    #        cnStartC, cnStopC)
-    #    if (sum(cnInd > 0) > 0) {
-    #        cnValToUse <- rep(NA, length(cnInd))
-    #        cnValToUse[which(cnInd > 0)] <- cnValC[cnInd]
-    #        valByPosn[indData] <- cnValToUse
-    #    }
-    #}
-    
-    #return(as.numeric(valByPosn))
 }
 
 setGenomeStyle <- function(x, genomeStyle = "NCBI", species = "Homo_sapiens"){
@@ -509,24 +634,23 @@ computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRati
     
     ## flatten copynumber-clonalclusters to single vector
     if (data.type=="LogRatio"){
-    	cn <- as.numeric(x[, "CopyNumber"]) + 1
-		cn[cn == 3] <- NA  ## remove all CN=2 positions
-    	flatState <- (as.numeric(x[, "ClonalCluster"]) - 1) * (max(cn, na.rm = TRUE)) + cn
+    	cn <- x[, CopyNumber] + 1
+		  cn[cn == 3] <- NA  ## remove all CN=2 positions
+    	flatState <- (x[, ClonalCluster] - 1) * (max(cn, na.rm = TRUE)) + cn
     	flatState[is.na(flatState)] <- 3 ### assign all the CN=2 positions to cluster 3
-    	CNdata <- scale(as.numeric(x[, data.type]))
+    	CNdata <- scale(x[, get(data.type)])
     	x <- as.matrix(cbind(as.numeric(flatState), CNdata))
     }else if (data.type=="AllelicRatio"){
-    	st <- as.numeric(x[, "TITANstate"]) + 1
-    	st[x[, "TITANcall"] == "HET"] <- NA
-    	flatState <- (as.numeric(x[, "ClonalCluster"]) - 1) * (max(st, na.rm = TRUE)) + st
+    	st <- x[, TITANstate] + 1
+    	st[x[, which(TITANcall == "HET")]] <- NA
+    	flatState <- (x[, ClonalCluster] - 1) * (max(st, na.rm = TRUE)) + st
     	if (symmetric){
     		flatState[is.na(flatState)] <- 4
     	}else{
     		flatState[is.na(flatState)] <- 5
     	}
     	## for allelic ratios, compute the symmetric allelic ratio
-    	ARdata <- as.numeric(x[, data.type])
-    	ARdata <- apply(cbind(ARdata, 1 - ARdata), 1, max, na.rm = TRUE)
+    	ARdata <- x[, pmax(get(data.type), 1 - get(data.type))]
     	ARdata <- scale(ARdata)
     	x <- as.matrix(cbind(as.numeric(flatState), ARdata))
     	rm(ARdata)
@@ -747,8 +871,9 @@ decodeLOH <- function(G, symmetric = TRUE) {
 
 
 outputTitanResults <- function(data, convergeParams, 
-    optimalPath, filename = NULL, posteriorProbs = FALSE, 
-    subcloneProfiles = TRUE) {
+    optimalPath, filename = NULL, is.haplotypeData = FALSE, posteriorProbs = FALSE, 
+    subcloneProfiles = TRUE, correctResults = TRUE, proportionThreshold = 0.05, 
+    proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, rerunViterbi = FALSE, verbose = TRUE) {
     
     # check if useOutlierState is in convergeParams
     if (length(convergeParams$useOutlierState) == 0) {
@@ -761,7 +886,7 @@ outputTitanResults <- function(data, convergeParams,
     }
    
     
-    #### PROCESS HMM RESULTS ####
+    ## PROCESS HMM RESULTS 
     numClust <- dim(convergeParams$s)[1]
     K <- dim(convergeParams$var)[1]
     if (useOutlierState) {
@@ -791,18 +916,44 @@ outputTitanResults <- function(data, convergeParams,
         clonalHeaderStr[j] <- sprintf("pClust%d", j)
     }
     
-    outmat <- cbind(Chr = data$chr, Position = data$posn, 
-        RefCount = data$refOriginal, NRefCount = data$tumDepth - 
-            data$refOriginal, Depth = data$tumDepth, 
-        AllelicRatio = sprintf("%0.2f", data$refOriginal/data$tumDepth), 
-        LogRatio = sprintf("%0.2f", log2(exp(data$logR))), 
+    outmat <- data.table(Chr = data$chr, Position = data$posn, RefCount = data$refOriginal)
+      
+    if (is.haplotypeData){
+      outmat <- cbind(outmat, NRefCount = data$tumDepthOriginal - data$refOriginal, 
+        Depth = data$tumDepthOriginal, 
+        AllelicRatio = data$refOriginal/data$tumDepthOriginal,
+        HaplotypeCount = data$ref, #data$haplotypeCount,
+        HaplotypeDepth = data$tumDepth,
+        #HaplotypeRatio =  sprintf("%0.2f", data$haplotypeCount/data$tumDepth), 
+        HaplotypeRatio = data$HaplotypeRatio,
+        PhaseSet = data$phaseSet)
+    }else{
+      outmat <- cbind(outmat, Depth = data$tumDepth, 
+        AllelicRatio = data$refOriginal/data$tumDepth)
+    }
+    outmat <- cbind(outmat, LogRatio = log2(exp(data$logR)), 
         CopyNumber = CN, TITANstate = G, TITANcall = Gcalls, 
-        ClonalCluster = Zclust, CellularPrevalence = sprintf("%0.2f", 
-            1 - Sout))
+        ClonalCluster = Zclust, CellularPrevalence = 1 - Sout)
    	
+    ## filter results to remove empty clusters or set normal contamination to 1.0 if few events 
+    if (correctResults){
+      if (verbose)
+        message("outputTitanResults: Correcting results...")
+      corrResults <- removeEmptyClusters(data, convergeParams, outmat, 
+                                         proportionThreshold = proportionThreshold, 
+                                         proportionThresholdClonal = proportionThresholdClonal, 
+                                         recomputeLogLik = recomputeLogLik, verbose = verbose)
+      #rerunViterbi = rerunViterbi, subcloneProfiles = subcloneProfiles, is.haplotypeData = is.haplotypeData)
+      outmatOriginal <- outmat
+      outmat <- corrResults$results
+      convergeParams <- corrResults$convergeParams
+    }else{
+      corrResults <- NULL
+    }
+    
    	## INCLUDE SUBCLONE PROFILES 
    	if (subcloneProfiles & numClust <= 2){
-   		outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
+   		#outmat <- as.data.frame(outmat, stringsAsFactors = FALSE)
     	outmat <- cbind(outmat, getSubcloneProfiles(outmat))
     }else{
     	message("outputTitanResults: More than 2 clusters or subclone profiles not requested.")
@@ -812,22 +963,24 @@ outputTitanResults <- function(data, convergeParams,
     	rhoZ <- t(convergeParams$rhoZ)
     	rhoZ <- rhoZ[, sortS$ix, drop = FALSE]
    		colnames(rhoZ) <- clonalHeaderStr
-        outmat <- cbind(outmat, format(round(rhoZ, 
-            4), nsmall = 4, scientific = FALSE), format(round(rhoG, 
-            4), nsmall = 4, scientific = FALSE))
+        outmat <- cbind(outmat, format(round(rhoZ, 4), 
+        nsmall = 4, scientific = FALSE), format(round(rhoG, 4), 
+        nsmall = 4, scientific = FALSE))
     }
     if (!is.null(filename)) {
         message("titan: Writing results to ", filename)
-        write.table(outmat, file = filename, col.names = TRUE, 
+        write.table(format(outmat, digits = 2, scientific = FALSE), file = filename, col.names = TRUE, 
             row.names = FALSE, quote = FALSE, sep = "\t")
     }
-    suppressWarnings(outmat <- transform(outmat, Chr = as.character(Chr), Position = as.numeric(Position), 
-    		RefCount = as.integer(RefCount), NRefCount = as.integer(NRefCount),
-    		Depth = as.integer(Depth), AllelicRatio = as.numeric(AllelicRatio), LogRatio = as.numeric(LogRatio), 
-    		CopyNumber = as.integer(CopyNumber), TITANstate = as.integer(TITANstate),
-    		ClonalCluster = as.integer(ClonalCluster), CellularPrevalence = as.numeric(CellularPrevalence))
-    		)
-    return(outmat)
+    
+    if (correctResults){
+      corrmat <- outmat
+      outmat <- outmatOriginal
+    }else{
+      corrmat <- NULL
+    }
+  
+    return(list(results = outmat, corrResults = corrmat, convergeParams = convergeParams))
 }
 
 outputModelParameters <- function(convergeParams, results, filename, 
@@ -839,50 +992,51 @@ outputModelParameters <- function(convergeParams, results, filename,
         index.return = TRUE)
     s <- sortS$x
     fc <- file(filename, "w+")
-    norm_str <- sprintf("Normal contamination estimate:\t%0.2f", 
-        convergeParams$n[i])
+    norm_str <- paste0("Normal contamination estimate:\t", signif(convergeParams$n[i], digits = 4))
     write.table(norm_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
-    ploid_str <- sprintf("Average tumour ploidy estimate:\t%0.2f", 
-        convergeParams$phi[i])
+    ploid_str <- paste0("Average tumour ploidy estimate:\t", signif(convergeParams$phi[i], digits = 4))
     write.table(ploid_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
-    s_str <- sprintf("%0.4f ", 1 - s)
+    s_str <- signif(1 - s, digits = 4)
     s_str <- gsub(" ", "", s_str)
-    outStr <- sprintf("Clonal cluster cellular prevalence Z=%d:\t%s", 
-        Z, paste(s_str, collapse = " "))
+    outStr <- paste0("Clonal cluster cellular prevalence Z=", Z , ":\t", paste(s_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
     for (j in 1:Z) {
-        musR_str <- sprintf("%0.2f ", convergeParams$muR[, j, i])
+        musR_str <- signif(convergeParams$muR[, j, i], digits = 4)
         musR_str <- gsub(" ", "", musR_str)
-        outStr <- sprintf("Genotype binomial means for clonal cluster Z=%d:\t%s", j, paste(musR_str, collapse = " "))
+        outStr <- paste0("AllelicRatio ", convergeParams$genotypeParams$alleleEmissionModel, 
+                         " means for clonal cluster Z=", j, ":\t", paste(musR_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
-        musC_str <- sprintf("%0.2f ", log2(exp(convergeParams$muC[, j, i])))
+        musC_str <- signif(log2(exp(convergeParams$muC[, j, i])), digits = 4)
         musC_str <- gsub(" ", "", musC_str)
-        outStr <- sprintf("Genotype Gaussian means for clonal cluster Z=%d:\t%s", j, paste(musC_str, collapse = " "))
+        outStr <- paste0("logRatio Gaussian means for clonal cluster Z=", j, ":\t",paste(musC_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
             append = TRUE)
     }
-    var_str <- sprintf("%0.4f ", convergeParams$var[, i])
+    if (convergeParams$genotypeParams$alleleEmissionModel == "Gaussian"){
+        varR_str <- signif(convergeParams$varR[, i], digits = 4)
+        varR_str <- gsub(" ", "", varR_str)
+        outStr <- paste0("AllelicRatio Gaussian variance:\t", paste(varR_str, collapse = " "))
+        write.table(outStr, file = fc, col.names = FALSE, 
+          row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
+    }
+    var_str <- signif(convergeParams$var[, i], digits = 4)
     var_str <- gsub(" ", "", var_str)
-    outStr <- sprintf("Genotype Gaussian variance:\t%s", 
-        paste(var_str, collapse = " "))
+    outStr <- paste0("logRatio Gaussian variance:\t", paste(var_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
-        row.names = FALSE, quote = FALSE, sep = "", 
-        append = TRUE)
-    iter_str <- sprintf("Number of iterations:\t%d", 
-        length(convergeParams$phi))
+        row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
+    iter_str <- paste0("Number of iterations:\t", length(convergeParams$phi))
     write.table(iter_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
-    loglik_str <- sprintf("%0.4f ", convergeParams$loglik[i])
+    loglik_str <- signif(convergeParams$loglik[i], digits = 4)
     loglik_str <- gsub(" ", "", loglik_str)
-    outStr <- sprintf("Log likelihood:\t%s", paste(loglik_str, 
-        collapse = " "))
+    outStr <- paste0("Log likelihood:\t", paste(loglik_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
@@ -901,7 +1055,7 @@ outputModelParameters <- function(convergeParams, results, filename,
     sdbw <- mapply('+', sdbw.LR, sdbw.AR, SIMPLIFY = FALSE)        
     
     ## print out combined S_Dbw ##
-	printSDbw(sdbw.LR, fc, S_Dbw.scale, "LogRatio")
+	  printSDbw(sdbw.LR, fc, S_Dbw.scale, "LogRatio")
     printSDbw(sdbw.AR, fc, S_Dbw.scale, "AllelicRatio")
     printSDbw(sdbw, fc, S_Dbw.scale, "Both")
     close(fc)
@@ -913,8 +1067,8 @@ outputModelParameters <- function(convergeParams, results, filename,
 
 outputTitanSegments <- function(results, id, convergeParams, filename = NULL, igvfilename = NULL){
   # get all possible states in this set of results
-  stateTable <- unique(results[, c("TITANstate", "TITANcall")])
-  rownames(stateTable) <- stateTable[, 1]
+  #stateTable <- unique(results[, c("TITANstate", "TITANcall")])
+  #rownames(stateTable) <- stateTable[, 1]
   rleResults <- t(sapply(unique(results$Chr), function(x){
   	ind <- results$Chr == x
     r <- rle(results$TITANstate[ind])
@@ -924,14 +1078,17 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 	numSegs <- length(rleLengths)
 	
   # convert allelic ratio to symmetric ratios #
-  results$AllelicRatio <- apply(cbind(results$AllelicRatio, 1-results$AllelicRatio), 1, max, na.rm = TRUE)
-	
-	segs <- as.data.frame(matrix(NA, ncol = 14, nrow = numSegs, 
-								 dimnames = list(c(), c("Sample", "Chromosome", "Start_Position.bp.", "End_Position.bp.", 
-								 "Length.snp.", "Median_Ratio", "Median_logR", "TITAN_state", "TITAN_call", "Copy_Number",
-								 "MinorCN", "MajorCN", "Clonal_Cluster", "Cellular_Frequency"))))
-	segs$Sample <- id
-	colNames <- c("Chr", "Position", "TITANstate", "AllelicRatio", "LogRatio")
+  results$AllelicRatio <- pmax(results$AllelicRatio, 1-results$AllelicRatio)
+	if (!is.null(results$HaplotypeRatio)){
+	  results$HaplotypeRatio <- pmax(results$HaplotypeRatio, 1-results$HaplotypeRatio)
+	}
+  segs <- data.table(Sample = character(), Chromosome = character(), Start_Position.bp. = integer(), 
+                     End_Position.bp. = integer(), Length.snp. = integer(), Median_Ratio = numeric(),
+                     Median_HaplotypeRatio = numeric(), Median_logR = numeric(), TITAN_state = integer(),
+                     TITAN_call = character(), Copy_Number = integer(), MinorCN = integer(), MajorCN = integer(),
+                     Clonal_Cluster = integer(), Cellular_Frequency = numeric())[1:numSegs]
+	segs[, Sample := id]
+	#colNames <- c("Chr", "Position", "TITANstate", "AllelicRatio", "LogRatio")
 	prevInd <- 0
 	for (j in 1:numSegs){
 		start <- prevInd + 1
@@ -950,6 +1107,11 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 		segs[j, "MajorCN"] <- getMajorMinorCN(rleValues[j], convergeParams$symmetric)$minorCN
 		segs[j, "Clonal_Cluster"] <- segDF[1, "ClonalCluster"]
 		segs[j, "Cellular_Frequency"] <- segDF[1, "CellularPrevalence"]
+		if (!is.null(segDF$HaplotypeRatio)){
+		  segs[j, "Median_HaplotypeRatio"] <- round(median(segDF$HaplotypeRatio, na.rm = TRUE), digits = 6)
+		}else{
+		  segs[j, "Median_HaplotypeRatio"] <- NA
+		}
 		if (segDF[1, "Chr"] == segDF[numR, "Chr"]){
 			segs[j, "End_Position.bp."] <- segDF[numR, "Position"]
 			segs[j, "Length.snp."] <- numR
@@ -959,17 +1121,65 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 	}
   if (!is.null(filename)){
 		# write out detailed segment file #
-  	write.table(segs, file = filename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  	#write.table(segs, file = filename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+    fwrite(segs, file = filename, sep = "\t")  
   }
   # write out IGV seg file #
   if (!is.null(igvfilename)){
   	igv <- segs[, c("Sample", "Chromosome", "Start_Position.bp.", 
   								"End_Position.bp.", "Length.snp.", "Median_logR")]
   	colnames(igv) <- c("sample", "chr", "start", "end", "num.snps", "median.logR")
-  	write.table(igv, file = igvfilename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  	#write.table(igv, file = igvfilename, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+    fwrite(igv, file = igvfilename, sep = "\t")  
   }
   return(segs)
 }
+
+## Recompute integer CN for high-level amplifications ##
+## compute logR-corrected copy number ##
+correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes = NULL, 
+		maxCNtoCorrect.X = NULL, gender = "male", chrs = c(1:22, "X")){
+	cn <- copy(cn)
+	segs <- copy(segs)
+	if (is.null(maxCNtoCorrect.autosomes)){
+		maxCNtoCorrect.autosomes <- segs[Chromosome %in% c(1:22), max(Copy_Number)]
+	}
+	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidyT, cn=2)]
+	cn[Chr %in% c(1:22), logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidyT, cn=2)]
+	if (gender == "male"){ ## analyze chrX separately
+		segs[Chromosome == "X", logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidyT, cn=1)]
+		cn[Chr == "X", logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidyT, cn=1)]
+	}
+	## assign copy number to use - Corrected_Copy_Number and Corrected_Call
+	# same TITAN calls for autosomes - no change in copy number
+	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Copy_Number := Copy_Number]
+	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Call := TITAN_call]
+	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Copy_Number := CopyNumber]
+	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Call := TITANcall]
+
+	# TITAN calls adjusted for >= copies - HLAMP
+	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := round(logR_Copy_Number)]
+	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
+	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := round(logR_Copy_Number)]
+	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
+	
+	if (!is.null(maxCNtoCorrect.X)){
+		segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
+		segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
+		cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
+		cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
+	}
+	
+	return(list(cn = cn, segs = segs))	
+}
+
+## compute copy number using corrected log ratio ##
+logRbasedCN <- function(x, purity, ploidyT, cn = 2){
+	ct <- (2^x * (cn * (1 - purity) + purity * ploidyT) - cn * (1 - purity)) / purity
+	ct <- sapply(ct, max, 1/2^6)
+	return(ct)
+}
+
 
 getMajorMinorCN <- function(state, symmetric = TRUE){
 	majorCN <- NA
@@ -1049,8 +1259,9 @@ printSDbw <- function(sdbw, fc, scale, data.type = ""){
 }
 
 ## TODO: Add documentation
-removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0.001, 
-	proportionThresholdClonal = 0.05){
+removeEmptyClusters <- function(data, convergeParams, results, proportionThreshold = 0.001, 
+	proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, verbose = TRUE){
+  #rerunViterbi = TRUE, subcloneProfiles = FALSE, is.haplotypeData = FALSE){
 	clust <- 1:nrow(convergeParams$s)
 	names(clust) <- clust
 	#newClust <- clust #original clusters
@@ -1067,13 +1278,18 @@ removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0
 	convergeParams$s <- convergeParams$s[order(convergeParams$s[, k], decreasing = FALSE), , drop = FALSE]
 	# if there is at least 1 cluster with sufficient data
 	if (length(which(clust > 0)) > 0){
-		#set new normal estimate as cluster 1
-		#purity <- as.numeric(unique(results$CellularPrevalence[which(results$ClonalCluster == which(!is.na(clust))[1])]))
-		purity <- (1 - convergeParams$s[which(!is.na(clust))[1], k]) * (1 -  convergeParams$n[k])
+		#set new normal estimate as cluster 1 -> lowers purity from original estimate
+	  clustToKeep <- which(!is.na(clust))
+		purity <- (1 - convergeParams$s[clustToKeep[1], k]) * (1 -  convergeParams$n[k])
 		convergeParams$n[k] <- 1 - purity
 		#set new cellular prevalence using new clusters and renormalize to new cluster 1		
-		convergeParams$s <- convergeParams$s[which(!is.na(clust)), , drop = FALSE]
+		convergeParams$s <- convergeParams$s[clustToKeep, , drop = FALSE]
 		convergeParams$s[, k] <- 1 - (1 - convergeParams$s[, k]) / (1 - convergeParams$s[1, k])
+		convergeParams$piZ <- convergeParams$piZ[clustToKeep, , drop = FALSE]
+		convergeParams$rhoZ <- convergeParams$rhoZ[clustToKeep, , drop = FALSE]
+		convergeParams$muC <- convergeParams$muC[, clustToKeep, , drop = FALSE]
+		convergeParams$muR <- convergeParams$muR[, clustToKeep, , drop = FALSE]
+		convergeParams$cellPrevParams <- lapply(convergeParams$cellPrevParams, "[", clustToKeep)
 		#names(newClust) <- 1:length(newClust)
 		clust[!is.na(clust)] <- 1:sum(!is.na(clust))
 
@@ -1081,15 +1297,15 @@ removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0
 		for (cl in 1:length(clust)){
 			# assign data in removed cluster cl to next non-NA cluster
 			if (is.na(clust[cl])){
-				# assign to the right (larger cluster number)
-				if (length(which(!is.na(clust) & names(clust) > cl)) > 0){
-					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[which(!is.na(clust) & names(clust) > cl)[1]], k]
-					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[which(!is.na(clust) & names(clust) > cl)][1]
-				# assign to the left (smaller cluster number)
-				}else if (length(which(!is.na(clust) & names(clust) < cl)) > 0){
-					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[tail(which(!is.na(clust) & names(clust) < cl), 1)], k]
-					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[tail(which(!is.na(clust) & names(clust) < cl), 1)]
-				}
+			    # assign to the right (larger cluster number)
+  				if (length(which(!is.na(clust) & names(clust) > cl)) > 0){
+  					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[which(!is.na(clust) & names(clust) > cl)[1]], k]
+  					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[which(!is.na(clust) & names(clust) > cl)][1]
+  				# assign to the left (smaller cluster number)
+  				}else if (length(which(!is.na(clust) & names(clust) < cl)) > 0){
+  					results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[tail(which(!is.na(clust) & names(clust) < cl), 1)], k]
+  					results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[tail(which(!is.na(clust) & names(clust) < cl), 1)]
+  				}
 			}else{ # update cluster and cellPrev info for kept clusters
 				results[which(results$ClonalCluster == names(clust)[cl]), "CellularPrevalence"] <- 1 - convergeParams$s[clust[cl], k]
 				results[which(results$ClonalCluster == names(clust)[cl]), "ClonalCluster"] <- clust[cl]		
@@ -1106,12 +1322,46 @@ removeEmptyClusters <- function(convergeParams, results, proportionThreshold = 0
 		convergeParams$n[k] <- 1 - convergeParams$s[clustData, k]
 		convergeParams$s <- convergeParams$s[clustData, , drop = FALSE]
 		convergeParams$s[, k] <- 0.0
+		convergeParams$cellPrevParams <- lapply(convergeParams$cellPrevParams, "[", clustData)
 		
 			# set all clusters to 1 and all cellular prevalence to 1.0; leave HET as NA
 		results[which(results$TITANcall != "HET"), "CellularPrevalence"] <- 1
 		results[which(results$TITANcall != "HET"), "ClonalCluster"] <- 1
 	}	
-		
+	
+	# rerun viterbi with new adjusted param settings
+	#if (rerunViterbi){
+	#  optimalPath <- viterbiClonalCN(data,convergeParams)
+	#  newResults <- outputTitanResults(data,convergeParams,optimalPath,
+	#                                filename=NULL,posteriorProbs=F,subcloneProfiles=subcloneProfiles,
+	#                                correctResults=FALSE, proportionThreshold = 0, is.haplotypeData=is.haplotypeData,
+	#                                proportionThresholdClonal = 0, rerunViterbi = FALSE, recomputeLogLik = FALSE)
+	#  results <- newResults$results
+	#}
+	
+	if (recomputeLogLik){
+	  if (verbose)
+  	  message("outputTitanResults: Recomputing log-likelihood.")
+  	newParams <- convergeParams
+  	iter <- length(newParams$n)
+  	newNumClust <- nrow(newParams$s)
+  	newParams$genotypeParams$var_0 <- newParams$var[, iter]
+  	newParams$genotypeParams$varR_0 <- newParams$varR[, iter]
+  	newParams$genotypeParams$piG_0 <- newParams$piG[, iter]
+  	newParams$normalParams$n_0 <- newParams$n[iter]
+  	newParams$ploidyParams$phi_0 <- newParams$phi[iter]
+  	newParams$cellPrevParams$s_0 <- newParams$s[, iter]
+  	newParams$cellPrevParams$piZ_0 <- newParams$piZ[1:newNumClust, iter]
+  	
+  	p <- runEMclonalCN(data, newParams, maxiter=1, txnExpLen=convergeParams$txn_exp_len, 
+  	                   txnZstrength=convergeParams$txn_z_strength, useOutlierState=FALSE, 
+  	                   normalEstimateMethod="fixed", estimateS=FALSE,estimatePloidy=F, verbose=verbose)
+    convergeParams$loglik[iter] <- tail(p$loglik, 1)
+    convergeParams$muC[, , iter] <- p$muC[, , 2]
+    convergeParams$muR[, , iter] <- p$muR[, , 2]
+    convergeParams$rhoZ <- p$rhoZ
+    convergeParams$rhoG <- p$rhoG
+	}
 	return(list(convergeParams = convergeParams, results = results))
 }
 
@@ -1131,15 +1381,14 @@ getSubcloneProfiles <- function(titanResults){
 			Prevalence = titanResults$CellularPrevalence))
 	
 	if (numClones == 0){
-		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
-				TITANcall = titanResults$TITANcall,
-				Prevalence = "NA"), stringsAsFactors = FALSE)
+		subc1 <- data.table(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
+				TITANcall = titanResults$TITANcall, Prevalence = "NA"))
 	}
 	if (numClones == 1){
 		subc1Prev <- cellPrev[which(cellPrev[, "Cluster"] == "1"), "Prevalence"]
-		subc1 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
+		subc1 <- data.table(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
 				TITANcall = titanResults$TITANcall,
-				Prevalence = as.numeric(subc1Prev)), stringsAsFactors = FALSE)
+				Prevalence = as.numeric(subc1Prev)))
 	}
 	if (numClones == 2){
 		subc2Prev <- as.numeric(cellPrev[which(cellPrev[, "Cluster"] == "2"),
@@ -1147,24 +1396,23 @@ getSubcloneProfiles <- function(titanResults){
 		subc1Prev <- as.numeric(cellPrev[which(cellPrev[, "Cluster"] == "1"),
 				"Prevalence"])
 		subc1Prev <- subc1Prev - subc2Prev
-		subc2 <- as.data.frame(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
-			TITANcall = titanResults$TITANcall,
-			Prevalence = as.numeric(subc2Prev)), stringsAsFactors = FALSE)
-		mode(subc2[, 1]) <- "numeric"; mode(subc2[, 3]) <- "numeric"
-		subc1 <- subc2
+		subc2 <- data.table(CopyNumber = as.numeric(titanResults$CopyNumber), 
+			TITANcall = titanResults$TITANcall, Prevalence = as.numeric(subc2Prev))
+		#mode(subc2[, 1]) <- "numeric"; mode(subc2[, 3]) <- "numeric"
+		subc1 <- copy(subc2)
 		ind <- which(titanResults$ClonalCluster == 2)
-		subc1[ind, c("CopyNumber", "TITANcall")] <- t(matrix(cbind(2, "HET"), 
-				ncol = length(ind), nrow = 2))
+		subc1[ind, CopyNumber := 2]
+		subc1[ind, TITANcall := "HET"]
 		subc1[, "Prevalence"] <- subc1Prev
 	}
 	
 	## Add subclone 1, 2 and 3 if they are defined
-	outMat <- cbind(Subclone1 = subc1)
+	outMat <- data.table(Subclone1 = subc1)
 	if (exists("subc2")){
 		outMat <- cbind(outMat, Subclone2 = subc2)
 	}
 	#if (exists("subc3")){
 	#	outMat <- cbind(outMat, Subclone3 = subc3, stringsAsFactors = FALSE)
 	#}
-	return(as.data.frame(outMat, stringsAsFactors = FALSE))
+	return(outMat)
 }

@@ -14,8 +14,8 @@ TITAN: Subclonal copy number and LOH prediction whole genome sequencing of tumou
 \tabular{ll}{
 Package: \tab TitanCNA\cr
 Type: \tab Package\cr
-Version: \tab 1.12.1\cr
-Date: \tab 2017-01-18\cr
+Version: \tab 1.15.0\cr
+Date: \tab 2017-05-13\cr
 License: \tab GPL-3\cr
 }
 
@@ -68,10 +68,7 @@ data <- filterData(data, c(1:22,"X"), minDepth = 10, maxDepth = 200, map = NULL)
 K <- length(params$genotypeParams$alphaKHyper)
 params$genotypeParams$alphaKHyper <- rep(500, K)
 params$ploidyParams$phi_0 <- 1.5 
-convergeParams <- runEMclonalCN(data, gParams = params$genotypeParams, 
-                                nParams = params$normalParams, 
-                                pParams = params$ploidyParams, 
-                                sParams = params$cellPrevParams, 
+convergeParams <- runEMclonalCN(data, params, 
                                 maxiter = 3, maxiterUpdate = 500, 
                                 txnExpLen = 1e9, txnZstrength = 1e9, 
                                 useOutlierState = FALSE, 
@@ -83,16 +80,17 @@ optimalPath <- viterbiClonalCN(data, convergeParams)
 #### FORMAT RESULTS ####
 results <- outputTitanResults(data, convergeParams, optimalPath, 
                               filename = NULL, posteriorProbs = FALSE,
-                              subcloneProfiles = TRUE)
-                              
-#### REMOVE EMPTY CLUSTERS ####
-corrResults <- removeEmptyClusters(convergeParams, results, proportionThreshold = 0.001,
-																		proportionThresholdClonal = 0.3)
-convergeParams <- corrResults$convergeParams
-results <- corrResults$results
+                              subcloneProfiles = TRUE,
+                              is.haplotypeData = FALSE,
+                              correctResults = TRUE,
+                              proportionThreshold = 0.05,
+															proportionThresholdClonal = 0.05)
+convergeParams <- results$convergeParams
+results <- results$corrResults
 
 #### GET SEGMENT RESULTS ####
-segs <- outputTitanSegments(results, id = "test", convergeParams, filename = NULL, igvfilename = NULL)
+segs <- outputTitanSegments(results, id = "test", convergeParams, 
+  filename = NULL, igvfilename = NULL)
 
 #### PLOT RESULTS ####
 norm <- tail(convergeParams$n, 1)
@@ -106,4 +104,8 @@ plotAllelicRatio(results, chr = 2, geneAnnot = NULL, ylim = c(0, 1), cex = 0.5,
 plotClonalFrequency(results, chr = 2, normal = norm, geneAnnot = NULL, 
                     ylim = c(0, 1), cex = 0.5, xlab = "", main = "Chr 2")
 plotSubcloneProfiles(results, chr = 2, cex = 2, main = "Chr 2")
+
+plotSegmentMedians(segs, chr=2, resultType = "LogRatio", plotType = "CopyNumber", 
+                plot.new = TRUE, ylim = c(0, 4), main = "Chr 2")
+
 }
