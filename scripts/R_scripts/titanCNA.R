@@ -29,6 +29,7 @@ option_list <- list(
 	make_option(c("--maxDepth"), type = "integer", default = 1000, help = "Maximum read depth of a HET site to include in analysis; integer [Default: %default]"),
 	make_option(c("--skew"), type = "numeric", default=0, help = "Allelic reference skew for all states except heterozygous states (e.g. 1:1, 2:2, 3:3). Value is additive to baseline allelic ratios. float [Default: %default]"),
 	make_option(c("--hetBaselineSkew"), type="numeric", default=NULL, help="Allelic reference skew for heterozygous states (e.g. 1:1, 2:2, 3:3). Value is the additive to baseline allelic ratios. float [Default: %default]"), 
+	make_option(c("--minClustProportion"), type="numeric", default=0.05, help="Minimum proportion of the genome altered (by SNPs) for a cluster to be retained.  Clonal clusters having lower proportion of alteration are removed. [Default: %default]"),
 	make_option(c("--genomeStyle"), type = "character", default = "NCBI", help = "NCBI or UCSC chromosome naming convention; use UCSC if desired output is to have \"chr\" string. [Default: %default]"),
 	make_option(c("--chrs"), type = "character", default = "c(1:22, 'X')", help = "Chromosomes to analyze; string [Default: %default"),
 	make_option(c("--mapWig"), type = "character", default = NULL, help = "Mappability score file for bin sizes matching cnfile. [Default: %default]"),
@@ -85,6 +86,7 @@ minDepth <- opt$minDepth
 maxDepth <- opt$maxDepth
 skew <- opt$skew
 hetBaselineSkew <- opt$hetBaselineSkew
+minClustProportion <- opt$minClustProportion
 chrs <- eval(parse(text = opt$chrs))
 genomeStyle <- opt$genomeStyle
 mapWig <- opt$mapWig
@@ -195,7 +197,7 @@ save.image(file=outImage)
 #### PRINT RESULTS TO FILES ####
 results <- outputTitanResults(data,convergeParams,optimalPath,
 			filename=NULL,posteriorProbs=F,subcloneProfiles=TRUE,
-			proportionThreshold = 0.05, proportionThresholdClonal = 0.05,
+			proportionThreshold = minClustProportion, proportionThresholdClonal = 0.05,
 			recomputeLogLik = TRUE, rerunViterbi = FALSE)
 convergeParams <- results$convergeParams
 results <- results$corrResults
