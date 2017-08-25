@@ -59,6 +59,12 @@
   \item{correctResults}{
     \code{Logical TRUE} to correct the results by removing empty clusters and adjusting cellular prevalence and normal contamination parameters accordingly. 
   }
+  \item{recomputeLogLik}{
+  	\code{Logical TRUE} to re-run forwards-backwards to re-estimate the log-likelihood after correcting results (e.g. \code{correctResults} is \code{TRUE})
+  }
+  \item{rerunViterbi}{
+  	\code{Logical TRUE} to re-run viterbi to segment the results again after correcting results (e.g. \code{correctResults} is \code{TRUE})
+  }
    \item{proportionThreshold}{
   	Minimum proportion of the genome altered (by SNPs) for a cluster to be retained.  Clonal clusters having lower proportion of alteration are removed. 
   }
