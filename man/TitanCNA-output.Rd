@@ -164,7 +164,7 @@ optimalPath <- viterbiClonalCN(data, convergeParams)
 results <- outputTitanResults(data, convergeParams, optimalPath,
                               filename = NULL, posteriorProbs = FALSE,
                               subcloneProfiles = TRUE, correctResults = TRUE, 
-                              proportionThreshold = 0.05, 
+                              proportionThreshold = 0.05, recomputeLogLik = FALSE,
                               proportionThresholdClonal = 0.05,
                               is.haplotypeData = FALSE)
 ## use corrected parameters
