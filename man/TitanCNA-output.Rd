@@ -14,7 +14,8 @@
   outputTitanResults(data, convergeParams, optimalPath, filename = NULL, 
       is.haplotypeData = FALSE, posteriorProbs = FALSE, subcloneProfiles = TRUE,
       correctResults = TRUE, proportionThreshold = 0.05, 
-      proportionThresholdClonal = 0.05, verbose = TRUE)
+      proportionThresholdClonal = 0.05, recomputeLogLik = TRUE, rerunViterbi = FALSE,
+      verbose = TRUE)
       
   outputModelParameters(convergeParams, results, filename, 
   		S_Dbw.scale = 1, S_Dbw.method = "Tong")
