@@ -261,18 +261,23 @@ for (chr in unique(results$Chr)){
 	}else{
 		par(mfrow=c(3,1))
 	}
-	plotCNlogRByChr(results, chr, segs = segs, ploidy=ploidy, normal = norm, geneAnnot=NULL,  cex.axis=1.5,
+	plotCNlogRByChr(results, chr, segs = segs, ploidy=ploidy,
+                        normal = norm, geneAnnot=NULL,  cex.axis=1.5,
                         ylim=plotYlim, cex=0.5, xlab="", main=paste("Chr ",chr,sep=""))
 	plotAllelicRatio(results, chr, geneAnnot=NULL, spacing=4, cex.axis=1.5,
                         ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
 	plotClonalFrequency(results, chr, normal=norm, geneAnnot=NULL, spacing=4,
-                            cex.axis=1.5, ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
+                            cex.axis=1.5, ylim=c(0,1), xlab="", cex=0.5,
+                            main=paste("Chr ",chr,sep=""))
 
 	if (as.numeric(numClustersToPlot) <= 2 && as.numeric(numClusters) <= 2){
-		plotSubcloneProfiles(results, chr, cex = 2, spacing=6, main=paste("Chr ",chr,sep=""), cex.axis=1.5)
-		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-4.25, new=FALSE, ylim=c(-2,-1))
+		plotSubcloneProfiles(results, chr, cex = 2, spacing=6,
+                                     main=paste("Chr ",chr,sep=""), cex.axis=1.5)
+		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-4.25,
+                                   new=FALSE, ylim=c(-2,-1))
 	}else{
-		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-0.35, new=FALSE, ylim=c(-0.2,-0.1))
+		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-0.35,
+                                   new=FALSE, ylim=c(-0.2,-0.1))
 	}
 
 	dev.off()
