@@ -262,11 +262,11 @@ for (chr in unique(results$Chr)){
 		par(mfrow=c(3,1))
 	}
 	plotCNlogRByChr(results, chr, segs = segs, ploidy=ploidy, normal = norm, geneAnnot=NULL,  cex.axis=1.5,
-					ylim=plotYlim, cex=0.5, xlab="", main=paste("Chr ",chr,sep=""))
+                        ylim=plotYlim, cex=0.5, xlab="", main=paste("Chr ",chr,sep=""))
 	plotAllelicRatio(results, chr, geneAnnot=NULL, spacing=4, cex.axis=1.5,
-					ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
+                        ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
 	plotClonalFrequency(results, chr, normal=norm, geneAnnot=NULL, spacing=4,
-					cex.axis=1.5, ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
+                            cex.axis=1.5, ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
 
 	if (as.numeric(numClustersToPlot) <= 2 && as.numeric(numClusters) <= 2){
 		plotSubcloneProfiles(results, chr, cex = 2, spacing=6, main=paste("Chr ",chr,sep=""), cex.axis=1.5)
@@ -284,26 +284,33 @@ for (chr in unique(results$Chr)){
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CNA.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
-plotCNlogRByChr(dataIn=results, chr=NULL, segs = segs, ploidy=ploidy, normal = norm, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=plotYlim, cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
+plotCNlogRByChr(dataIn=results, chr=NULL, segs = segs, ploidy=ploidy,
+                normal = norm, geneAnnot=genes, spacing=4, main=id, xlab="",
+                ylim=plotYlim, cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
 
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_LOH.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
-plotAllelicRatio(dataIn=results, chr=NULL, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
+plotAllelicRatio(dataIn=results, chr=NULL, geneAnnot=genes, spacing=4,
+                 main=id, xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5,
+                 cex.lab=1.5, cex.main=1.5)
 dev.off()
 
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CF.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
-plotClonalFrequency(dataIn=results, chr=NULL, norm, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=c(0,1), cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
+plotClonalFrequency(dataIn=results, chr=NULL, norm, geneAnnot=genes,
+                    spacing=4, main=id, xlab="", ylim=c(0,1), cex.axis=1.5,
+                    cex.lab=1.5, cex.main=1.5)
 dev.off()
 
 if (as.numeric(numClusters) <= 2){
 	outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_subclone.pdf")
 	#png(outFile,width=1000,height=300)
 	pdf(outFile,width=20,height=6)
-	plotSubcloneProfiles(dataIn=results, chr=NULL, cex = 0.5, spacing=4, main=id, cex.axis=1.5, xlab="")
+	plotSubcloneProfiles(dataIn=results, chr=NULL, cex = 0.5, spacing=4,
+                             main=id, cex.axis=1.5, xlab="")
 	dev.off()
 }
 
