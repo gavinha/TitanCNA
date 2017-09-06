@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 #' titanCNA.R
 #' author: Gavin Ha
 #' Dana-Farber Cancer Institute
