@@ -208,7 +208,7 @@ params <- loadDefaultParameters(copyNumber=maxCN,numberClonalClusters=numCluster
 #### MODEL SELECTION USING EM (FWD-BACK) TO SELECT NUMBER OF CLUSTERS ####
 registerDoMC()
 options(cores=numCores)
-message("Using ",getDoParWorkers()," cores.")
+message("Model selection: Using ",getDoParWorkers()," cores.")
 K <- length(params$genotypeParams$rt)
 params$genotypeParams$alphaKHyper <- rep(alphaK,K)
 params$genotypeParams$betaKHyper <- rep(25,K)
@@ -226,7 +226,7 @@ convergeParams <- runEMclonalCN(data, params,
                                 verbose=verbose)
 
 #### COMPUTE OPTIMAL STATE PATH USING VITERBI ####
-message("Using ",getDoParWorkers()," cores.")
+message("Optimal state path computation: Using ",getDoParWorkers()," cores.")
 optimalPath <- viterbiClonalCN(data,convergeParams)
 save.image(file=outImage)
 #### PRINT RESULTS TO FILES ####
