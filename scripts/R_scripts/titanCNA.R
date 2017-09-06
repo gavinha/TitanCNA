@@ -47,7 +47,6 @@ option_list <- list(
 
 parseobj <- OptionParser(option_list=option_list, usage = "usage: Rscript %prog [options]")
 opt <- parse_args(parseobj)
-print(opt)
 
 require(TitanCNA, quietly=TRUE)
 require(data.table, quietly=TRUE)
@@ -55,7 +54,6 @@ require(GenomicRanges, quietly=TRUE)
 require(dplyr, quietly=TRUE)
 require(doMC, quietly=TRUE)
 require(SNPchip, quietly=TRUE)
-# sessionInfo()
 options(bitmapType='cairo', scipen=0)
 
 libdir <- opt$libdir
@@ -125,7 +123,7 @@ if (is.null(outigv)){
 }
 if (is.null(outplot)){
 	outplot <- paste0(outdir, "/", id, "_cluster", numClustersStr, "/")
-	dir.create(outplot)
+	dir.create(outplot, showWarnings=verbose)
 }
 outImage <- gsub(".titan.txt", ".RData", outfile)
 
@@ -218,7 +216,7 @@ message("Writing segments to ", outseg)
 segs <- outputTitanSegments(results, id, convergeParams, filename = outseg, igvfilename = outigv)
 
 #### PLOT RESULTS ####
-dir.create(outplot)
+dir.create(outplot, showWarnings=verbose)
 norm <- tail(convergeParams$n,1)
 ploidy <- tail(convergeParams$phi,1)
 for (chr in unique(results$Chr)){
