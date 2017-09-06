@@ -8,13 +8,27 @@
 #' date:	  May 14, 2017
 #' Notes: This script is tested for TitanCNA v1.13.1 and higher
 
-require(optparse, quietly=TRUE)
-require(TitanCNA, quietly=TRUE)
-require(data.table, quietly=TRUE)
-require(GenomicRanges, quietly=TRUE)
-require(dplyr, quietly=TRUE)
-require(doMC, quietly=TRUE)
-require(SNPchip, quietly=TRUE)
+suppressPackageStartupMessages(
+    require(optparse, quietly=TRUE, warn.conflicts=FALSE)
+)
+suppressPackageStartupMessages(
+    require(TitanCNA, quietly=TRUE, warn.conflicts=FALSE)
+)
+suppressPackageStartupMessages(
+    require(data.table, quietly=TRUE, warn.conflicts=FALSE)
+)
+suppressPackageStartupMessages(
+    require(GenomicRanges, quietly=TRUE, warn.conflicts=FALSE)
+)
+suppressPackageStartupMessages(
+    require(dplyr, quietly=TRUE, warn.conflicts=FALSE)
+)
+suppressPackageStartupMessages(
+    require(doMC, quietly=TRUE, warn.conflicts=FALSE)
+)
+suppressPackageStartupMessages(
+    require(SNPchip, quietly=TRUE, warn.conflicts=FALSE)
+)
 
 option_list <- list(
 	make_option(c("--id"), type = "character", help = "Sample ID"),
