@@ -8,7 +8,13 @@
 #' date:	  May 14, 2017
 #' Notes: This script is tested for TitanCNA v1.13.1 and higher
 
-library(optparse)
+require(optparse, quietly=TRUE)
+require(TitanCNA, quietly=TRUE)
+require(data.table, quietly=TRUE)
+require(GenomicRanges, quietly=TRUE)
+require(dplyr, quietly=TRUE)
+require(doMC, quietly=TRUE)
+require(SNPchip, quietly=TRUE)
 
 option_list <- list(
 	make_option(c("--id"), type = "character", help = "Sample ID"),
@@ -49,13 +55,6 @@ option_list <- list(
 
 parseobj <- OptionParser(option_list=option_list, usage = "usage: Rscript %prog [options]")
 opt <- parse_args(parseobj)
-
-require(TitanCNA, quietly=TRUE)
-require(data.table, quietly=TRUE)
-require(GenomicRanges, quietly=TRUE)
-require(dplyr, quietly=TRUE)
-require(doMC, quietly=TRUE)
-require(SNPchip, quietly=TRUE)
 options(bitmapType='cairo', scipen=0)
 
 libdir <- opt$libdir
