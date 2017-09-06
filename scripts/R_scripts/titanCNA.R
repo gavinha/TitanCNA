@@ -1,5 +1,5 @@
 #' titanCNA.R
-#' author: Gavin Ha 
+#' author: Gavin Ha
 #' Dana-Farber Cancer Institute
 #' Broad Institute
 #' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
@@ -28,7 +28,7 @@ option_list <- list(
 	make_option(c("--minDepth"), type = "integer", default = 10, help = "Minimum read depth of a HET site to include in analysis; integer [Default: %default]"),
 	make_option(c("--maxDepth"), type = "integer", default = 1000, help = "Maximum read depth of a HET site to include in analysis; integer [Default: %default]"),
 	make_option(c("--skew"), type = "numeric", default=0, help = "Allelic reference skew for all states except heterozygous states (e.g. 1:1, 2:2, 3:3). Value is additive to baseline allelic ratios. float [Default: %default]"),
-	make_option(c("--hetBaselineSkew"), type="numeric", default=NULL, help="Allelic reference skew for heterozygous states (e.g. 1:1, 2:2, 3:3). Value is the additive to baseline allelic ratios. float [Default: %default]"), 
+	make_option(c("--hetBaselineSkew"), type="numeric", default=NULL, help="Allelic reference skew for heterozygous states (e.g. 1:1, 2:2, 3:3). Value is the additive to baseline allelic ratios. float [Default: %default]"),
 	make_option(c("--minClustProportion"), type="numeric", default=0.05, help="Minimum proportion of the genome altered (by SNPs) for a cluster to be retained.  Clonal clusters having lower proportion of alteration are removed. [Default: %default]"),
 	make_option(c("--genomeStyle"), type = "character", default = "NCBI", help = "NCBI or UCSC chromosome naming convention; use UCSC if desired output is to have \"chr\" string. [Default: %default]"),
 	make_option(c("--chrs"), type = "character", default = "c(1:22, 'X')", help = "Chromosomes to analyze; string [Default: %default"),
@@ -41,20 +41,21 @@ option_list <- list(
 	make_option(c("--outIGV"), type = "character", default = NULL, help = "Output file to write segments for loading into IGV. (default uses extension: *.seg]"),
 	make_option(c("--outParam"), type = "character", default = NULL, help = "Output file to write parameters. [Default: %default]"),
 	make_option(c("--outPlotDir"), type = "character", default = NULL, help = "Output directory to save plots. [Default: %default]"),
-	make_option(c("--plotYlim"), type = "character", default = "c(-2,4)", help = "The Y-axis limits to use for plotting log ratio coverage results. [Default: %default]")
+	make_option(c("--plotYlim"), type = "character", default = "c(-2,4)", help = "The Y-axis limits to use for plotting log ratio coverage results. [Default: %default]"),
+	make_option(c("--verbose"), type = "logical", default = FALSE, help = "Be verbose; TRUE or FALSE [Default: %default]")
 )
 
 parseobj <- OptionParser(option_list=option_list, usage = "usage: Rscript %prog [options]")
 opt <- parse_args(parseobj)
 print(opt)
 
-library(TitanCNA)
-library(data.table)
-library(GenomicRanges)
-library(dplyr)
-library(doMC)
-library(SNPchip)
-sessionInfo()
+require(TitanCNA, quietly=TRUE)
+require(data.table, quietly=TRUE)
+require(GenomicRanges, quietly=TRUE)
+require(dplyr, quietly=TRUE)
+require(doMC, quietly=TRUE)
+require(SNPchip, quietly=TRUE)
+# sessionInfo()
 options(bitmapType='cairo', scipen=0)
 
 libdir <- opt$libdir
@@ -98,6 +99,7 @@ outseg <- opt$outSeg
 outigv <- opt$outIGV
 outplot <- opt$outPlotDir
 plotYlim <- eval(parse(text = opt$plotYlim))
+verbose <- opt$verbose
 
 ## check arguments ##
 if (!normEstMeth %in% c("map", "fixed")){
@@ -106,7 +108,7 @@ if (!normEstMeth %in% c("map", "fixed")){
 
 ### SETUP OUTPUT FILE NAMES ###
 numClustersStr <- as.character(numClusters)
-if (numClusters < 10) { 
+if (numClusters < 10) {
 	numClustersStr <- paste0("0", numClusters)
 }
 if (is.null(outfile)){
@@ -138,7 +140,7 @@ message('Running TITAN...')
 
 #### LOAD DATA ####
 data <- loadAlleleCounts(hetfile, header=T, genomeStyle = genomeStyle)
- 
+
 #### REMOVE CENTROMERES ####
 if (!is.null(centromere)){
 	centromere <- read.delim(centromere,header=T,stringsAsFactors=F,sep="\t")
@@ -168,7 +170,7 @@ data <- filterData(data,chrs,minDepth=minDepth,maxDepth=maxDepth,
 
 #### LOAD PARAMETERS ####
 message('titan: Loading default parameters')
-params <- loadDefaultParameters(copyNumber=maxCN,numberClonalClusters=numClusters, 
+params <- loadDefaultParameters(copyNumber=maxCN,numberClonalClusters=numClusters,
 																skew=skew, hetBaselineSkew=hetBaselineSkew, data=data)
 
 #### MODEL SELECTION USING EM (FWD-BACK) TO SELECT NUMBER OF CLUSTERS ####
@@ -178,7 +180,7 @@ message("Using ",getDoParWorkers()," cores.")
 K <- length(params$genotypeParams$rt)
 params$genotypeParams$alphaKHyper <- rep(alphaK,K)
 params$genotypeParams$betaKHyper <- rep(25,K)
-#params$genotypeParams$alphaKHyper[c(1,7:K)] <- alphaHigh 
+#params$genotypeParams$alphaKHyper[c(1,7:K)] <- alphaHigh
 params$ploidyParams$phi_0 <- ploidy_0
 params$normalParams$n_0 <- norm_0
 #params$genotypeParams$rt[c(4, 9)] <- hetAR
@@ -188,17 +190,18 @@ convergeParams <- runEMclonalCN(data, params,
                                 txnExpLen=txn_exp_len,txnZstrength=txn_z_strength,
                                 useOutlierState=FALSE,
                                 normalEstimateMethod=normEstMeth,estimateS=estimateS,
-                                estimatePloidy=boolEstPloidy, pseudoCounts=pseudo_counts)
-    
+                                estimatePloidy=boolEstPloidy, pseudoCounts=pseudo_counts,
+                                verbose=verbose)
+
 #### COMPUTE OPTIMAL STATE PATH USING VITERBI ####
-message("Using ",getDoParWorkers(),"cores.")
+message("Using ",getDoParWorkers()," cores.")
 optimalPath <- viterbiClonalCN(data,convergeParams)
 save.image(file=outImage)
 #### PRINT RESULTS TO FILES ####
 results <- outputTitanResults(data,convergeParams,optimalPath,
 			filename=NULL,posteriorProbs=F,subcloneProfiles=TRUE,
 			proportionThreshold = minClustProportion, proportionThresholdClonal = 0.05,
-			recomputeLogLik = TRUE, rerunViterbi = FALSE)
+			recomputeLogLik = TRUE, rerunViterbi = FALSE, verbose=verbose)
 convergeParams <- results$convergeParams
 results <- results$corrResults
 numClustersToPlot <- nrow(convergeParams$s)
@@ -206,7 +209,7 @@ write.table(results, file = outfile, col.names = TRUE, row.names = FALSE, quote 
 outputModelParameters(convergeParams, results, outparam)
 
 # save specific objects to a file
-# if you don't specify the path, the cwd is assumed 
+# if you don't specify the path, the cwd is assumed
 convergeParams$rhoG <- NULL; convergeParams$rhoZ <- NULL
 #save(convergeParams, file=outImage)
 save.image(file=outImage)
@@ -224,22 +227,22 @@ for (chr in unique(results$Chr)){
 	if (as.numeric(numClusters) <= 2){
 		par(mfrow=c(4,1))
 	}else{
-		par(mfrow=c(3,1))  
+		par(mfrow=c(3,1))
 	}
-	plotCNlogRByChr(results, chr, segs = segs, ploidy=ploidy, normal = norm, geneAnnot=NULL,  cex.axis=1.5, 
+	plotCNlogRByChr(results, chr, segs = segs, ploidy=ploidy, normal = norm, geneAnnot=NULL,  cex.axis=1.5,
 					ylim=plotYlim, cex=0.5, xlab="", main=paste("Chr ",chr,sep=""))
 	plotAllelicRatio(results, chr, geneAnnot=NULL, spacing=4, cex.axis=1.5,
 					ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
-	plotClonalFrequency(results, chr, normal=norm, geneAnnot=NULL, spacing=4, 
+	plotClonalFrequency(results, chr, normal=norm, geneAnnot=NULL, spacing=4,
 					cex.axis=1.5, ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
-                    
+
 	if (as.numeric(numClustersToPlot) <= 2 && as.numeric(numClusters) <= 2){
 		plotSubcloneProfiles(results, chr, cex = 2, spacing=6, main=paste("Chr ",chr,sep=""), cex.axis=1.5)
 		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-4.25, new=FALSE, ylim=c(-2,-1))
 	}else{
 		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-0.35, new=FALSE, ylim=c(-0.2,-0.1))
 	}
-	
+
 	dev.off()
 }
 
@@ -255,7 +258,7 @@ dev.off()
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_LOH.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
-plotAllelicRatio(dataIn=results, chr=NULL, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)	
+plotAllelicRatio(dataIn=results, chr=NULL, geneAnnot=genes, spacing=4, main=id, xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
 
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CF.pdf")
