@@ -59,8 +59,8 @@ options(bitmapType='cairo', scipen=0)
 
 libdir <- opt$libdir
 if (!is.null(libdir)){
-	source(paste0(libdir, "R/plotting.R"))
-	source(paste0(libdir, "R/utils.R"))
+  source(paste0(libdir, "R/plotting.R"))
+  source(paste0(libdir, "R/utils.R"))
   source(paste0(libdir, "R/hmmClonal.R"))
   source(paste0(libdir, "R/paramEstimation.R"))
   source(paste0(libdir, "R/correction.R"))
