@@ -169,7 +169,7 @@ data <- filterData(data,chrs,minDepth=minDepth,maxDepth=maxDepth,
 #### LOAD PARAMETERS ####
 message('titan: Loading default parameters')
 params <- loadDefaultParameters(copyNumber=maxCN,numberClonalClusters=numClusters,
-																skew=skew, hetBaselineSkew=hetBaselineSkew, data=data)
+                                skew=skew, hetBaselineSkew=hetBaselineSkew, data=data)
 
 #### MODEL SELECTION USING EM (FWD-BACK) TO SELECT NUMBER OF CLUSTERS ####
 registerDoMC()
