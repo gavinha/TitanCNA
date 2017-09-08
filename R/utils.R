@@ -1198,7 +1198,7 @@ correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes
 			segs[Chromosome == "X", Corrected_Copy_Number := round(logR_Copy_Number)]
 			segs[Chromosome == "X", Corrected_Call := names[Corrected_Copy_Number + 1]]
 			cn[Chr == "X", Corrected_Copy_Number := round(logR_Copy_Number)]
-			cn[Chr == "X", Corrected_Call := names[Corrected_Copy_Number + 1]]
+			cn[Chr == "X", Corrected_Call := names[Corrected_Copy_Number + 2]]
 		}else if (gender == "female"){
 			segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
 			segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
