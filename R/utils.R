@@ -2,7 +2,7 @@
 #' 		Dana-Farber Cancer Institute
 #'		  Broad Institute
 #' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-#' date:	  March 17, 2017
+#' date:	  September 8, 2017
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
     skew = 0, hetBaselineSkew = NULL, alleleEmissionModel = "binomial", symmetric = TRUE, data = NULL) {
@@ -530,27 +530,9 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
         message("Analyzing targeted regions...")
         targetIR <- RangedData(ranges = IRanges(start = targetedSequence[, 2], 
                     end = targetedSequence[, 3]), space = targetedSequence[, 1])
-<<<<<<< HEAD
-				names(targetIR) <- setGenomeStyle(names(targetIR), genomeStyle)
+	names(targetIR) <- setGenomeStyle(names(targetIR), genomeStyle)
         hits <- findOverlaps(query = tumour_reads, subject = targetIR)
         keepInd <- unique(queryHits(hits))    
-
-=======
-                    
-        #keepInd <- unlist(as.list(findOverlaps(tumour_reads, targetIR, select = "first")))
-        #keepInd <- !is.na(keepInd)
-        hits <- findOverlaps(query = tumour_reads, subject = targetIR)
-        keepInd <- unique(queryHits(hits))    
-        
-        # ind <- tumour_reads$value>10 &
-        # normal_reads$value>10 tumThres <-
-        # quantile(tumour_reads$value[ind],1/4) normThres
-        # <- quantile(normal_reads$value[ind],1/4) keepInd
-        # <- which(ind & !is.na(tumour_reads$value) &
-        # !is.na(normal_reads$value) &
-        # tumour_reads$value>=tumThres &
-        # normal_reads$value>=normThres)
->>>>>>> upstream/master
         tumour_reads <- tumour_reads[keepInd, ]
         normal_reads <- normal_reads[keepInd, ]
         gc <- gc[keepInd, ]
@@ -1142,7 +1124,6 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
   return(segs)
 }
 
-<<<<<<< HEAD
 ## merge segments based on same values in given column
 mergeSegsByCol <- function(segs, colToMerge = "Copy_Number", centromeres = NULL){
 	rleResults <- t(sapply(unique(segs$Chr), function(x){
@@ -1184,23 +1165,14 @@ mergeSegsByCol <- function(segs, colToMerge = "Copy_Number", centromeres = NULL)
 correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes = NULL, 
 		maxCNtoCorrect.X = NULL, minPurityToCorrect = 0.2, gender = "male", chrs = c(1:22, "X")){
 	names <- c("HOMD","HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
-=======
-## Recompute integer CN for high-level amplifications ##
-## compute logR-corrected copy number ##
-correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes = NULL, 
-		maxCNtoCorrect.X = NULL, gender = "male", chrs = c(1:22, "X")){
->>>>>>> upstream/master
 	cn <- copy(cn)
 	segs <- copy(segs)
 	if (is.null(maxCNtoCorrect.autosomes)){
 		maxCNtoCorrect.autosomes <- segs[Chromosome %in% c(1:22), max(Copy_Number)]
 	}
-<<<<<<< HEAD
 	if (is.null(maxCNtoCorrect.X)){
 		maxCNtoCorrect.X <- segs[Chromosome == "X", max(Copy_Number)]
 	}
-=======
->>>>>>> upstream/master
 	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidyT, cn=2)]
 	cn[Chr %in% c(1:22), logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidyT, cn=2)]
 	if (gender == "male"){ ## analyze chrX separately
@@ -1220,7 +1192,6 @@ correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes
 	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := round(logR_Copy_Number)]
 	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
 	
-<<<<<<< HEAD
 	if (purity >= minPurityToCorrect){
 		if (gender == "male"){
 			segs[Chromosome == "X", Corrected_Copy_Number := round(logR_Copy_Number)]
@@ -1233,13 +1204,6 @@ correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes
 			cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
 			cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
 		}
-=======
-	if (!is.null(maxCNtoCorrect.X)){
-		segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
-		segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
-		cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
-		cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
->>>>>>> upstream/master
 	}
 	
 	return(list(cn = cn, segs = segs))	
@@ -1247,11 +1211,7 @@ correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes
 
 ## compute copy number using corrected log ratio ##
 logRbasedCN <- function(x, purity, ploidyT, cn = 2){
-<<<<<<< HEAD
 	ct <- (2^x * (cn * (1 - purity) + purity * ploidyT * (cn / 2)) - cn * (1 - purity)) / purity
-=======
-	ct <- (2^x * (cn * (1 - purity) + purity * ploidyT) - cn * (1 - purity)) / purity
->>>>>>> upstream/master
 	ct <- sapply(ct, max, 1/2^6)
 	return(ct)
 }
