@@ -38,7 +38,7 @@ rule getAlleleCountsByChr:
 	log:
 		"logs/titan/tumCounts/{tumor}/{tumor}.chr{chr}.log"
 	shell:
-		"python {params.countScript} {wildcards.chr} {input.hetSites} {input.tumBam} {params.baseQ} {params.mapQ} {params.vcfQ} > {output} 2> {log}"
+		"python3 {params.countScript} {wildcards.chr} {input.hetSites} {input.tumBam} {params.baseQ} {params.mapQ} {params.vcfQ} > {output} 2> {log}"
 
 rule catAlleleCountFiles:
 	input:
