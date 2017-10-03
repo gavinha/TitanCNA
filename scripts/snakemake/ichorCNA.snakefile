@@ -1,7 +1,7 @@
 configfile: "config/config.yaml"
 configfile: "config/samples.yaml"
 
-rule all:
+rule correctDepth:
   input: 
   	expand("results/ichorCNA/{tumor}/{tumor}.cna.seg", tumor=config["samples"]),
   	expand("results/readDepth/{samples}.bin{binSize}.wig", samples=config["samples"], binSize=str(config["binSize"]))
