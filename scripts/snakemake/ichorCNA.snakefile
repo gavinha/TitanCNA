@@ -2,10 +2,10 @@ configfile: "config/config.yaml"
 configfile: "config/samples.yaml"
 
 rule correctDepth:
-  input: 
-  	expand("results/ichorCNA/{tumor}/{tumor}.cna.seg", tumor=config["samples"]),
- 	expand("results/ichorCNA/{tumor}/{tumor}.correctedDepth.txt", tumor=config["pairings"]),
-  	expand("results/readDepth/{samples}.bin{binSize}.wig", samples=config["samples"], binSize=str(config["binSize"]))
+	input:
+		expand("results/ichorCNA/{tumor}/{tumor}.cna.seg", tumor=config["samples"]),
+		expand("results/ichorCNA/{tumor}/{tumor}.correctedDepth.txt", tumor=config["pairings"]),
+		expand("results/readDepth/{samples}.bin{binSize}.wig", samples=config["samples"], binSize=str(config["binSize"]))
 
 rule read_counter:
 	input:
