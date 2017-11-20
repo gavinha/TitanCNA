@@ -35,7 +35,7 @@ rule ichorCNA:
 		#segTxt="results/ichorCNA/{tumor}/{tumor}.seg.txt",
 		#seg="results/ichorCNA/{tumor}/{tumor}.seg",
 		#rdata="results/ichorCNA/{tumor}/{tumor}.RData",
-		outDir="results/ichorCNA/{tumor}/",
+		outDir="results/ichorCNA/{tumor}",
 	params:
 		rscript=config["ichorCNA_rscript"],
 		id="{tumor}",
