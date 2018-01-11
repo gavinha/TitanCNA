@@ -281,7 +281,7 @@ getPhasedAllele <- function(x){
 	return(list(h1 = h1, h2 = h2))
 }
 
-plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRatio", colType = "Haplotypes",
+plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRatio", colType = "Haplotypes", phaseBlockCol = c("#9ad0f3", "#CC79A7"), 
     geneAnnot = NULL, spacing = 4,  xlim = NULL,  ...) {
     if (!resultType %in% c("HaplotypeRatio", "AllelicRatio")){
       stop("plotHaplotypeFraction: resultType must be one of 'HaplotypeRatio' or 'AllelicRatio'.")
@@ -289,7 +289,7 @@ plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRat
     if (!colType %in% c("Haplotypes", "CopyNumber")){
       stop("plotHaplotypeFraction: plotType must be one of 'Haplotypes' or 'CopyNumber'")
     }
-    lohCol.hap <- c(`0`="red", `1`="blue")
+    lohCol.hap <- c(`0`=phaseBlockCol[1], `1`=phaseBlockCol[2])
     lohCol.titan <- c("#00FF00", "#006400", "#0000FF", "#8B0000", 
         "#006400", "#BEBEBE", "#FF0000", "#BEBEBE", 
         "#FF0000")
@@ -332,7 +332,7 @@ plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRat
                   col = colors.1, 
                   pch = 16, xaxt = "n", las = 1, ylab = "Haplotype Fraction", xlim = xlim, 
                   ...)
-              points(dataByChr[, Position], dataByChr[, HaplotypeRatio.2], col = colors.2, pch=16, ...)
+              points(dataByChr[, Position], dataByChr[, HaplotypeRatio.2], col = colors.1, pch=16, ...)
             }else if (resultType == "AllelicRatio"){
                plot(dataByChr[, Position], dataByChr[, AllelicRatio], 
                   col = colors.1, 

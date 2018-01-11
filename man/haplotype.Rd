@@ -22,6 +22,9 @@
       filterFlags = c("PASS", "10X_RESCUED_MOLECULE_HIGH_DIVERSITY"), 
       minQUAL = 100, minDepth = 10, minVAF = 0.25, altCountField = "AD", 
       keepGenotypes = c("1|0", "0|1", "0/1"), snpDB = NULL)
+      
+    loadBXcountsFromBEDDir(bxDir, chrs = c(1:22, "X", "Y"), minReads = 2){
+
 }
 
 \arguments{
@@ -30,6 +33,9 @@
   }
   \item{vcfFile}{
     Path to phased variant VCF file from LongRanger 2.1.  The file name must have the suffix \code{*phase_variants.vcf.gz}. 
+  }
+  \item{bxDir}{
+  	Path to directory containing tumor bed files for each chromosome containing BX tags.
   }
   \item{fun}{
     The function (\sQuote{SNP}, \sQuote{sum}, \sQuote{mean}) to use to summarize within each user defined bin using \code{haplotypeBinSize} and haplotype block defined by the phaseSet ID from thte 9th column of \code{inCounts}. 
@@ -48,6 +54,9 @@
   }
   \item{minNormQual}{
     Quality threshold to use for filtering; SNPs with lower than this value are excluded.  This quality is any metric that provides the confidence of the locus being a true germline heterozygous SNP. 
+  }
+  \item{minReads}{
+  	Minimum number of reads per barcode.
   }
   \item{genomeStyle}{
   	The genome style to use for chromosomes. Use one of \sQuote{NCBI} or \sQuote{UCSC}. It does not matter what style is found in \code{inCounts}, \code{genomeStyle} will be the style returned. Invokes \code{\link{setGenomeStyle}}. 
