@@ -161,7 +161,7 @@ if (is.null(outfile)){
 	outfile <- paste0(outdir, "/", id, "_cluster", numClustersStr, ".titan.txt")
 }
 if (is.null(outparam)){
-	outparam <- gsub(".titan.txt", ".param.txt", outfile)
+	outparam <- gsub(".titan.txt", ".params.txt", outfile)
 }
 if (is.null(outseg)){
 	outseg <- gsub(".titan.txt", ".segs.txt", outfile)
