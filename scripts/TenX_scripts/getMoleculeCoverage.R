@@ -97,12 +97,10 @@ library(ichorCNA)
 library(data.table)
 library(quantsmooth)
 
-
-### LOAD PLOTTING CODE ###
-#source(paste0(libdir,"/utils.R"))
-#source("~/software/code/git/ULP-WGS_versions/pre_subclone_branch/ULP-WGS-HMM/src/segmentation.R")
-#source("~/software/code/git/ULP-WGS_versions/pre_subclone_branch/ULP-WGS-HMM/src/utils.R")
-#source("/home/unix/gavinha/software/code/git/scripts/10XGenomics/utils.R")
+libdir <- opt$libdir
+if (!is.null(libdir)){
+  source(paste0(libdir, "R/haplotype.R"))
+}
 
 
 if (!is.null(centromere)){
