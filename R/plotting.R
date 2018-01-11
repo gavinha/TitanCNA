@@ -236,7 +236,7 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
 							segsByChr <- segs.sample[Chromosome == as.character(i), ]
 							tmp <- apply(segsByChr, 1, function(x){
 								lines(x[c("Start_Position.bp.","End_Position.bp.")], 
-										rep(x["Median_logR"], 2), col = "green", lwd = 3, lend = 1)
+										rep(x["Median_logR"], 2), col = cnCol[as.character(x["Copy_Numbers"])], lwd = 3, lend = 1)
 							})
 						}
   
