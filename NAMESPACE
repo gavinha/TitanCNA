@@ -7,4 +7,5 @@ export(loadAlleleCounts,loadDefaultParameters,
 		plotAllelicRatio,plotClonalFrequency,plotCNlogRByChr,
 		plotSubcloneProfiles, outputTitanSegments,
 		setGenomeStyle,plotSegmentMedians,
-		loadHaplotypeAlleleCounts,plotHaplotypeFraction)
+		loadHaplotypeAlleleCounts,plotHaplotypeFraction,
+		loadBXcountsFromBEDDir)
