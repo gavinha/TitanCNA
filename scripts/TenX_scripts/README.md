@@ -13,6 +13,8 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
       The chromosome bed files for 10kb bins is provided in `TenX_scripts/data/10kb.bed.tar.gz`. Just `tar xvzf 10kb.bed.tar.gz` to extract the files.  
       
     b. Normalize the molecule coverage  
+    This analysis uses ichorCNA to correct molecular coverage by GC and mappability biases.  
+    See https://github.com/broadinstitute/ichorCNA/tree/master/scripts
     
     ```
     # from the command line
@@ -21,9 +23,6 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
 
 
     Options:
-            -d DATADIR, --datadir=DATADIR
-                    Data library path containing gc/map wig files
-
             -t TUMORBXDIR, --tumorBXDir=TUMORBXDIR
                     Path to directory containing tumor bed files for each chromosome containing BX tags.
 
@@ -32,17 +31,25 @@ R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing
 
             --minReadsPerBX=MINREADSPERBX
                     Minimum number of reads per barcode.
-
+            
+            --gcWig=GCWIG
+                    Path to GC-content WIG file; Required
+                    
+            --libdir=LIBDIR
+                    Script library path to include new or modified source R files (optional). Default: [NULL]
+                
             (... plus other options)  
 
     ```
     Here is an example  
     
      ```
-     Rscript getMoleculeCoverage.R --id test --datadir TenX_scripts/data/ \
+     Rscript getMoleculeCoverage.R --id test  \
         --tumorBXDir tumour_bxTile/ --normalBXDir normal_bxTile/ --minReadsPerBX 2 \
         --chrs "c(1:22, \"X\")" --outDir ../ \
         --centromere TenX_scripts/data/GRCh37.p13_centromere_UCSC-gapTable.txt \
+        --gcWig ichorCNA/inst/extdata/gc_hg38_1000kb.wig \
+        --libdir TitanCNA/R/
      ```
         
   
