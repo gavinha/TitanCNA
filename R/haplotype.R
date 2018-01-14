@@ -2,7 +2,7 @@
 #' 		Dana-Farber Cancer Institute
 #'		Broad Institute
 #' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-#' date:	  April 4, 2017
+#' date:	  January 11, 2018
 
 #' @import data.table
 #' @import GenomicRanges
@@ -379,3 +379,13 @@ plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRat
         
     }
 }
+
+keepChr <- function(tumour_reads, chr = c(1:22,"X","Y")){	
+	tumour_reads <- tumour_reads[space(tumour_reads) %in% chr, ]
+	tumour_reads <- as.data.frame(tumour_reads)
+	tumour_reads$space <- droplevels(tumour_reads$space)
+	tumour_reads$space <- factor(tumour_reads$space,levels=chr)
+	tumour_reads <- as(tumour_reads,"RangedData")
+	return(tumour_reads)
+}
+
