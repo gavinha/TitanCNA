@@ -11,7 +11,7 @@ Gavin Ha
 Dana-Farber Cancer Institute  
 Broad Institute  
 contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>  
-Date: May 13, 2017  
+Date: March 22, 2018  
 
 ## Table of Contents
 * [Links](#links)
@@ -24,29 +24,43 @@ Date: May 13, 2017
 
 ## Links
 TitanCNA GitHub: https://github.com/gavinha/TitanCNA  
-KRONOS TITAN Workflow: https://github.com/MO-BCCRC/titan_workflow  
+Snakemake Workflow: https://github.com/gavinha/TitanCNA/tree/master/scripts/snakemake
 Google Groups: https://groups.google.com/forum/#!forum/titancna   
 TitanCNA website: http://compbio.bccrc.ca/software/titan/  
+KRONOS TITAN Workflow: https://github.com/MO-BCCRC/titan_workflow  
 Publication in Genome Research: http://genome.cshlp.org/content/24/11/1881
 
 ## News
 (See [NEWS](NEWS) for previous version notes)
+### TitanCNA version 1.17.1 changes 
+1)  New functions: 
+	- `correctIntegerCN()`: recomputes high-level copy number that is capped by the maximum CN state. 
+	Performs two tasks - (1) correct log ratio based on purity and ploidy, and then convert to decimal CN value; (2) Correct bins and segments in which the original predicted integer copy number was assigned the maximum CN state; bins and segments for all of chromosome X are also corrected, if provided in the input.
+
+2) Modified functions:
+	- `plotSegmentMedians()` and `plotCNlogRByChr()`: includes argument to show color-coding for corrected copy number; defaults to TRUE for this argument.
+	
+3) Removed functions/manual/dependencies:
+	- `extractAlleleReadCounts()`	
+	- `Rsamtools` dependency
+
 ### TitanCNA version 1.15.0 changes 
 1) 10X Genomics analysis
   - Please see [scripts](scripts/) for instructions on running the 10X Genomics analysis.
 
-2) New script to help **select optimal solutions**.  Please see [scripts/R_scripts](https://github.com/gavinha/TitanCNA/tree/master/scripts/R_scripts)
+2) New script to help **select optimal solutions**.  
+	Please see [scripts/R_scripts](https://github.com/gavinha/TitanCNA/tree/master/scripts/R_scripts)
 
-3) Added snakemake pipeline for entire TITAN workflow.
-Please see [scripts/snakemake](scripts/snakemake).
+3) Added snakemake pipeline for entire TITAN workflow  
+	Please see [scripts/snakemake](scripts/snakemake).
 
-4) New function
-  - `plotSegmentMedians()`
-  - `loadHaplotypeAlleleCounts()`: loads input allele counts with phasing information
-  - `plotHaplotypeFraction()`: results from 10X Genomics WGS data with phasing of haplotype blocks
+4) New function:
+	- `plotSegmentMedians()`
+	- `loadHaplotypeAlleleCounts()`: loads input allele counts with phasing information
+	- `plotHaplotypeFraction()`: results from 10X Genomics WGS data with phasing of haplotype blocks
   
-5) Modified features (no changes for user-accessible functions)
-  - updateParameters: coordinate descent estimate of ploidy update uses previously estimated normal parameter from the same corodinate descent iteration ; leads to faster convergence
+5) Modified features (no changes for user-accessible functions):
+	- updateParameters: coordinate descent estimate of ploidy update uses previously estimated normal parameter from the same corodinate descent iteration ; leads to faster convergence
   
 
 ## Installation
@@ -76,6 +90,10 @@ The easiest way to generate these files is by using the downloadable pipeline fr
 ## Usage
 R scripts are provided to run the R component of the TITAN analysis using the TitanCNA R/Bioconductor package.  
 Please go to the [scripts](scripts/) directory and look at the README there for more details.
+
+### Snakemake workflow
+A [snakemake](scripts/snakemake) is also provided in this repo.  
+This workflow will run the TITAN a set of tumour-normal pairs, starting from the BAM files and generating TitanCNA outputs. It will also perform model selection at the end of the workflow to choose the optimal ploidy and clonal cluster solutions. 
 
 ## Vignette in TitanCNA R package
 The PDF of the vignette can be accessed from R
