@@ -19,7 +19,7 @@ This workflow will run the TITAN a set of tumour-normal pairs, starting from the
    - PyYAML-3.12
  - samtools v1.3.1
  - bcftools v1.1
- - [HMMcopy Suite](<http://compbio.bccrc.ca/software/hmmcopy/>).  
+ - [HMMcopy Suite](<http://shahlab.ca/projects/hmmcopy_utils/>).  
  		-In particular, `readCounter` is used.
 
 ### Scripts/executables
