@@ -1,19 +1,34 @@
 # file:   README - Notes on TitanCNA version updates
 # author: Gavin Ha 
 # 		  Dana-Farber Cancer Institute
-#		 	  Broad Institute
+#		  Broad Institute
 # contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
 #
 # TitanCNA GitHub: https://github.com/gavinha/TitanCNA
+# Snakemake Workflow: https://github.com/gavinha/TitanCNA/tree/master/scripts/snakemake
 # Google Groups: https://groups.google.com/forum/#!forum/titancna 
 # TitanCNA website: http://compbio.bccrc.ca/software/titan/
 # TitanCNA KRONOS workflow: https://github.com/MO-BCCRC/titan_workflow
 
-# date:	  May 24, 2017
+# date:	  March 22, 2018
 #
 # description: TitanCNA is a probabilistic framework for analyzing subclonal copy number alterations (CNA) and loss of heterozygosity (LOH) in whole genome sequencing of tumours. The main software is implemented as a R Bioconductor package with preprocessing tools implemented in Python and BAMtools (C++). The example provided will reproduce Figure 1 in the manuscript. However, it will be slightly different because the example is only based the analysis of chr2, not genome-wide.
 
 Thank you for your interest in the TitanCNA software.
+
+=================================================================================
+TitanCNA version 1.17.1 changes 
+=================================================================================
+1)  New functions: 
+	- correctIntegerCN(): recomputes high-level copy number that is capped by the maximum CN state. 
+	performs two tasks - (1) correct log ratio based on purity and ploidy, and then convert to decimal CN value; (2) Correct bins and segments in which the original predicted integer copy number was assigned the maximum CN state; bins and segments for all of chromosome X are also corrected, if provided in the input.
+
+2) Modified functions:
+	- plotSegmentMedians() and plotCNlogRByChr(): includes argument to show color-coding for corrected copy number; defaults to TRUE for this argument.
+	
+3) Removed functions/manual/dependencies:
+	- extractAlleleReadCounts()	
+	- Rsamtools dependency
 
 =================================================================================
 TitanCNA version 1.15.0 changes 

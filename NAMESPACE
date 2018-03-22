@@ -1,5 +1,5 @@
 useDynLib(TitanCNA)
-import(IRanges,GenomicRanges,foreach,GenomeInfoDb,Rsamtools,data.table,dplyr,VariantAnnotation)
+import(IRanges,GenomicRanges,foreach,GenomeInfoDb,data.table,dplyr,VariantAnnotation)
 export(loadAlleleCounts,loadDefaultParameters,
 		filterData,getPositionOverlap,wigToRangedData,
 		outputTitanResults,outputModelParameters,correctReadDepth,
@@ -8,4 +8,4 @@ export(loadAlleleCounts,loadDefaultParameters,
 		plotSubcloneProfiles, outputTitanSegments,
 		setGenomeStyle,plotSegmentMedians,
 		loadHaplotypeAlleleCounts,plotHaplotypeFraction,
-		loadBXcountsFromBEDDir)
+		loadBXcountsFromBEDDir,correctIntegerCN)
