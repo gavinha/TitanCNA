@@ -281,8 +281,8 @@ getPhasedAllele <- function(x){
 	return(list(h1 = h1, h2 = h2))
 }
 
-plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRatio", colType = "Haplotypes", phaseBlockCol = c("#9ad0f3", "#CC79A7"), 
-    geneAnnot = NULL, spacing = 4,  xlim = NULL,  ...) {
+plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRatio", colType = "Haplotypes", 
+	phaseBlockCol = c("#9ad0f3", "#CC79A7"), geneAnnot = NULL, spacing = 4,  xlim = NULL,  ...) {
     if (!resultType %in% c("HaplotypeRatio", "AllelicRatio")){
       stop("plotHaplotypeFraction: resultType must be one of 'HaplotypeRatio' or 'AllelicRatio'.")
     }

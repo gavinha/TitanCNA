@@ -1,6 +1,7 @@
 \name{haplotype-analysis-methods}
 \alias{loadHaplotypeAlleleCounts}
 \alias{getHaplotypesFromVCF}
+\alias{loadBXcountsFromBEDDir}
 
 
 \title{
@@ -23,7 +24,7 @@
       minQUAL = 100, minDepth = 10, minVAF = 0.25, altCountField = "AD", 
       keepGenotypes = c("1|0", "0|1", "0/1"), snpDB = NULL)
       
-    loadBXcountsFromBEDDir(bxDir, chrs = c(1:22, "X", "Y"), minReads = 2){
+    loadBXcountsFromBEDDir(bxDir, chrs = c(1:22, "X", "Y"), minReads = 2)
 
 }
 

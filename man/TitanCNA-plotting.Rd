@@ -18,15 +18,15 @@
       xlim = NULL, ...)
   plotClonalFrequency(dataIn, chr = NULL, normal = NULL, geneAnnot = NULL, 
       spacing = 4, xlim = NULL, ...)
-  plotCNlogRByChr(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL, ploidy = NULL, 
-      normal = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...)
+  plotCNlogRByChr(dataIn, chr = NULL, segs = NULL, plotCorrectedCN = TRUE, 
+  	  geneAnnot = NULL, ploidy = NULL, normal = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...)
   plotSubcloneProfiles(dataIn, chr = NULL, geneAnnot = NULL, 
   	  spacing = 4, xlim = NULL, ...)
-  plotSegmentMedians(dataIn, resultType = "LogRatio", plotType = "CopyNumber", 
+  plotSegmentMedians(dataIn, resultType = "LogRatio", plotType = "CopyNumber", plotCorrectedCN = TRUE,
       chr = NULL, geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, 
 		  plot.new = FALSE, lwd = 8, ...)
   plotHaplotypeFraction(dataIn, chr = NULL, resultType = "HaplotypeRatio", colType = "Haplotypes",
-      geneAnnot = NULL, spacing = 4,  xlim = NULL,  ...)
+      phaseBlockCol = c("#9ad0f3", "#CC79A7"), geneAnnot = NULL, spacing = 4,  xlim = NULL,  ...)
 }
 
 \arguments{
@@ -49,6 +49,9 @@
   \item{colType}{
     Specify the color scheme to use: \sQuote{Haplotypes} or \sQuote{CopyNumber}. For \sQuote{Haplotypes}, alternating blue and red used to illustrated the data within phased haplotype blocks.  For \sQuote{CopyNumber}, the same colors as \code{plotAllelicRatio} are used for allelic copy number events.
   }
+  \item{plotCorrectedCN}{
+  	\code{TRUE} if the plot will use \sQuote{Corrected_Copy_Number} for color of data points or lines.
+  }
   \item{geneAnnot}{
     \code{\link[base:data.frame]{data.frame}} specifying the genes to annotate in the plot. Gene boundaries are indicated using vertical dotted grey lines and gene symbols are shown at the top of the plot. \code{geneAnnot} must have four columns: gene symbol, chr, start coordinate, stop coordinate.
   }
@@ -57,6 +60,9 @@
   }
   \item{ploidy}{
     \code{numeric} scalar indicating the tumour ploidy used to adjust the copy number plot \code{\link{plotCNlogRByChr}}. This can be obtained from converge parameters output using \code{\link{runEMclonalCN}}. See Example. If \code{NULL} is used, then ploidy adjustment is not used in the plot.
+  }
+  \item{phaseBlockCol}{
+  	Two-element vector specifying the color to plot for alternating haplotype phase blocks.
   }
   \item{spacing}{
     Number of lines of spacing for the margin spacing at the bottom of the plot. Useful if an idiogram/karogram is plot underneath.
