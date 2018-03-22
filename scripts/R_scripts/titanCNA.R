@@ -76,6 +76,7 @@ option_list <- list(
             help = "NCBI or UCSC chromosome naming convention; use UCSC if desired output is to have \"chr\" string. [Default: %default]"),
 	make_option(c("--chrs"), type = "character", default = "c(1:22, 'X')",
             help = "Chromosomes to analyze; string [Default: %default"),
+    make_option(c("--gender"), type = "character", default = "male", help = "User specified gender: male or female [Default: %default]"),
 	make_option(c("--mapWig"), type = "character", default = NULL,
             help = "Mappability score file for bin sizes matching cnfile. [Default: %default]"),
 	make_option(c("--mapThres"), type = "numeric", default = 0.9,
@@ -105,7 +106,7 @@ opt <- parse_args(parseobj)
 options(bitmapType='cairo', scipen=0)
 
 libdir <- opt$libdir
-if (!is.null(libdir)){
+if (!is.null(libdir) & libdir != "None"){
   source(paste0(libdir, "R/plotting.R"))
   source(paste0(libdir, "R/utils.R"))
   source(paste0(libdir, "R/hmmClonal.R"))
@@ -135,6 +136,7 @@ skew <- opt$skew
 hetBaselineSkew <- opt$hetBaselineSkew
 minClustProportion <- opt$minClustProportion
 chrs <- eval(parse(text = opt$chrs))
+gender <- opt$gender
 genomeStyle <- opt$genomeStyle
 mapWig <- opt$mapWig
 centromere <- opt$centromere
@@ -171,11 +173,14 @@ if (is.null(outigv)){
 }
 if (is.null(outplot)){
 	outplot <- paste0(outdir, "/", id, "_cluster", numClustersStr, "/")
-	dir.create(outplot, showWarnings=verbose)
 }
+dir.create(outplot, showWarnings=verbose)
 outImage <- gsub(".titan.txt", ".RData", outfile)
 
 ## set up chromosome naming convention ##
+if (gender == "male" || gender == "Male" || gender == "MALE"){
+	chrs <- chrs[!chrs %in% "X"]
+}
 chrs <- setGenomeStyle(chrs, genomeStyle = genomeStyle)
 
 pseudo_counts <- 1e-300
@@ -219,10 +224,10 @@ message('titan: Loading default parameters')
 params <- loadDefaultParameters(copyNumber=maxCN,numberClonalClusters=numClusters,
                                 skew=skew, hetBaselineSkew=hetBaselineSkew, data=data)
 
-#### MODEL SELECTION USING EM (FWD-BACK) TO SELECT NUMBER OF CLUSTERS ####
+#### PARAMETER ESTIMATION USING EM (FWD-BACK) TO SELECT NUMBER OF CLUSTERS ####
 registerDoMC()
 options(cores=numCores)
-message("Model selection: Using ",getDoParWorkers()," cores.")
+message("titan: Using ",getDoParWorkers()," cores.")
 K <- length(params$genotypeParams$rt)
 params$genotypeParams$alphaKHyper <- rep(alphaK,K)
 params$genotypeParams$betaKHyper <- rep(25,K)
@@ -230,7 +235,7 @@ params$genotypeParams$betaKHyper <- rep(25,K)
 params$ploidyParams$phi_0 <- ploidy_0
 params$normalParams$n_0 <- norm_0
 #params$genotypeParams$rt[c(4, 9)] <- hetAR
-
+message("titan: Parameter estimation")
 convergeParams <- runEMclonalCN(data, params,
                                 maxiter=maxI,maxiterUpdate=1500,
                                 txnExpLen=txn_exp_len,txnZstrength=txn_z_strength,
@@ -242,7 +247,7 @@ convergeParams <- runEMclonalCN(data, params,
 #### COMPUTE OPTIMAL STATE PATH USING VITERBI ####
 message("Optimal state path computation: Using ",getDoParWorkers()," cores.")
 optimalPath <- viterbiClonalCN(data,convergeParams)
-save.image(file=outImage)
+#save.image(file=outImage)
 #### PRINT RESULTS TO FILES ####
 results <- outputTitanResults(data,convergeParams,optimalPath,
 			filename=NULL,posteriorProbs=F,subcloneProfiles=TRUE,
@@ -250,9 +255,8 @@ results <- outputTitanResults(data,convergeParams,optimalPath,
 			recomputeLogLik = TRUE, rerunViterbi = FALSE, verbose=verbose)
 convergeParams <- results$convergeParams
 results <- results$corrResults
-numClustersToPlot <- nrow(convergeParams$s)
-write.table(results, file = outfile, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
-outputModelParameters(convergeParams, results, outparam)
+norm <- tail(convergeParams$n,1)
+ploidy <- tail(convergeParams$phi,1)
 
 # save specific objects to a file
 # if you don't specify the path, the cwd is assumed
@@ -260,20 +264,27 @@ convergeParams$rhoG <- NULL; convergeParams$rhoZ <- NULL
 #save(convergeParams, file=outImage)
 save.image(file=outImage)
 #### OUTPUT SEGMENTS ####
-message("Writing segments to ", outseg)
-segs <- outputTitanSegments(results, id, convergeParams, filename = outseg, igvfilename = outigv)
+segs <- outputTitanSegments(results, id, convergeParams, filename = NULL, igvfilename = outigv)
+corrIntCN.results <- correctIntegerCN(results, segs, 1 - norm, ploidy, maxCNtoCorrect.autosomes = maxCN, 
+		maxCNtoCorrect.X = NULL, minPurityToCorrect = 0.2, gender = gender, chrs = chrs)
+results <- corrIntCN.results$cn
+segs <- corrIntCN.results$segs
+message("Writing results to ", outfile, ", ", outseg, ", ", outparam)
+write.table(results, file = outfile, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+write.table(segs, file = outseg, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+outputModelParameters(convergeParams, results, outparam)
 
 #### PLOT RESULTS ####
+numClustersToPlot <- nrow(convergeParams$s)
 dir.create(outplot, showWarnings=verbose)
-norm <- tail(convergeParams$n,1)
-ploidy <- tail(convergeParams$phi,1)
+
 for (chr in unique(results$Chr)){
 	outfig <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_chr", chr, ".png")
-	png(outfig,width=1200,height=1000,res=100)
+	png(outfig,width=1200,height=1200,res=100)
 	if (as.numeric(numClusters) <= 2){
-		par(mfrow=c(4,1))
+		par(mfrow=c(5,1))
 	}else{
-		par(mfrow=c(3,1))
+		par(mfrow=c(4,1))
 	}
 	plotCNlogRByChr(results, chr, segs = segs, ploidy=ploidy,
                         normal = norm, geneAnnot=NULL,  cex.axis=1.5,
@@ -283,7 +294,9 @@ for (chr in unique(results$Chr)){
 	plotClonalFrequency(results, chr, normal=norm, geneAnnot=NULL, spacing=4,
                             cex.axis=1.5, ylim=c(0,1), xlab="", cex=0.5,
                             main=paste("Chr ",chr,sep=""))
-
+    maxCorCN <- segs[chr==chr, max(Corrected_Copy_Number, na.rm = TRUE)]
+	plotSegmentMedians(segs, chr=chr, resultType = "LogRatio", plotType = "CopyNumber", 
+				plot.new=TRUE, ylim=c(0,maxCorCN), xlab="", spacing=4, main=paste("Chr ",chr,sep=""))
 	if (as.numeric(numClustersToPlot) <= 2 && as.numeric(numClusters) <= 2){
 		plotSubcloneProfiles(results, chr, cex = 2, spacing=6,
                                      main=paste("Chr ",chr,sep=""), cex.axis=1.5)
@@ -308,12 +321,28 @@ plotCNlogRByChr(dataIn=results, chr=NULL, segs = segs, ploidy=ploidy,
                 ylim=plotYlim, cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
 
+outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CNASEG.pdf")
+#png(outFile,width=1000,height=300)
+pdf(outFile,width=20,height=6)
+maxCorCN <- max(segs$Corrected_Copy_Number, na.rm = TRUE)
+plotSegmentMedians(dataIn=segs, chr=NULL, resultType = "LogRatio", plotType = "CopyNumber", 
+				plot.new=T, ylim=c(0,maxCorCN), cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
+dev.off()
+
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_LOH.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
 plotAllelicRatio(dataIn=results, chr=NULL, geneAnnot=genes, spacing=4,
                  main=id, xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5,
                  cex.lab=1.5, cex.main=1.5)
+dev.off()
+
+outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_LOHSEG.pdf")
+#png(outFile,width=1000,height=300)
+pdf(outFile,width=20,height=6)
+maxCorCN <- max(segs$Corrected_Copy_Number, na.rm = TRUE)
+plotSegmentMedians(dataIn=segs, chr=NULL, resultType = "AllelicRatio", plotType = "CopyNumber", 
+				plot.new=T, ylim=c(0,maxCorCN), cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
 
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CF.pdf")
