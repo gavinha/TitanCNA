@@ -24,8 +24,8 @@ Date: March 22, 2018
 
 ## Links
 TitanCNA GitHub: https://github.com/gavinha/TitanCNA  
-Snakemake Workflow: https://github.com/gavinha/TitanCNA/tree/master/scripts/snakemake
-Google Groups: https://groups.google.com/forum/#!forum/titancna   
+Snakemake Workflow: https://github.com/gavinha/TitanCNA/tree/master/scripts/snakemake  
+Google Groups: https://groups.google.com/forum/#!forum/titancna  
 TitanCNA website: http://compbio.bccrc.ca/software/titan/  
 KRONOS TITAN Workflow: https://github.com/MO-BCCRC/titan_workflow  
 Publication in Genome Research: http://genome.cshlp.org/content/24/11/1881
