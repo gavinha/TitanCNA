@@ -71,9 +71,9 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
     # color coding
     lohCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000",
         "#006400", "#BEBEBE", "#FF0000", "#FF0000",
-        "#FF0000")
+        "#FF0000", "#FF0000", "#FF0000")
     names(lohCol) <- c("HOMD", "DLOH", "NLOH", "GAIN",
-        "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
+        "ALOH", "HET", "ASCNA", "BCNA", "UBCNA", "AMP", "HLAMP")
 
     # get unique set of cluster and estimates table:
     # 1st column is cluster number, 2nd column is
@@ -194,18 +194,27 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
 # alphaVal = [0,1] geneAnnot is a dataframe with 4
 # columns: geneSymbol, chr, start, stop spacing is
 # the distance between each track
-plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
+plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, 
+	plotCorrectedCN = TRUE, geneAnnot = NULL,
     ploidy = NULL, normal = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
     # color coding
     alphaVal <- ceiling(alphaVal * 255)
     class(alphaVal) = "hexmode"
     cnCol <- c("#00FF00", "#006400", "#0000FF", "#880000",
-        "#BB0000", "#CC0000", "#DD0000", "#EE0000", "#FF0000")
+        "#BB0000", "#CC0000", "#DD0000", "#EE0000", rep("#FF0000",493))
     cnCol <- paste(cnCol, alphaVal, sep = "")
     # cnCol <-
     # col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
-    names(cnCol) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
-
+    names(cnCol) <- c(0:500)
+	
+	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
+		binCN <- "Corrected_Copy_Number"
+		segCN <- "Corrected_Copy_Number"
+	}else{
+		binCN <- "CopyNumber"
+		segCN <- "Copy_Number"
+	}
+	
     dataIn <- copy(dataIn)
     ## adjust logR values for ploidy ##
     if (!is.null(ploidy)) {
@@ -233,14 +242,13 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
             }
             coord <- as.numeric(dataByChr[, Position])
             plot(coord, as.numeric(dataByChr[, LogRatio]),
-                col = cnCol[as.character(dataByChr[, CopyNumber])], pch = 16, xaxt = "n",
-                las = 1, ylab = "Copy Number (log ratio)", xlim = xlim, ...)
+                col = cnCol[as.character(dataByChr[, get(binCN)])], pch = 16, xaxt = "n", las = 1, ylab = "Copy Number (log ratio)", xlim = xlim, ...)
             lines(xlim, rep(0, 2), type = "l", col = "grey", lwd = 0.75)
             if (!is.null(segs)){
 							segsByChr <- segs.sample[Chromosome == as.character(i), ]
 							tmp <- apply(segsByChr, 1, function(x){
 								lines(x[c("Start_Position.bp.","End_Position.bp.")], 
-										rep(x["Median_logR"], 2), col = cnCol[as.character(x["Copy_Numbers"])], lwd = 3, lend = 1)
+										rep(x["Median_logR"], 2), col = cnCol[as.character(x[segCN])], lwd = 3, lend = 1)
 							})
 						}
 
@@ -253,7 +261,7 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
         # plot for all chromosomes
         coord <- getGenomeWidePositions(dataIn[, Chr], dataIn[, Position])
         plot(coord$posns, as.numeric(dataIn[, LogRatio]),
-            col = cnCol[as.character(dataIn[, CopyNumber])],
+            col = cnCol[as.character(dataIn[, get(binCN)])],
             pch = 16, xaxt = "n", las = 1, bty = "n",
             ylab = "Copy Number (log ratio)", ...)
         lines(as.numeric(c(1, coord$posns[length(coord$posns)])),
@@ -264,7 +272,7 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, geneAnnot = NULL,
 					coordEnd <- getGenomeWidePositions(segs.sample[, Chromosome], segs.sample[, End_Position.bp.])
 					coordStart <- coordEnd$posns - (segs.sample[, End_Position.bp.] - segs.sample[, Start_Position.bp.] + 1)
 					xlim <- as.numeric(c(1, coordEnd$posns[length(coordEnd$posns)]))
-					col <- cnCol[as.character(segs.sample[, Copy_Number])]
+					col <- cnCol[as.character(segs.sample[, get(segCN)])]
 					value <- as.numeric(segs.sample[, Median_logR])
 					mat <- as.data.frame(cbind(coordStart, coordEnd$posns, value, col))
 					rownames(mat) <- 1:nrow(mat)
@@ -418,9 +426,8 @@ plotAllelicCN <- function(dataIn, resultType = "AllelicRatio",
 
 
 plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
-                               plotType = "CopyNumber", chr = NULL,
-		geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL,
-		plot.new = FALSE, lwd = 8, ...){
+                               plotType = "CopyNumber", plotCorrectedCN = TRUE, 
+                               chr = NULL, geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, plot.new = FALSE, lwd = 8, ...){
 
 	## check for the possible resultType to plot ##
 	if (!resultType %in% c("LogRatio", "AllelicRatio", "HaplotypeRatio")){
@@ -438,6 +445,10 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
 	colName <- c("Copy_Number","TITAN_call", "TITAN_call")
 	names(colName) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
 
+	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
+		colName[1] <- "Corrected_Copy_Number"
+	}
+
 	dataIn <- copy(dataIn)
 	# color coding
     alphaVal <- ceiling(alphaVal * 255)
@@ -445,18 +456,18 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
 
     if (resultType == "LogRatio"){
 		cnCol <- c("#00FF00", "#006400", "#0000FF", "#880000",
-			"#BB0000", "#CC0000", "#DD0000", "#EE0000", "#FF0000")
+        "#BB0000", "#CC0000", "#DD0000", "#EE0000", rep("#FF0000",493))
 		cnCol <- paste(cnCol, alphaVal, sep = "")
 		# cnCol <-
 		# col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
-		names(cnCol) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
+		names(cnCol) <- c(0:500)
 	}else if (resultType %in% c("AllelicRatio", "HaplotypeRatio")){
 		cnCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000",
-        	"#006400", "#BEBEBE", "#FF0000", "#BEBEBE", "#FF0000")
+        	"#006400", "#BEBEBE", "#FF0000", "#BEBEBE", "#FF0000", "#FF0000", "#FF0000")
     # lohCol <- paste(lohCol,alphaVal,sep='') lohCol <-
     # col2rgb(c('green','darkgreen','blue','darkgreen','grey','red'))
     names(cnCol) <- c("HOMD", "DLOH", "NLOH", "GAIN",
-        "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
+        "ALOH", "HET", "ASCNA", "BCNA", "UBCNA", "AMP", "HLAMP")
 	}
     if (plotType == "CopyNumber"){
       axisName <- axisNameCN

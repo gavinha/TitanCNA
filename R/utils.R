@@ -1162,7 +1162,7 @@ mergeSegsByCol <- function(segs, colToMerge = "Copy_Number", centromeres = NULL)
 
 ## Recompute integer CN for high-level amplifications ##
 ## compute logR-corrected copy number ##
-correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes = NULL, 
+correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes = NULL, 
 		maxCNtoCorrect.X = NULL, minPurityToCorrect = 0.2, gender = "male", chrs = c(1:22, "X")){
 	names <- c("HOMD","HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 	cn <- copy(cn)
@@ -1170,14 +1170,14 @@ correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes
 	if (is.null(maxCNtoCorrect.autosomes)){
 		maxCNtoCorrect.autosomes <- segs[Chromosome %in% c(1:22), max(Copy_Number)]
 	}
-	if (is.null(maxCNtoCorrect.X)){
+	if (is.null(maxCNtoCorrect.X) & gender == "female"){
 		maxCNtoCorrect.X <- segs[Chromosome == "X", max(Copy_Number)]
 	}
-	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidyT, cn=2)]
-	cn[Chr %in% c(1:22), logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidyT, cn=2)]
+	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=2)]
+	cn[Chr %in% c(1:22), logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=2)]
 	if (gender == "male"){ ## analyze chrX separately
-		segs[Chromosome == "X", logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidyT, cn=1)]
-		cn[Chr == "X", logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidyT, cn=1)]
+		segs[Chromosome == "X", logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=1)]
+		cn[Chr == "X", logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=1)]
 	}
 	## assign copy number to use - Corrected_Copy_Number and Corrected_Call
 	# same TITAN calls for autosomes - no change in copy number
@@ -1191,6 +1191,10 @@ correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes
 	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
 	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := round(logR_Copy_Number)]
 	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
+	
+	# Add corrected calls for bins with CopyNumber = NA (ie. not included in TITAN analysis)
+	cn[Chr %in% chrs & is.na(CopyNumber), Corrected_Copy_Number := round(logR_Copy_Number)]
+	cn[Chr %in% chrs & is.na(TITANcall), Corrected_Call := names[Corrected_Copy_Number + 1]]
 	
 	if (purity >= minPurityToCorrect){
 		if (gender == "male"){
@@ -1206,7 +1210,7 @@ correctIntegerCN <- function(cn, segs, purity, ploidyT, maxCNtoCorrect.autosomes
 		}
 	}
 	
-	return(list(cn = cn, segs = segs))	
+	return(list(cn = copy(cn), segs = copy(segs)))	
 }
 
 ## compute copy number using corrected log ratio ##
