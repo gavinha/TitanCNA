@@ -29,8 +29,6 @@ binSize:  10000
 ## ichorCNA params ##
 ichorCNA_gcWig: /path/to/gc_hg19_10kb.wig
 ichorCNA_mapWig:  /path/to/map_hg19_10kb.wig
-ichorCNA_exons:  NULL
-ichorCNA_centromere:  NULL
 ichorCNA_chrs:  c(1:22, \"X\")
 ichorCNA_chrTrain:  c(1:22)  
 ichorCNA_normal:  c(0.5)  
