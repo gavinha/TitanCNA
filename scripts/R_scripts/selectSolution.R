@@ -73,8 +73,8 @@ formatParams <- function(params){
 #save.image()
 
 getParamAllClusters <- function(phiSamples, phiStr = "2"){
-	phiParams <- data.frame(id=NA, barcode=NA, numClust=NA, 
-	  cellPrev=NA, purity=NA, norm=NA, ploidy=NA, loglik=NA, sdbw=NA)
+	phiParams <- NULL#data.frame(id=NA, barcode=NA, numClust=NA, 
+	  #cellPrev=NA, purity=NA, norm=NA, ploidy=NA, loglik=NA, sdbw=NA)
 	for (j in 1:length(phiSamples)){
 	  phi <- read.delim(phiSamples[j], header=F, row.names=1, stringsAsFactors=F, sep="\t")
 	  colnames(phi) <- gsub(".params.txt", "", basename(phiSamples[j]))	
@@ -83,19 +83,19 @@ getParamAllClusters <- function(phiSamples, phiStr = "2"){
 	  stateDist <- phisegs[, sum(Length.snp.), by = TITAN_call]
 	  # HOMD total proportion greater than homd.snp.prop
 	  if ("HOMD" %in% stateDist$TITAN_call){
-      ind <- stateDist[TITAN_call == "HOMD", V1] / sum(stateDist[, V1]) > homd.snp.prop
-      # HOMD seg larger than homd.snp.thres
-      ind <- ind | sum(phisegs[TITAN_call == "HOMD", Length.snp.] > homd.snp.thres) > 0
-      if (ind){
-        param.df[, "loglik"] <- -Inf
-        param.df[, "sdbw"] <- Inf
-      }
+		  ind <- stateDist[TITAN_call == "HOMD", V1] / sum(stateDist[, V1]) > homd.snp.prop
+		  # HOMD seg larger than homd.snp.thres
+		  ind <- ind | sum(phisegs[TITAN_call == "HOMD", Length.snp.] > homd.snp.thres) > 0
+		  if (ind){
+			param.df[, "loglik"] <- -Inf
+			param.df[, "sdbw"] <- Inf
+		  }
+    	}
+    	phiParams <- rbind(phiParams, param.df )
     }
-    phiParams <- rbind(phiParams, param.df )
-  }
-  phiParams <- na.omit(phiParams)
-  phiParams <- cbind(Phi=phiStr, phiParams, path = gsub(".params.txt", "", phiSamples))
-  return(phiParams)
+	#phiParams <- na.omit(phiParams)
+	phiParams <- cbind(Phi=phiStr, phiParams, path = gsub(".params.txt", "", phiSamples))
+	return(phiParams)
 }
 
 ########################################################
