@@ -1,8 +1,8 @@
 #' author: Gavin Ha 
 #' 		Dana-Farber Cancer Institute
-#'		  Broad Institute
+#'		Broad Institute
 #' contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>
-#' date:	  September 8, 2017
+#' date:	  June 26, 2018
 
 loadDefaultParameters <- function(copyNumber = 5, numberClonalClusters = 1, 
     skew = 0, hetBaselineSkew = NULL, alleleEmissionModel = "binomial", symmetric = TRUE, data = NULL) {
@@ -1414,13 +1414,14 @@ getSubcloneProfiles <- function(titanResults){
 				data.frame.")
 	}
 	
-	numClones <- as.numeric(max(titanResults$ClonalCluster,
-			na.rm = TRUE))
+	clonalClust <- titanResults$ClonalCluster
+	clonalClust[is.na(clonalClust)] <- 0
+	numClones <- as.numeric(max(clonalClust, na.rm = TRUE))
 	if (is.na(numClones)){ numClones <- 0 }
 	cellPrev <- unique(cbind(Cluster = titanResults$ClonalCluster, 
 			Prevalence = titanResults$CellularPrevalence))
 	
-	if (numClones == 0){
+	if (numClones == 0 || is.infinite(numClones)){
 		subc1 <- data.table(cbind(CopyNumber = as.numeric(titanResults$CopyNumber), 
 				TITANcall = titanResults$TITANcall, Prevalence = "NA"))
 	}
