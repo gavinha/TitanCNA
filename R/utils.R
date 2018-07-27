@@ -1176,12 +1176,12 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	if (is.null(maxCNtoCorrect.autosomes)){
 		maxCNtoCorrect.autosomes <- segs[Chromosome %in% autosomeStr, max(Copy_Number, na.rm=TRUE)]
 	}
-	if (is.null(maxCNtoCorrect.X) & gender == "female"){
+	if (is.null(maxCNtoCorrect.X) & gender == "female" & length(chrXStr) > 0){
 		maxCNtoCorrect.X <- segs[Chromosome == chrXStr, max(Copy_Number, na.rm=TRUE)]
 	}
 	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=2)]
 	cn[Chr %in% autosomeStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=2)]
-	if (gender == "male"){ ## analyze chrX separately
+	if (gender == "male" & length(chrXStr) > 0){ ## analyze chrX separately
 		segs[Chromosome == chrXStr, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=1)]
 		cn[Chr == chrXStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=1)]
 	}
@@ -1204,7 +1204,7 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	
 	# Adjust chrX copy number if purity is sufficiently high
 	if (purity >= minPurityToCorrect){
-		if (gender == "male"){
+		if (gender == "male" & length(chrXStr) > 0){
 			segs[Chromosome == chrXStr, Corrected_Copy_Number := round(logR_Copy_Number)]
 			segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 1]]
 			cn[Chr == chrXStr, Corrected_Copy_Number := round(logR_Copy_Number)]

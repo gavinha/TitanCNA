@@ -230,14 +230,14 @@ getPhasedAlleleFraction <- function(x){
   return(list(allele.fraction = allele.fraction, phasedCount = phasedCount))
 }
 
-getHaplotypesFromVCF <- function(vcfFile, chrs = c(1:22, "X"), build = "hg19", style = "NCBI",
+getHaplotypesFromVCF <- function(vcfFile, chrs = c(1:22, "X"), build = "hg19", genomeStyle = "NCBI",
                                  filterFlags = c("PASS", "10X_RESCUED_MOLECULE_HIGH_DIVERSITY"), 
                                  minQUAL = 100, minDepth = 10, minVAF = 0.25, altCountField = "AD",
                                  keepGenotypes = c("1|0", "0|1", "0/1"), snpDB = NULL){
   #require(data.table)
   message("Loading ", vcfFile)
   vcf <- readVcf(vcfFile, genome = build)
-  chrName <- mapSeqlevels(seqlevels(vcf), style = style)
+  chrName <- mapSeqlevels(seqlevels(vcf), style = genomeStyle)
   rowRanges(vcf) <- renameSeqlevels(rowRanges(vcf), na.omit(chrName))
   #keepGenotypes = c("1|0", "0|1", "0/1")
   

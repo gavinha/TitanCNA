@@ -15,11 +15,12 @@
 }
 
 \usage{
-    loadHaplotypeAlleleCounts(inCounts, fun = "sum", haplotypeBinSize = 1e5, 
+    loadHaplotypeAlleleCounts(inCounts, cnfile, fun = "sum", haplotypeBinSize = 1e5, 
       minSNPsInBin = 3, chrs = c(1:22, "X"), minNormQual = 200, 
-      genomeStyle = "NCBI", sep = "\t", header = TRUE, seqinfo = NULL)
+      genomeStyle = "NCBI", sep = "\t", header = TRUE, seqinfo = NULL,
+      mapWig = NULL, mapThres = 0.9, centromere = NULL, minDepth = 10, maxDepth = 1000)
     
-    getHaplotypesFromVCF(vcfFile, chrs = c(1:22, "X"), build = "hg19", 
+    getHaplotypesFromVCF(vcfFile, chrs = c(1:22, "X"), build = "hg19", genomeStyle = "NCBI",
       filterFlags = c("PASS", "10X_RESCUED_MOLECULE_HIGH_DIVERSITY"), 
       minQUAL = 100, minDepth = 10, minVAF = 0.25, altCountField = "AD", 
       keepGenotypes = c("1|0", "0|1", "0/1"), snpDB = NULL)
@@ -30,7 +31,10 @@
 
 \arguments{
   \item{inCounts}{
-    Full file path to text file or data.frame containing tumour allele count data. \code{inCounts} must be 6 columns: chromosome, position, reference base, reference read counts, non-reference base, non-reference read counts.  \sQuote{chromosome} column can be in \sQuote{NCBI} or \sQuote{UCSC} genome style; only autosomes, sex chromosomes, and mitochondrial chromosome are included (e.g. 1-22,X,Y,MT). The reference and non-reference base columns can be any arbitrary character; it is not used by \pkg{TitanCNA}.
+    Path to text file or data.frame containing tumour allele count data. \code{inCounts} must be 6 columns: chromosome, position, reference base, reference read counts, non-reference base, non-reference read counts.  \sQuote{chromosome} column can be in \sQuote{NCBI} or \sQuote{UCSC} genome style; only autosomes, sex chromosomes, and mitochondrial chromosome are included (e.g. 1-22,X,Y,MT). The reference and non-reference base columns can be any arbitrary character; it is not used by \pkg{TitanCNA}.
+  }
+  \item{cnfile}{
+  	Path to file containing GC-bias and maappability corrected molecule coverage for given bin size.
   }
   \item{vcfFile}{
     Path to phased variant VCF file from LongRanger 2.1.  The file name must have the suffix \code{*phase_variants.vcf.gz}. 
@@ -74,6 +78,9 @@
   \item{minDepth}{
     Variants with read depth greater than or equal to this value will be retained. 
   }
+  \item{maxDepth}{
+  	Variants with read depth lower than or equal to this value will be retained.
+  }
   \item{minVAF}{
     Variants with a variant/reference allele fraction of greater than or equal to this value will be retained. 
   }
@@ -94,6 +101,15 @@
   }
   \item{seqinfo}{
     \code{\link[GenomeInfoDb:Seqinfo-class]{Seqinfo-class}} object describing chromosome information. If \code{NULL}, then will load seqinfo for hg19 \verb{system.files('extdata', 'Seqinfo_hg19.rda', package='TitanCNA'}.
+  }
+  \item{mapWig}{
+  	Mappability score WIG file for binned data.
+  }
+  \item{mapThres}{
+  	Minimum mappability score of region/sequence overlapping variants to retain.
+  }
+  \item{centromere}{
+  	File containing reference genome gap file representing centromere locations. Usually obtained from UCSC.
   }
 }
 
