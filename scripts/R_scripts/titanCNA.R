@@ -74,6 +74,7 @@ option_list <- list(
             help="Minimum proportion of the genome altered (by SNPs) for a cluster to be retained.  Clonal clusters having lower proportion of alteration are removed. [Default: %default]"),
 	make_option(c("--genomeStyle"), type = "character", default = "NCBI",
             help = "NCBI or UCSC chromosome naming convention; use UCSC if desired output is to have \"chr\" string. [Default: %default]"),
+	make_option(c("--genomeBuild"), type = "character", default = "hg38", help="Genome build to use; will load Seqinfo from GenomeInfoDb."),
 	make_option(c("--chrs"), type = "character", default = "c(1:22, 'X')",
             help = "Chromosomes to analyze; string [Default: %default"),
     make_option(c("--gender"), type = "character", default = "male", help = "User specified gender: male or female [Default: %default]"),
@@ -138,6 +139,7 @@ minClustProportion <- opt$minClustProportion
 chrs <- eval(parse(text = opt$chrs))
 gender <- opt$gender
 genomeStyle <- opt$genomeStyle
+genomeBuild <- opt$genomeBuild
 mapWig <- opt$mapWig
 centromere <- opt$centromere
 outdir <- opt$outDir
@@ -177,11 +179,12 @@ if (is.null(outplot)){
 dir.create(outplot, showWarnings=verbose)
 outImage <- gsub(".titan.txt", ".RData", outfile)
 
-## set up chromosome naming convention ##
+seqinfo <- Seqinfo(genome=genomeBuild)
+seqlevelsStyle(chrs) <- genomeStyle
+## exclude chrX if gender==male ##
 if (gender == "male" || gender == "Male" || gender == "MALE"){
-	chrs <- chrs[!chrs %in% "X"]
+	chrs <- chrs[chrs!=grep("X", chrs, value=TRUE)]
 }
-chrs <- setGenomeStyle(chrs, genomeStyle = genomeStyle)
 
 pseudo_counts <- 1e-300
 centromereFlank <- 100000
@@ -278,6 +281,11 @@ outputModelParameters(convergeParams, results, outparam)
 numClustersToPlot <- nrow(convergeParams$s)
 dir.create(outplot, showWarnings=verbose)
 
+if (genomeBuild == "hg38"){
+	cytoband <- fread(cytobandFile)
+	names(cytoband) <- c("chrom", "start", "end", "name", "gieStain")
+	#cytoband$V1 <- setGenomeStyle(cytoband$V1, genomeStyle = genomeStyle)
+}
 for (chr in unique(results$Chr)){
 	outfig <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_chr", chr, ".png")
 	png(outfig,width=1200,height=1200,res=100)
@@ -300,12 +308,17 @@ for (chr in unique(results$Chr)){
 	if (as.numeric(numClustersToPlot) <= 2 && as.numeric(numClusters) <= 2){
 		plotSubcloneProfiles(results, chr, cex = 2, spacing=6,
                                      main=paste("Chr ",chr,sep=""), cex.axis=1.5)
-		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-4.25,
-                                   new=FALSE, ylim=c(-2,-1))
+		ylim <- c(-2,-1)
+		label.y=-4.25
 	}else{
-		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-0.35,
-                                   new=FALSE, ylim=c(-0.2,-0.1))
+		ylim <- c(-0.2,-0.1)
+		label.y <- -0.35,
 	}
+	if (genomeBuild == "hg38"){
+  		pI <- plotIdiogram.hg38(chr, cytoband=cytoband, seqinfo=seqinfo, xlim=c(0, max(sl)), unit="bp", label.y=label.y, new=FALSE, ylim=ylim)	
+  	}else{
+  		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-0.35, label.y, new=FALSE, ylim=ylim)	
+  	}
 
 	dev.off()
 }
@@ -316,7 +329,7 @@ for (chr in unique(results$Chr)){
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CNA.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
-plotCNlogRByChr(dataIn=results, chr=NULL, segs = segs, ploidy=ploidy,
+plotCNlogRByChr(dataIn=results, chr=chrs, segs = segs, ploidy=ploidy,
                 normal = norm, geneAnnot=genes, spacing=4, main=id, xlab="",
                 ylim=plotYlim, cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
@@ -325,14 +338,14 @@ outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CNASEG.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
 maxCorCN <- max(segs$Corrected_Copy_Number, na.rm = TRUE)
-plotSegmentMedians(dataIn=segs, chr=NULL, resultType = "LogRatio", plotType = "CopyNumber", 
+plotSegmentMedians(dataIn=segs, chr=chrs, resultType = "LogRatio", plotType = "CopyNumber", 
 				plot.new=T, ylim=c(0,maxCorCN), cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
 
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_LOH.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
-plotAllelicRatio(dataIn=results, chr=NULL, geneAnnot=genes, spacing=4,
+plotAllelicRatio(dataIn=results, chr=chrs, geneAnnot=genes, spacing=4,
                  main=id, xlab="", ylim=c(0,1), cex=0.5, cex.axis=1.5,
                  cex.lab=1.5, cex.main=1.5)
 dev.off()
@@ -341,7 +354,7 @@ outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_LOHSEG.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
 maxCorCN <- max(segs$Corrected_Copy_Number, na.rm = TRUE)
-plotSegmentMedians(dataIn=segs, chr=NULL, resultType = "AllelicRatio", plotType = "CopyNumber", 
+plotSegmentMedians(dataIn=segs, chr=chrs, resultType = "AllelicRatio", plotType = "CopyNumber", 
 				plot.new=T, ylim=c(0,maxCorCN), cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
 dev.off()
 
@@ -357,7 +370,7 @@ if (as.numeric(numClusters) <= 2){
 	outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_subclone.pdf")
 	#png(outFile,width=1000,height=300)
 	pdf(outFile,width=20,height=6)
-	plotSubcloneProfiles(dataIn=results, chr=NULL, cex = 0.5, spacing=4,
+	plotSubcloneProfiles(dataIn=results, chr=chrs, cex = 0.5, spacing=4,
                              main=id, cex.axis=1.5, xlab="")
 	dev.off()
 }

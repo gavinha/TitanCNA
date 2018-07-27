@@ -65,9 +65,10 @@ loadReadCountsFromBed <- function(counts, chrs = c(1:22, "X", "Y"), gc = NULL, m
 	return(counts)
 }
 
-loadHaplotypeAlleleCounts <- function(inCounts, fun = "sum", haplotypeBinSize = 1e5, 
+loadHaplotypeAlleleCounts <- function(inCounts, cnfile, fun = "sum", haplotypeBinSize = 1e5, 
       minSNPsInBin = 3, chrs = c(1:22, "X"), minNormQual = 200, 
-      genomeStyle = "NCBI", sep = "\t", header = TRUE, seqinfo = NULL) {
+      genomeStyle = "NCBI", sep = "\t", header = TRUE, seqinfo = NULL,
+      mapWig = NULL, mapThres = 0.9, centromere = NULL, minDepth = 10, maxDepth = 1000) {
 	if (is.character(inCounts)){
     ## LOAD INPUT READ COUNT DATA 
     	message("titan: Loading data and phasing information ", inCounts)
@@ -76,22 +77,23 @@ loadHaplotypeAlleleCounts <- function(inCounts, fun = "sum", haplotypeBinSize = 
       colnames(data) <- c("chr", "posn", "refBase", "ref", "nonRefBase", "nonRef", "normQual", "genotype", "phaseSet")
       if (typeof(data[,"posn"])!="integer" || typeof(data[,"ref"])!="integer" || 
           typeof(data[,"nonRef"])!="integer" || is.null(data$genotype) || is.null(data$phaseSet)){
-        stop("loadHaplotypeAlleleCounts: Input counts file format does not 
-          match required specifications.")		
+        stop("loadHaplotypeAlleleCounts: Input counts file format does not match required specifications.")	
       }
-  }else if (is.data.frame(inCounts)){  #inCounts is a data.frame
-    data <- inCounts
-  }else{
-    stop("loadHaplotypeAlleleCounts: Must provide a filename or data.frame to inCounts")
-  }
+    }else if (is.data.frame(inCounts)){  #inCounts is a data.frame
+    	data <- inCounts
+  	}else{
+    	stop("loadHaplotypeAlleleCounts: Must provide a filename or data.frame to inCounts")
+  	}
   
-  if (is.null(seqinfo)){
-    seqinfo <- readRDS(system.file("extdata", "Seqinfo_hg19.rds", package = "TitanCNA"))
-  }
-  # convert to desired genomeStyle and only include autosomes, sex chromosomes
-  data[, 1] <- setGenomeStyle(data[, 1], genomeStyle)
+	if (is.null(seqinfo)){
+	seqinfo <- readRDS(system.file("extdata", "Seqinfo_hg19.rds", package = "TitanCNA"))
+	}
+	seqinfo <- keepStandardChromosomes(seqinfo)
+	seqlevelsStyle(chrs) <- genomeStyle
+	# convert to desired genomeStyle and only include autosomes, sex chromosomes
+	data[, 1] <- setGenomeStyle(data[, 1], genomeStyle)
    
-  ## sort chromosomes
+	## sort chromosomes
 	indChr <- orderSeqlevels(as.character(data[, "chr"]), X.is.sexchrom = TRUE)
 	data <- data[indChr, ]
 	## sort positions within each chr
@@ -113,8 +115,8 @@ loadHaplotypeAlleleCounts <- function(inCounts, fun = "sum", haplotypeBinSize = 
   data$ref.symmetric <- pmax(data$ref, data$nonRef)
   data.gr <- makeGRangesFromDataFrame(data, keep.extra.columns = TRUE, seqinfo = seqinfo, ignore.strand = TRUE)
   tile.gr <- unlist(tileGenome(seqinfo, tilewidth = haplotypeBinSize))
-  data.gr <- keepSeqlevels(data.gr, chrs)
-  tile.gr <- keepSeqlevels(tile.gr, chrs)
+  data.gr <- keepSeqlevels(data.gr, chrs, pruning.mode="coarse")
+  tile.gr <- keepSeqlevels(tile.gr, chrs, pruning.mode="coarse")
   hits <- findOverlaps(query = data.gr, subject = tile.gr)
   data.gr$haplotypeBin <- subjectHits(hits)
   ## use data.table to process haplotype counts by blocks
@@ -185,6 +187,34 @@ loadHaplotypeAlleleCounts <- function(inCounts, fun = "sum", haplotypeBinSize = 
     haplotypeData$haplotypeCount <- data.dt[, phasedCount.haploSymmetric]
   }
   haplotypeData$nonRef <- haplotypeData$tumDepth - haplotypeData$ref
+  
+  	## filtering ##
+	if (!is.null(centromere)){
+		centromere <- read.delim(centromere,header=T,stringsAsFactors=F,sep="\t")
+	}
+
+	#### LOAD GC AND MAPPABILITY CORRECTED COVERAGE LOG RATIO FILE ####
+	message('titan: Loading GC content and mappability corrected log2 ratios...')
+	cnData <- fread(cnfile)
+	cnData$chr <- setGenomeStyle(cnData$chr, genomeStyle = genomeStyle)
+
+	#### ADD CORRECTED LOG RATIOS TO DATA OBJECT ####
+	message('titan: Extracting read depth...')
+	logR <- getPositionOverlap(haplotypeData$chr,haplotypeData$posn, cnData)
+	haplotypeData$logR <- log(2^logR)
+	rm(logR,cnData)
+
+	#### FILTER DATA FOR DEPTH, MAPPABILITY, NA, etc ####
+	if (!is.null(mapWig)){
+		mScore <- as.data.frame(wigToRangedData(mapWig))
+		mScore <- getPositionOverlap(haplotypeData$chr,haplotypeData$posn,mScore[,-4])
+		haplotypeData <- filterData(haplotypeData,chrs, minDepth=minDepth, maxDepth=maxDepth, 
+			map=mScore,mapThres=mapThres, centromeres = centromere)
+		rm(mScore)
+	}else{
+		haplotypeData <- filterData(haplotypeData,chrs,minDepth=minDepth,maxDepth=maxDepth,centromeres = centromere)
+	}
+  
   return(list(haplotypeData=haplotypeData, alleleData=alleleData, data=data.dt))
 }
 
@@ -200,19 +230,23 @@ getPhasedAlleleFraction <- function(x){
   return(list(allele.fraction = allele.fraction, phasedCount = phasedCount))
 }
 
-getHaplotypesFromVCF <- function(vcfFile, chrs = c(1:22, "X"), build = "hg19",
+getHaplotypesFromVCF <- function(vcfFile, chrs = c(1:22, "X"), build = "hg19", style = "NCBI",
                                  filterFlags = c("PASS", "10X_RESCUED_MOLECULE_HIGH_DIVERSITY"), 
                                  minQUAL = 100, minDepth = 10, minVAF = 0.25, altCountField = "AD",
                                  keepGenotypes = c("1|0", "0|1", "0/1"), snpDB = NULL){
   #require(data.table)
   message("Loading ", vcfFile)
   vcf <- readVcf(vcfFile, genome = build)
-  chrName <- mapSeqlevels(seqlevels(vcf), style="NCBI")
+  chrName <- mapSeqlevels(seqlevels(vcf), style = style)
   rowRanges(vcf) <- renameSeqlevels(rowRanges(vcf), na.omit(chrName))
   #keepGenotypes = c("1|0", "0|1", "0/1")
   
   ## filter vcf ##
   message("Filtering VCF ...")
+  message("  by chromsomes")
+  # keep specified chromosomes
+  seqlevelsStyle(chrs) <- genomeStyle
+  vcf <- keepSeqlevels(vcf, chrs)
   # keep by filter flags
   indFILTER <- rowRanges(vcf)$FILTER %in% filterFlags
   # keep SNPs - ref and alt have length of 1 and only a single allele for ref/alt
@@ -308,7 +342,7 @@ plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRat
     dataIn[, HaplotypeRatio.1 := HaplotypeRatio]#dataIn$HaplotypeCount / dataIn$HaplotypeDepth
     dataIn[, HaplotypeRatio.2 := 1 - HaplotypeRatio]#(dataIn$HaplotypeDepth - dataIn$HaplotypeCount) / dataIn$HaplotypeDepth
     
-    if (!is.null(chr)) {
+    if (!is.null(chr) && length(chr) == 1) {
         for (i in chr) {
             dataByChr <- dataIn[Chr == i, ]
             #dataByChr <- dataByChr[dataByChr[, "TITANcall"] != "OUT", ]
@@ -318,7 +352,7 @@ plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRat
               colors.1 <- lohCol.hap[as.character(dataByChr$phaseSet.id)]
               colors.2 <- lohCol.hap[as.character(as.numeric(!dataByChr$phaseSet.id))]
             }else{
-              colors.1 <- lohCol.titan[dataByChr[, "TITANcall"]]
+              colors.1 <- lohCol.titan[dataByChr[, TITANcall]]
               colors.2 <- colors.1
             }
             
@@ -357,7 +391,8 @@ plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRat
               colors.2 <- colors.1
         }
         
-        # plot for all chromosomes
+        # plot for all chromosomes specified
+        dataIn <- dataIn[Chr %in% chr]
         coord <- getGenomeWidePositions(dataIn[, Chr], dataIn[, Position])
         if (resultType == "HaplotypeRatio"){
           plot(coord$posns, as.numeric(dataIn[, HaplotypeRatio.1]), 

@@ -327,7 +327,7 @@ removeCentromere <- function(data, centromere, flankLength = 0){
 
 ## segs is a data.table object
 extendSegments <- function(segs, removeCentromeres = FALSE, centromeres = NULL,
-	extendToTelomeres = FALSE, seqInfo = NULL){
+	extendToTelomeres = FALSE, seqInfo = NULL, chrs = c(1:22, "X", "Y"), genomeStyle = "NCBI"){
 	newSegs <- copy(segs)
 	newStartStop <- newSegs[, {totalLen = c(Start[-1], NA) - End
 					extLen = round(totalLen / 2)
@@ -347,7 +347,7 @@ extendSegments <- function(segs, removeCentromeres = FALSE, centromeres = NULL,
 			stop("If removeCentromeres=TRUE, must provide centromeres data.table object.")
 		}
 		message("Removing centromeres from segments.")
-		newSegs <- removeCentromereSegs(newSegs, centromeres)
+		newSegs <- removeCentromereSegs(newSegs, centromeres, chrs = chrs, genomeStyle = genomeStyle)
 	}
 	
 	if (extendToTelomeres){
@@ -364,7 +364,8 @@ extendSegments <- function(segs, removeCentromeres = FALSE, centromeres = NULL,
 }
 
 
-removeCentromereSegs <- function(segs, centromeres){	
+removeCentromereSegs <- function(segs, centromeres, chrs = c(1:22, "X", "Y"), genomeStyle = "NCBI"){	
+	seqlevelsStyle(chrs) <- genomeStyle
 	segs <- copy(segs)
 	for (i in 1:nrow(centromeres)){
 		x <- as.data.frame(centromeres[i,]); 
@@ -413,7 +414,7 @@ removeCentromereSegs <- function(segs, centromeres){
 		}		
 	}
 	## re-order the segments ##
-	segs[, Chromosome := factor(Chromosome, levels = c(1:22, "X", "Y"))]
+	segs[, Chromosome := factor(Chromosome, levels = chrs)]
 	segs <- segs[do.call(order, segs[, c("Chromosome", "Start")])]
 	return(copy(segs))
 }
@@ -1167,23 +1168,28 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	names <- c("HOMD","HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 	cn <- copy(cn)
 	segs <- copy(segs)
+	
+	## set up chromosome style
+	autosomeStr <- grep("X|Y", chrs, value=TRUE, invert=TRUE)
+	chrXStr <- grep("X", chrs, value=TRUE)
+	
 	if (is.null(maxCNtoCorrect.autosomes)){
-		maxCNtoCorrect.autosomes <- segs[Chromosome %in% c(1:22), max(Copy_Number)]
+		maxCNtoCorrect.autosomes <- segs[Chromosome %in% autosomeStr, max(Copy_Number, na.rm=TRUE)]
 	}
 	if (is.null(maxCNtoCorrect.X) & gender == "female"){
-		maxCNtoCorrect.X <- segs[Chromosome == "X", max(Copy_Number)]
+		maxCNtoCorrect.X <- segs[Chromosome == chrXStr, max(Copy_Number, na.rm=TRUE)]
 	}
 	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=2)]
-	cn[Chr %in% c(1:22), logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=2)]
+	cn[Chr %in% autosomeStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=2)]
 	if (gender == "male"){ ## analyze chrX separately
-		segs[Chromosome == "X", logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=1)]
-		cn[Chr == "X", logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=1)]
+		segs[Chromosome == chrXStr, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=1)]
+		cn[Chr == chrXStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=1)]
 	}
 	## assign copy number to use - Corrected_Copy_Number and Corrected_Call
 	# same TITAN calls for autosomes - no change in copy number
-	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Copy_Number := Copy_Number]
+	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.numeric(Copy_Number)]
 	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Call := TITAN_call]
-	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Copy_Number := CopyNumber]
+	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.numeric(CopyNumber)]
 	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Call := TITANcall]
 
 	# TITAN calls adjusted for >= copies - HLAMP
@@ -1196,17 +1202,18 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	cn[Chr %in% chrs & is.na(CopyNumber), Corrected_Copy_Number := round(logR_Copy_Number)]
 	cn[Chr %in% chrs & is.na(TITANcall), Corrected_Call := names[Corrected_Copy_Number + 1]]
 	
+	# Adjust chrX copy number if purity is sufficiently high
 	if (purity >= minPurityToCorrect){
 		if (gender == "male"){
-			segs[Chromosome == "X", Corrected_Copy_Number := round(logR_Copy_Number)]
-			segs[Chromosome == "X", Corrected_Call := names[Corrected_Copy_Number + 1]]
-			cn[Chr == "X", Corrected_Copy_Number := round(logR_Copy_Number)]
-			cn[Chr == "X", Corrected_Call := names[Corrected_Copy_Number + 2]]
+			segs[Chromosome == chrXStr, Corrected_Copy_Number := round(logR_Copy_Number)]
+			segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 1]]
+			cn[Chr == chrXStr, Corrected_Copy_Number := round(logR_Copy_Number)]
+			cn[Chr == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
 		}else if (gender == "female"){
-			segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
-			segs[Chromosome == "X" & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
-			cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
-			cn[Chr == "X" & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
+			segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
+			segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
+			cn[Chr == chrXStr & CopyNumber >= maxCNtoCorrect.X, Corrected_Copy_Number := round(logR_Copy_Number)]
+			cn[Chr == chrXStr & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
 		}
 	}
 	
