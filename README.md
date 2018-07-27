@@ -8,10 +8,9 @@ Ha, G., et al. (2014). [TITAN: Inference of copy number architectures in clonal 
 
 ## Contact
 Gavin Ha  
-Dana-Farber Cancer Institute  
-Broad Institute  
-contact: <gavinha@gmail.com> or <gavinha@broadinstitute.org>  
-Date: March 22, 2018  
+Fred Hutchinson Cancer Research Center
+contact: <gavinha@gmail.com> or <gha@fredhutch.org>  
+Date: July 26, 2018  
 
 ## Table of Contents
 * [Links](#links)
@@ -23,8 +22,8 @@ Date: March 22, 2018
 * [License](#software-license)
 
 ## Links
-TitanCNA GitHub: https://github.com/gavinha/TitanCNA  
 Snakemake Workflow: https://github.com/gavinha/TitanCNA/tree/master/scripts/snakemake  
+10X Snakemake Workflow: https://github.com/gavinha/TitanCNA_10X_snakemake  
 Google Groups: https://groups.google.com/forum/#!forum/titancna  
 TitanCNA website: http://compbio.bccrc.ca/software/titan/  
 KRONOS TITAN Workflow: https://github.com/MO-BCCRC/titan_workflow  
@@ -32,6 +31,10 @@ Publication in Genome Research: http://genome.cshlp.org/content/24/11/1881
 
 ## News
 (See [NEWS](NEWS) for previous version notes)
+### July 26, 2018
+Snakemake workflow for 10X Genomics whole genome sequencing data is now included in another Git repo.
+https://github.com/gavinha/TitanCNA_10X_snakemake
+
 ### TitanCNA version 1.17.1 changes 
 1)  New functions: 
 	- `correctIntegerCN()`: recomputes high-level copy number that is capped by the maximum CN state. 

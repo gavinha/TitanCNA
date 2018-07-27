@@ -1,4 +1,9 @@
-## 2. 10X Genomics Whole Genome Sequencing Analysis
+## 1. Snakemake workflow in another Git repo:
+https://github.com/gavinha/TitanCNA_10X_snakemake
+
+## 2. 10X Genomics Whole Genome Sequencing Analysis (deprecated)
+*The instructions in this section remains here for additional information of each analysis step. The full snakemake pipeline will contain all these steps, including additional post-processing steps.*
+
 R script (`titanCNA_v1.15.0_TenX.R`) for running TitanCNA analysis on sequencing data with haplotype phasing such as 10X Genomics whole genome data
 
 **Input files**  
