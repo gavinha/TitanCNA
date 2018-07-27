@@ -12,5 +12,4 @@ The `R_scripts` directory contains the actual R script to run the (R component o
 While the Snakemake pipeline will make use of R script within `R_scripts`, you can learn about more details of the R script here [R_scripts/](R_scripts/).  
 
 ## 2. 10X Genomics Whole Genome Sequencing Analysis
-These are scripts to perform TITAN analysis from 10X Genomics whole genome sequencing data.  Please see [TenX_scripts/](TenX_scripts/) for more details.  
-A Snakemake pipeline will be provided soon...
+The Snakemake workflow is in another Git repo: https://github.com/gavinha/TitanCNA_10X_snakemake
