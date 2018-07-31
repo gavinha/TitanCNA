@@ -273,6 +273,7 @@ extractAlleleReadCounts <- function(bamFile, bamIndex,
 filterData <- function(data, chrs = NULL, minDepth = 10, 
     maxDepth = 200, positionList = NULL, map = NULL, 
     mapThres = 0.9, centromeres = NULL, centromere.flankLength = 0) {
+    genomeStyle <- seqlevelsStyle(data$chr)
     if (!is.null(map)) {
         keepMap <- map >= mapThres
     } else {
@@ -294,6 +295,7 @@ filterData <- function(data, chrs = NULL, minDepth = 10,
     ## remove centromere SNPs ##
     if (!is.null(centromeres)){
     	colnames(centromeres)[1:3] <- c("Chr", "Start", "End") 
+    	centromeres$Chr <- setGenomeStyle(centromeres$Chr, genomeStyle = genomeStyle[1])
     	data <- removeCentromere(data, centromeres, flankLength = centromere.flankLength)
     }
     if (is.null(chrs)){
