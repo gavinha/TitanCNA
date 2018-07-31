@@ -136,7 +136,7 @@ maxDepth <- opt$maxDepth
 skew <- opt$skew
 hetBaselineSkew <- opt$hetBaselineSkew
 minClustProportion <- opt$minClustProportion
-chrs <- eval(parse(text = opt$chrs))
+chrs <- as.character(eval(parse(text = opt$chrs)))
 gender <- opt$gender
 genomeStyle <- opt$genomeStyle
 genomeBuild <- opt$genomeBuild
