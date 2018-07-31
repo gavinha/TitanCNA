@@ -189,7 +189,7 @@ loadAlleleCounts <- function(inCounts, symmetric = TRUE,
         ref <- refOriginal
     }
     
-    return(data.table(chr = data[, 1], posn = data[, 2], ref = ref, 
+    return(data.table(chr = as.character(data[, 1]), posn = data[, 2], ref = ref, 
         refOriginal = refOriginal, nonRef = nonRef, 
         tumDepth = tumDepth))
 }
