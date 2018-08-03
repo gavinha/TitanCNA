@@ -53,10 +53,12 @@ loadReadCountsFromBed <- function(counts, chrs = c(1:22, "X", "Y"), gc = NULL, m
 	
 	# remove centromeres
 	if (!is.null(centromere)){ 
+		centromere$Chr <- setGenomeStyle(centromere$Chr, genomeStyle)
 		counts <- excludeCentromere(counts, centromere, flankLength = flankLength)
 	}
 	# keep targeted sequences
 	if (!is.null(targetedSequences)){
+		targetedSequences[,1] <- setGenomeStyle(targetedSequences[,1], genomeStyle)
 		countsExons <- filterByTargetedSequences(counts, targetedSequences)
 		counts <- counts[countsExons$ix,]
 	}
