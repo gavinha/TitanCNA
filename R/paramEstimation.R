@@ -131,7 +131,12 @@ updateParameters <- function(n_0, s_0, var_0, varR_0, phi_0, corRho_0, chrPos_0,
                   gParams$rn, gParams$ct, nParams$alphaNHyper, 
                   nParams$betaNHyper)
             }
-            n <- uniroot(funcN, intervalN, tol = 1e-15)$root
+            n <- tryCatch({
+        		uniroot(funcN, intervalN, tol = 1e-15)$root
+		  	}, error = function(x){ 
+		  		message("TitanCNA updateParameters: Issue maximizing n, using previous iteration (", n_prev, ")")
+				return(n_prev) 
+		  	})
         } else if (normalEstimateMethod == "fixed") {
             n <- n_prev
         }
@@ -146,7 +151,12 @@ updateParameters <- function(n_0, s_0, var_0, varR_0, phi_0, corRho_0, chrPos_0,
                       gParams$rt, gParams$rn, gParams$ct, 
                       sParams$alphaSHyper[z], sParams$betaSHyper[z])
                 }
-                s[z] <- uniroot(funcS, intervalS, tol = 1e-15)$root
+                s[z] <- tryCatch({
+        			uniroot(funcS, intervalS, tol = 1e-15)$root
+				}, error = function(x){ 
+					message("TitanCNA updateParameters: Issue maximizing s[,", z, "], using previous iteration (", s_prev[z], ")")
+					return(s_prev[z]) 
+				})
             }
         } else {
             s <- s_prev
@@ -165,7 +175,12 @@ updateParameters <- function(n_0, s_0, var_0, varR_0, phi_0, corRho_0, chrPos_0,
                 gParams$rt[cnInd], gParams$rn, gParams$ct[cnInd], 
                 gParams$alphaKHyper[cnInd], gParams$betaKHyper[cnInd], type = "logRatio")
             }
-            var[cnInd] <- uniroot(funcVar, intervalVar, tol = 1e-15)$root
+            var[cnInd] <- tryCatch({
+            	uniroot(funcVar, intervalVar, tol = 1e-15)$root
+            }, error = function(x){
+            	message("TitanCNA updateParameters: Issue maximizing var[,", cnInd, "], using previous iteration (", var_prev[cnInd], ")")
+            	return(var_prev[cnInd])
+            })
           }
           # Estimate Gaussian variance for each allelic state 
           for (k in 1:K){
@@ -176,7 +191,12 @@ updateParameters <- function(n_0, s_0, var_0, varR_0, phi_0, corRho_0, chrPos_0,
                     gParams$rt[k], gParams$rn, gParams$ct[k], 
                     gParams$alphaRHyper[k], gParams$betaRHyper[k], type = "allelicRatio")
             }
-            varR[k] <- uniroot(funcVarR, intervalVarR, tol = 1e-15)$root
+            varR[k] <- tryCatch({
+            	uniroot(funcVarR, intervalVarR, tol = 1e-15)$root
+            }, error = function(x){
+            	message("TitanCNA updateParameters: Issue maximizing s[,", z, "], using previous iteration (", varR_prev[k], ")")
+            	return(varR_prev[k])
+            })
           }
         }else{ # alleleEmissionModel == "binomial"
           for (ck in 1:length(cnLevel)) {
@@ -199,7 +219,12 @@ updateParameters <- function(n_0, s_0, var_0, varR_0, phi_0, corRho_0, chrPos_0,
                   gParams$rt, gParams$rn, gParams$ct, pParams$alphaPHyper, 
                   pParams$betaPHyper)
             }
-            phi <- uniroot(funcP, intervalPhi, tol = 1e-15)$root
+            phi <- tryCatch({
+        		uniroot(funcP, intervalPhi, tol = 1e-15)$root
+		  	}, error = function(x){ 
+		  		message("TitanCNA updateParameters: Issue maximizing phi, using previous iteration (", phi_prev, ")")
+				return(phi_prev) 
+		  	})
         } else {
             # estimatePloidy==FALSE
             phi <- phi_prev
