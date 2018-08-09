@@ -33,7 +33,7 @@ Publication in Genome Research: http://genome.cshlp.org/content/24/11/1881
 (See [NEWS](NEWS) for previous version notes)
 
 ### August 9, 2018
-Improved parameter inference by handling errors and allowing EM to continue until convergence.
+Improved parameter inference by handling errors and allowing EM to continue until convergence. This fixes runs that previously would fail because samples had very low tumor content. 
 
 ### July 26, 2018
 Snakemake workflow for 10X Genomics whole genome sequencing data is now included in another Git repo.
