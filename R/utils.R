@@ -1078,7 +1078,7 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
                      End_Position.bp. = integer(), Length.snp. = integer(), Median_Ratio = numeric(),
                      Median_HaplotypeRatio = numeric(), Median_logR = numeric(), TITAN_state = integer(),
                      TITAN_call = character(), Copy_Number = integer(), MinorCN = integer(), MajorCN = integer(),
-                     Clonal_Cluster = integer(), Cellular_Frequency = numeric())[1:numSegs]
+                     Clonal_Cluster = integer(), Cellular_Prevalence = numeric())[1:numSegs]
 	segs[, Sample := id]
 	#colNames <- c("Chr", "Position", "TITANstate", "AllelicRatio", "LogRatio")
 	prevInd <- 0
@@ -1098,7 +1098,7 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 		segs[j, "MinorCN"] <- getMajorMinorCN(rleValues[j], convergeParams$symmetric)$majorCN
 		segs[j, "MajorCN"] <- getMajorMinorCN(rleValues[j], convergeParams$symmetric)$minorCN
 		segs[j, "Clonal_Cluster"] <- segDF[1, "ClonalCluster"]
-		segs[j, "Cellular_Frequency"] <- segDF[1, "CellularPrevalence"]
+		segs[j, "Cellular_Prevalence"] <- segDF[1, "CellularPrevalence"]
 		if (!is.null(segDF$HaplotypeRatio)){
 		  segs[j, "Median_HaplotypeRatio"] <- round(median(segDF$HaplotypeRatio, na.rm = TRUE), digits = 6)
 		}else{
@@ -1181,11 +1181,11 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	if (is.null(maxCNtoCorrect.X) & gender == "female" & length(chrXStr) > 0){
 		maxCNtoCorrect.X <- segs[Chromosome == chrXStr, max(Copy_Number, na.rm=TRUE)]
 	}
-	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=2)]
-	cn[Chr %in% autosomeStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=2)]
+	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=2)]
+	cn[Chr %in% autosomeStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=2)]
 	if (gender == "male" & length(chrXStr) > 0){ ## analyze chrX separately
-		segs[Chromosome == chrXStr, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=1)]
-		cn[Chr == chrXStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, cn=1)]
+		segs[Chromosome == chrXStr, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=1)]
+		cn[Chr == chrXStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=1)]
 	}
 	## assign copy number to use - Corrected_Copy_Number and Corrected_Call
 	# same TITAN calls for autosomes - no change in copy number
@@ -1223,8 +1223,12 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 }
 
 ## compute copy number using corrected log ratio ##
-logRbasedCN <- function(x, purity, ploidyT, cn = 2){
-	ct <- (2^x * (cn * (1 - purity) + purity * ploidyT * (cn / 2)) - cn * (1 - purity)) / purity
+logRbasedCN <- function(x, purity, ploidyT, cellPrev, cn = 2){
+	ct <- (2^x 
+		* (cn * (1 - purity) + purity * ploidyT * (cn / 2)) 
+		- (cn * (1 - purity)) 
+		- (cn * purity * (1 - cellPrev))) 
+	ct <- ct / (purity * cellPrev)
 	ct <- sapply(ct, max, 1/2^6)
 	return(ct)
 }
