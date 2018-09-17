@@ -1207,9 +1207,9 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	# Adjust chrX copy number if purity is sufficiently high
 	if (purity >= minPurityToCorrect){
 		if (gender == "male" & length(chrXStr) > 0){
-			segs[Chromosome == chrXStr, Corrected_Copy_Number := round(logR_Copy_Number)]
+			segs[Chromosome == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
 			segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 1]]
-			cn[Chr == chrXStr, Corrected_Copy_Number := round(logR_Copy_Number)]
+			cn[Chr == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
 			cn[Chr == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
 		}else if (gender == "female"){
 			segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
