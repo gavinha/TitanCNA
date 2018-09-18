@@ -8,7 +8,7 @@
 # F} alphaVal = [0,1] geneAnnot is a dataframe with
 # 4 columns: geneSymbol, chr, start, stop spacing
 # is the distance between each track
-plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
+plotAllelicRatio <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
     spacing = 4,  xlim = NULL, ...) {
     # color coding alphaVal <- ceiling(alphaVal * 255);
     # class(alphaVal) = 'hexmode'
@@ -20,6 +20,9 @@ plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
     names(lohCol) <- c("HOMD", "DLOH", "NLOH", "GAIN",
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
 
+	# use consistent chromosome naming convention
+	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
+	
     dataIn <- copy(dataIn)
     if (!is.null(chr) && length(chr) == 1) {
         for (i in chr) {
@@ -67,7 +70,7 @@ plotAllelicRatio <- function(dataIn, chr = NULL, geneAnnot = NULL,
 # [0,1] geneAnnot is a dataframe with 4 columns:
 # geneSymbol, chr, start, stop spacing is the
 # distance between each track
-plotClonalFrequency <- function(dataIn, chr = NULL,
+plotClonalFrequency <- function(dataIn, chr = c(1:22),
     normal = NULL, geneAnnot = NULL, spacing = 4, xlim = NULL, ...) {
     # color coding
     lohCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000",
@@ -76,6 +79,9 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
     names(lohCol) <- c("HOMD", "DLOH", "NLOH", "GAIN",
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA", "AMP", "HLAMP")
 
+	# use consistent chromosome naming convention
+	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
+	
     # get unique set of cluster and estimates table:
     # 1st column is cluster number, 2nd column is
     # clonal freq
@@ -198,7 +204,7 @@ plotClonalFrequency <- function(dataIn, chr = NULL,
 # alphaVal = [0,1] geneAnnot is a dataframe with 4
 # columns: geneSymbol, chr, start, stop spacing is
 # the distance between each track
-plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL, 
+plotCNlogRByChr <- function(dataIn, chr = c(1:22), segs = NULL, 
 	plotCorrectedCN = TRUE, geneAnnot = NULL,
     ploidy = NULL, normal = NULL, spacing = 4, alphaVal = 1, xlim = NULL, ...) {
     # color coding
@@ -210,6 +216,9 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL,
     # cnCol <-
     # col2rgb(c('green','darkgreen','blue','darkred','red','brightred'))
     names(cnCol) <- c(0:500)
+	
+	# use consistent chromosome naming convention
+	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
 	
 	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
 		binCN <- "Corrected_Copy_Number"
@@ -291,7 +300,7 @@ plotCNlogRByChr <- function(dataIn, chr = NULL, segs = NULL,
 
 }
 
-plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
+plotSubcloneProfiles <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
 	spacing = 4, xlim = NULL, ...){
 	args <- list(...)
 	lohCol <- c("#00FF00", "#006400", "#0000FF", "#8B0000",
@@ -299,6 +308,9 @@ plotSubcloneProfiles <- function(dataIn, chr = NULL, geneAnnot = NULL,
         "#FF0000")
     names(lohCol) <- c("HOMD", "DLOH", "NLOH", "GAIN",
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
+
+	# use consistent chromosome naming convention
+	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
 
     ## pull out params from dots ##
     if (!is.null(args$cex.axis)) cex.axis <- args$cex.axis else cex.axis <- 0.75
@@ -434,7 +446,7 @@ plotAllelicCN <- function(dataIn, resultType = "AllelicRatio",
 
 plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
                                plotType = "CopyNumber", plotCorrectedCN = TRUE, 
-                               chr = NULL, geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, plot.new = FALSE, lwd = 8, ...){
+                               chr = c(1:22), geneAnnot = NULL, ploidy = NULL, spacing = 4, alphaVal = 1, xlim = NULL, plot.new = FALSE, lwd = 8, ...){
 
 	## check for the possible resultType to plot ##
 	if (!resultType %in% c("LogRatio", "AllelicRatio", "HaplotypeRatio")){
@@ -443,6 +455,10 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
   if (!plotType %in% c("CopyNumber", "Ratio")){
     stop("plotSegmentMedians: plotType must be 'CopyNumber' or 'Ratio'")
   }
+  
+  	# use consistent chromosome naming convention
+	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
+  
 	dataType <- c("Median_logR", "Median_Ratio", "Median_HaplotypeRatio")
 	names(dataType) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
 	axisName <- c("Copy Number (log ratio)", "Allelic Ratio", "Haplotype Fraction")

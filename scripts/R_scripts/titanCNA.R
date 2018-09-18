@@ -361,7 +361,7 @@ dev.off()
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CF.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
-plotClonalFrequency(dataIn=results, chr=NULL, norm, geneAnnot=genes,
+plotClonalFrequency(dataIn=results, chr=chrs, norm, geneAnnot=genes,
                     spacing=4, main=id, xlab="", ylim=c(0,1), cex.axis=1.5,
                     cex.lab=1.5, cex.main=1.5)
 dev.off()
