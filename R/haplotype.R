@@ -317,7 +317,7 @@ getPhasedAllele <- function(x){
 	return(list(h1 = h1, h2 = h2))
 }
 
-plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRatio", colType = "Haplotypes", 
+plotHaplotypeFraction <- function(dataIn, chr = c(1:22), resultType = "HaplotypeRatio", colType = "Haplotypes", 
 	phaseBlockCol = c("#9ad0f3", "#CC79A7"), geneAnnot = NULL, spacing = 4,  xlim = NULL,  ...) {
     if (!resultType %in% c("HaplotypeRatio", "AllelicRatio")){
       stop("plotHaplotypeFraction: resultType must be one of 'HaplotypeRatio' or 'AllelicRatio'.")
@@ -325,6 +325,11 @@ plotHaplotypeFraction <- function(dataIn, chr = NULL, resultType = "HaplotypeRat
     if (!colType %in% c("Haplotypes", "CopyNumber")){
       stop("plotHaplotypeFraction: plotType must be one of 'Haplotypes' or 'CopyNumber'")
     }
+    
+   	# use consistent chromosome naming convention
+  	chr <- as.character(chr)
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
+
     lohCol.hap <- c(`0`=phaseBlockCol[1], `1`=phaseBlockCol[2])
     lohCol.titan <- c("#00FF00", "#006400", "#0000FF", "#8B0000", 
         "#006400", "#BEBEBE", "#FF0000", "#BEBEBE", 

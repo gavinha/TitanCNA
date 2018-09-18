@@ -21,7 +21,8 @@ plotAllelicRatio <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
 
 	# use consistent chromosome naming convention
-	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
+  	chr <- as.character(chr)
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
 	
     dataIn <- copy(dataIn)
     if (!is.null(chr) && length(chr) == 1) {
@@ -80,7 +81,8 @@ plotClonalFrequency <- function(dataIn, chr = c(1:22),
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA", "AMP", "HLAMP")
 
 	# use consistent chromosome naming convention
-	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
+  	chr <- as.character(chr)
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
 	
     # get unique set of cluster and estimates table:
     # 1st column is cluster number, 2nd column is
@@ -218,7 +220,8 @@ plotCNlogRByChr <- function(dataIn, chr = c(1:22), segs = NULL,
     names(cnCol) <- c(0:500)
 	
 	# use consistent chromosome naming convention
-	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
+  	chr <- as.character(chr)
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
 	
 	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
 		binCN <- "Corrected_Copy_Number"
@@ -310,7 +313,8 @@ plotSubcloneProfiles <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
         "ALOH", "HET", "ASCNA", "BCNA", "UBCNA")
 
 	# use consistent chromosome naming convention
-	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
+  	chr <- as.character(chr)
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
 
     ## pull out params from dots ##
     if (!is.null(args$cex.axis)) cex.axis <- args$cex.axis else cex.axis <- 0.75
@@ -457,7 +461,8 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
   }
   
   	# use consistent chromosome naming convention
-	seqlevelsStyle(chr) <- seqlevelsStyle(dataIn$Chr)
+  	chr <- as.character(chr)
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
   
 	dataType <- c("Median_logR", "Median_Ratio", "Median_HaplotypeRatio")
 	names(dataType) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
