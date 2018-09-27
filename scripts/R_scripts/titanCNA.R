@@ -84,6 +84,7 @@ option_list <- list(
             help = "Minimum mappability score threshold to use; float [Default: %default]"),
 	make_option(c("--centromere"), type = "character", default=NULL,
             help = "Centromere gap file. [Default: %default]"),
+    make_option(c("--cytobandFile"), type = "character", default = "None", help = "Cytoband file should be provided only if reference genome is hg38 and genomeStyle is UCSC."),
 	make_option(c("--libdir"), type = "character", default=NULL,
             help = "Directory containing source code. Specify if changes have been made to source code and want to over-ride package code. [Default: %default]"),
 	make_option(c("--outFile"), type = "character", default = NULL,
@@ -140,6 +141,7 @@ chrs <- as.character(eval(parse(text = opt$chrs)))
 gender <- opt$gender
 genomeStyle <- opt$genomeStyle
 genomeBuild <- opt$genomeBuild
+cytobandFile <- opt$cytobandFile
 mapWig <- opt$mapWig
 centromere <- opt$centromere
 outdir <- opt$outDir
@@ -276,18 +278,23 @@ message("Writing results to ", outfile, ", ", outseg, ", ", outparam)
 write.table(results, file = outfile, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 write.table(segs, file = outseg, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 outputModelParameters(convergeParams, results, outparam)
+save.image(file=outImage)
 
 #### PLOT RESULTS ####
 numClustersToPlot <- nrow(convergeParams$s)
 dir.create(outplot, showWarnings=verbose)
 
-if (genomeBuild == "hg38"){
-	cytoband <- fread(cytobandFile)
+if (genomeBuild == "hg38" && file.exists(cytobandFile)){
+	cytoband <- as.data.frame(fread(cytobandFile))
 	names(cytoband) <- c("chrom", "start", "end", "name", "gieStain")
 	#cytoband$V1 <- setGenomeStyle(cytoband$V1, genomeStyle = genomeStyle)
 }
 for (chr in unique(results$Chr)){
-	outfig <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_chr", chr, ".png")
+	chrStr <- chr
+	if (genomeStyle == "NCBI"){
+		chrStr <- paste0("chr", chr)
+	}
+	outfig <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_", chrStr, ".png")
 	png(outfig,width=1200,height=1200,res=100)
 	if (as.numeric(numClusters) <= 2){
 		par(mfrow=c(5,1))
@@ -312,9 +319,10 @@ for (chr in unique(results$Chr)){
 		label.y=-4.25
 	}else{
 		ylim <- c(-0.2,-0.1)
-		label.y <- -0.35,
+		label.y <- -0.35
 	}
 	if (genomeBuild == "hg38"){
+		sl <- seqlengths(seqinfo[chr])
   		pI <- plotIdiogram.hg38(chr, cytoband=cytoband, seqinfo=seqinfo, xlim=c(0, max(sl)), unit="bp", label.y=label.y, new=FALSE, ylim=ylim)	
   	}else{
   		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-0.35, label.y, new=FALSE, ylim=ylim)	

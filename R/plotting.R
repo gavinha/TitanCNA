@@ -22,7 +22,7 @@ plotAllelicRatio <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
 
 	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
 	
     dataIn <- copy(dataIn)
     if (!is.null(chr) && length(chr) == 1) {
@@ -82,7 +82,7 @@ plotClonalFrequency <- function(dataIn, chr = c(1:22),
 
 	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
 	
     # get unique set of cluster and estimates table:
     # 1st column is cluster number, 2nd column is
@@ -221,7 +221,7 @@ plotCNlogRByChr <- function(dataIn, chr = c(1:22), segs = NULL,
 	
 	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
 	
 	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
 		binCN <- "Corrected_Copy_Number"
@@ -314,7 +314,7 @@ plotSubcloneProfiles <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
 
 	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
 
     ## pull out params from dots ##
     if (!is.null(args$cex.axis)) cex.axis <- args$cex.axis else cex.axis <- 0.75
@@ -462,7 +462,7 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
   
   	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
   
 	dataType <- c("Median_logR", "Median_Ratio", "Median_HaplotypeRatio")
 	names(dataType) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")

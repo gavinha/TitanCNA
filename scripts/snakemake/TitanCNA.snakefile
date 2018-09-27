@@ -5,7 +5,6 @@ include: "ichorCNA.snakefile"
 include: "getAlleleCounts.snakefile"
 import os.path
 
-CHRS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,'X']
 CLUST = {1:[1], 2:[1,2], 3:[1,2,3], 4:[1,2,3,4], 5:[1,2,3,4,5], 6:[1,2,3,4,5,6], 7:[1,2,3,4,5,6,7], 8:[1,2,3,4,5,6,7,8], 9:[1,2,3,4,5,6,7,8,9], 10:[1,2,3,4,5,6,7,8,9,10]}
 PLOIDY = {2:[2], 3:[2,3], 4:[2,3,4]}
 
@@ -19,6 +18,10 @@ rule all:
 rule makeOutDir:
 	output:
 		"results/titan/hmm/titanCNA_ploidy{ploidy}/"
+	params:
+		mem=config["std_mem"],
+		runtime=config["std_runtime"],
+		pe=config["std_numCores"]
 	shell:
 		"mkdir -p {output}"
 		
@@ -38,19 +41,25 @@ rule runTitanCNA:
 		numCores=config["TitanCNA_numCores"],
 		normal=config["TitanCNA_normalInit"],
 		chrs=config["TitanCNA_chrs"],
+		genomeStyle=config["genomeStyle"],
+		genomeBuild=config["genomeBuild"],
+		cytobandFile=config["cytobandFile"],
 		estimatePloidy=config["TitanCNA_estimatePloidy"],
 		estimateClonality=config["TitanCNA_estimateClonality"],
 		estimateNormal=config["TitanCNA_estimateNormal"],
-		centromere=config["TitanCNA_centromere"],
+		centromere=config["centromere"],
 		alphaK=config["TitanCNA_alphaK"],
 		#alphaR=config["TitanCNA_alphaR"],
 		#alleleModel=config["TitanCNA_alleleModel"],
 		txnExpLen=config["TitanCNA_txnExpLen"],
-		plotYlim=config["TitanCNA_plotYlim"]
+		plotYlim=config["TitanCNA_plotYlim"],
+		mem=config["TitanCNA_mem"],
+		runtime=config["TitanCNA_runtime"],
+		pe=config["TitanCNA_pe"]
 	log:
 		"logs/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.log"
 	shell:
-		"Rscript {params.titanRscript} --hetFile {input.alleleCounts} --cnFile {input.corrDepth} --outFile {output.titan} --outSeg {output.segTxt} --outParam {output.param} --outIGV {output.seg} --outPlotDir {output.outRoot} --libdir {params.libdir} --id {wildcards.tumor} --numClusters {wildcards.clustNum} --numCores {params.numCores} --normal_0 {params.normal} --ploidy_0 {wildcards.ploidy} --chrs \"{params.chrs}\" --estimateNormal {params.estimateNormal} --estimatePloidy {params.estimatePloidy} --estimateClonality {params.estimateClonality}  --centromere {params.centromere} --alphaK {params.alphaK} --txnExpLen {params.txnExpLen} --plotYlim \"{params.plotYlim}\" > {log} 2> {log}"
+		"Rscript {params.titanRscript} --hetFile {input.alleleCounts} --cnFile {input.corrDepth} --outFile {output.titan} --outSeg {output.segTxt} --outParam {output.param} --outIGV {output.seg} --outPlotDir {output.outRoot} --libdir {params.libdir} --id {wildcards.tumor} --numClusters {wildcards.clustNum} --numCores {params.numCores} --normal_0 {params.normal} --ploidy_0 {wildcards.ploidy} --genomeStyle {params.genomeStyle} --genomeBuild {params.genomeBuild} --cytobandFile {params.cytobandFile} --chrs \"{params.chrs}\" --estimateNormal {params.estimateNormal} --estimatePloidy {params.estimatePloidy} --estimateClonality {params.estimateClonality}  --centromere {params.centromere} --alphaK {params.alphaK} --txnExpLen {params.txnExpLen} --plotYlim \"{params.plotYlim}\" > {log} 2> {log}"
 	
 #--alleleModel {params.alleleModel} --alphaR {params.alphaR}
 	
@@ -63,7 +72,10 @@ rule selectSolution:
 		"results/titan/hmm/optimalClusterSolution.txt"
 	params:
 		solutionRscript=config["TitanCNA_selectSolutionRscript"],
-		threshold=config["TitanCNA_solutionThreshold"]
+		threshold=config["TitanCNA_solutionThreshold"],
+		mem=config["std_mem"],
+		runtime=config["std_runtime"],
+		pe=config["std_numCores"]
 	log:
 		"logs/titan/selectSolution.log"
 	shell:
