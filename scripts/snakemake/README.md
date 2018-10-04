@@ -191,6 +191,9 @@ ichorCNA_txnE:  0.9999
 ichorCNA_txnStrength:  10000
 ichorCNA_plotFileType:  png
 ichorCNA_plotYlim:  c(-2,4)
+ichorCNA_mem:  10G
+ichorCNA_runtime:  "300:00:00"
+ichorCNA_pe: -pe smp 1 -binding linear:1  
 ```
 
 ### 7. [getAlleleCounts.snakefile](getAlleleCounts.snakefile) settings: Tumor allelic counts 

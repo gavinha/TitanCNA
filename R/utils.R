@@ -1182,7 +1182,7 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 		maxCNtoCorrect.X <- segs[Chromosome == chrXStr, max(Copy_Number, na.rm=TRUE)]
 	}
 	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=2)]
-	cn[Chr %in% autosomeStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=2)]
+	cn[Chr %in% chrs, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=2)]
 	if (gender == "male" & length(chrXStr) > 0){ ## analyze chrX separately
 		segs[Chromosome == chrXStr, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=1)]
 		cn[Chr == chrXStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=1)]
@@ -1224,6 +1224,9 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 
 ## compute copy number using corrected log ratio ##
 logRbasedCN <- function(x, purity, ploidyT, cellPrev, cn = 2){
+	if (is.null(cellPrev) || is.na(cellPrev)){
+		cellPrev <- 1
+	}
 	ct <- (2^x 
 		* (cn * (1 - purity) + purity * ploidyT * (cn / 2)) 
 		- (cn * (1 - purity)) 
