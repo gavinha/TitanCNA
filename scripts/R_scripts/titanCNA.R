@@ -181,7 +181,12 @@ if (is.null(outplot)){
 dir.create(outplot, showWarnings=verbose)
 outImage <- gsub(".titan.txt", ".RData", outfile)
 
-seqinfo <- Seqinfo(genome=genomeBuild)
+bsg <- paste0("BSgenome.Hsapiens.UCSC.", genomeBuild)
+if (!require(bsg, character.only=TRUE, quietly=TRUE, warn.conflicts=FALSE)) {
+	seqinfo <- Seqinfo(genome=genomeBuild)
+} else {
+	seqinfo <- seqinfo(get(bsg))
+}
 seqlevelsStyle(chrs) <- genomeStyle
 ## exclude chrX if gender==male ##
 if (gender == "male" || gender == "Male" || gender == "MALE"){
