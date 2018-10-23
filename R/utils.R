@@ -1223,8 +1223,8 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 }
 
 ## compute copy number using corrected log ratio ##
-logRbasedCN <- function(x, purity, ploidyT, cellPrev, cn = 2){
-	if (is.null(cellPrev) || is.na(cellPrev)){
+logRbasedCN <- function(x, purity, ploidyT, cellPrev=NA, cn = 2){
+	if (length(cellPrev) == 1 && is.na(cellPrev)){
 		cellPrev <- 1
 	}
 	ct <- (2^x 
