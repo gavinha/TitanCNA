@@ -330,7 +330,7 @@ for (chr in unique(results$Chr)){
 		sl <- seqlengths(seqinfo[chr])
   		pI <- plotIdiogram.hg38(chr, cytoband=cytoband, seqinfo=seqinfo, xlim=c(0, max(sl)), unit="bp", label.y=label.y, new=FALSE, ylim=ylim)	
   	}else{
-  		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=-0.35, label.y, new=FALSE, ylim=ylim)	
+		pI <- plotIdiogram(chr, build="hg19", unit="bp", label.y=label.y, new=FALSE, ylim=ylim)
   	}
 
 	dev.off()
