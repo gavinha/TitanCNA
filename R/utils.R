@@ -1168,6 +1168,7 @@ mergeSegsByCol <- function(segs, colToMerge = "Copy_Number", centromeres = NULL)
 correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes = NULL, 
 		maxCNtoCorrect.X = NULL, minPurityToCorrect = 0.2, gender = "male", chrs = c(1:22, "X")){
 	names <- c("HOMD","HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
+	names.chrX <- c("HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 	cn <- copy(cn)
 	segs <- copy(segs)
 	
@@ -1205,10 +1206,12 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	cn[Chr %in% chrs & is.na(TITANcall), Corrected_Call := names[Corrected_Copy_Number + 1]]
 	
 	# Adjust chrX copy number if purity is sufficiently high
+	# males - all data points in chrX is corrected
+	# females - only  
 	if (purity >= minPurityToCorrect){
 		if (gender == "male" & length(chrXStr) > 0){
 			segs[Chromosome == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 1]]
+			segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
 			cn[Chr == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
 			cn[Chr == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
 		}else if (gender == "female"){
@@ -1226,6 +1229,8 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 logRbasedCN <- function(x, purity, ploidyT, cellPrev=NA, cn = 2){
 	if (length(cellPrev) == 1 && is.na(cellPrev)){
 		cellPrev <- 1
+	}else{ #if cellPrev is a vector
+		cellPrev[is.na(cellPrev)] <- 1
 	}
 	ct <- (2^x 
 		* (cn * (1 - purity) + purity * ploidyT * (cn / 2)) 
