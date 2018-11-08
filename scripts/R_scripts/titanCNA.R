@@ -319,7 +319,7 @@ for (chr in unique(results$Chr)){
 	plotSegmentMedians(segs, chr=chr, resultType = "LogRatio", plotType = "CopyNumber", 
 				plot.new=TRUE, ylim=c(0,maxCorCN), xlab="", spacing=4, main=paste("Chr ",chr,sep=""))
 	if (as.numeric(numClustersToPlot) <= 2 && as.numeric(numClusters) <= 2){
-		plotSubcloneProfiles(results, chr, cex = 2, spacing=6,
+		plotSubcloneProfiles(results, chr, cex = 2, spacing=6, xlab="",
                                      main=paste("Chr ",chr,sep=""), cex.axis=1.5)
 		ylim <- c(-2,-1)
 		label.y=-4.25
