@@ -340,7 +340,7 @@ plotSubcloneProfiles <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
             # setup plot to include X number of clones (numClones)
             maxCN <- dataByChr[, max(CopyNumber)] + 1
             ylim <- c(0, numClones * (maxCN + 2) - 1)
-            plot(0, type = "n", xaxt = "n", ylab = "", xlab = "",
+            plot(0, type = "n", xaxt = "n", ylab = "", 
             	xlim = xlim, ylim = ylim, yaxt = "n", ...)
             axis(2, at = seq(ylim[1], ylim[2], 1), las = 1,
             	labels = rep(c(0:maxCN, "---"), numClones), cex.axis=cex.axis)
