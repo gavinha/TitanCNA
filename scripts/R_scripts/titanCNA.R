@@ -385,7 +385,7 @@ if (as.numeric(numClusters) <= 2){
 	#png(outFile,width=1000,height=300)
 	pdf(outFile,width=20,height=6)
 	plotSubcloneProfiles(dataIn=results, chr=chrs, cex = 0.5, spacing=4,
-                             main=id, cex.axis=1.5, xlab="")
+                             main=id, cex.axis=1.5)
 	dev.off()
 }
 
