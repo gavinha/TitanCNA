@@ -294,6 +294,7 @@ if (genomeBuild == "hg38" && file.exists(cytobandFile)){
 	names(cytoband) <- c("chrom", "start", "end", "name", "gieStain")
 	cytoband <- cytoband[chrom %in% chrs]
 	cytoband$chrom <- setGenomeStyle(cytoband$chrom, genomeStyle = genomeStyle)
+	cytoband <- as.data.frame(cytoband)
 }
 for (chr in unique(results$Chr)){
 	chrStr <- chr
