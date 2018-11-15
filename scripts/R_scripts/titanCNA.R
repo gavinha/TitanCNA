@@ -108,7 +108,7 @@ opt <- parse_args(parseobj)
 options(bitmapType='cairo', scipen=0)
 
 libdir <- opt$libdir
-if (!is.null(libdir) & libdir != "None"){
+if (!is.null(libdir) && libdir != "None"){
   source(paste0(libdir, "/R/plotting.R"))
   source(paste0(libdir, "/R/utils.R"))
   source(paste0(libdir, "/R/hmmClonal.R"))
