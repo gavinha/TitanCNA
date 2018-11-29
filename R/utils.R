@@ -667,10 +667,7 @@ computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRati
         if (S_Dbw.method == "Halkidi"){
         	scat.Ci[i] <- var.Ci/var.D
         }else if (S_Dbw.method == "Tong"){
-        	###### NOTE #######
-        	## The authors originally used ((N-ni)/N), but this is incorrect ##
-        	## We want a weighted-sum ##
-        	scat.Ci[i] <- ((ni) / N) * (var.Ci/var.D)
+        	scat.Ci[i] <- ((N - ni) / N) * (var.Ci/var.D)
         }
     }
     avgStdev <- sqrt(sum(stdev, na.rm = TRUE))/K
@@ -1166,7 +1163,7 @@ mergeSegsByCol <- function(segs, colToMerge = "Copy_Number", centromeres = NULL)
 ## Recompute integer CN for high-level amplifications ##
 ## compute logR-corrected copy number ##
 correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes = NULL, 
-		maxCNtoCorrect.X = NULL, minPurityToCorrect = 0.2, gender = "male", chrs = c(1:22, "X")){
+		maxCNtoCorrect.X = NULL, correctHOMD = FALSE, minPurityToCorrect = 0.2, gender = "male", chrs = c(1:22, "X")){
 	names <- c("HOMD","HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 	names.chrX <- c("HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 	cn <- copy(cn)
@@ -1200,6 +1197,14 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
 	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
 	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
+	
+	# TITAN calls adjust for HOMD
+	if (correctHOMD){
+		segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+		segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Call := names[Corrected_Copy_Number + 1]]
+		cn[Chr %in% chrs & CopyNumber == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+		cn[Chr %in% chrs & CopyNumber == 0, Corrected_Call := names[Corrected_Copy_Number + 1]]
+	}
 	
 	# Add corrected calls for bins with CopyNumber = NA (ie. not included in TITAN analysis)
 	cn[Chr %in% chrs & is.na(CopyNumber), Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
