@@ -2,8 +2,8 @@ Package: TitanCNA
 Type: Package
 Title: Subclonal copy number and LOH prediction from whole genome sequencing
         of tumours
-Version: 1.19.1
-Date: 2018-09-18
+Version: 1.21.1
+Date: 2018-11-29
 Author: Gavin Ha, Sohrab P Shah
 Maintainer: Gavin Ha <gavinha@broadinstitute.org>, Sohrab P Shah <sshah@bccrc.ca>
 Depends: R (>= 3.3.2)
@@ -17,5 +17,5 @@ Description: Hidden Markov model to segment and predict regions of
 License: GPL-3
 biocViews: Sequencing, WholeGenome, DNASeq, ExomeSeq,
         StatisticalMethod, CopyNumberVariation, HiddenMarkovModel,
-        Genetics, GenomicVariation
+        Genetics, GenomicVariation, ImmunoOncology
 URL: https://github.com/gavinha/TitanCNA
