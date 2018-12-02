@@ -256,14 +256,15 @@ updateParameters <- function(n_0, s_0, var_0, varR_0, phi_0, corRho_0, chrPos_0,
         var_prev <- var
         varR_prev <- varR
         phi_prev <- phi
-        
-        if (objfun[maxFind] >= objfun[i]) {
+
+	if (is.na(objfun[maxFind]) || is.na(objfun[i])) {
+        } else if (objfun[maxFind] >= objfun[i]) {
           #if (verbose)
             #message("Coordinate descent decreases likelihood.")
-        } else {
+	} else {
             maxFind <- i
         }
-        if ((abs(objfun[i] - objfun[i - 1])/abs(objfun[i])) <= 0.001) {
+	if (!is.na(objfun[i]) && (abs(objfun[i] - objfun[i - 1])/abs(objfun[i])) <= 0.001) {
             converged <- 1
         }
     }
