@@ -484,16 +484,19 @@ getPositionOverlap <- function(chr, posn, dataVal) {
 	return(hitVal) 
 }
 
-setGenomeStyle <- function(x, genomeStyle = "NCBI", species = "Homo_sapiens"){
+setGenomeStyle <- function(x, genomeStyle = "NCBI", species = "Homo_sapiens", 
+	filterExtraChr = TRUE){
 	#chrs <- genomeStyles(species)[c("NCBI","UCSC")]
 	if (!genomeStyle %in% seqlevelsStyle(as.character(x))){
     	x <- suppressWarnings(mapSeqlevels(as.character(x), 
     					genomeStyle, drop = FALSE)[1,])
     }
     
-    autoSexMChr <- extractSeqlevelsByGroup(species = species, 
-    				style = genomeStyle, group = "all")
-    x <- x[x %in% autoSexMChr]
+    if (filterExtraChr){
+		autoSexMChr <- extractSeqlevelsByGroup(species = species, 
+						style = genomeStyle, group = "all")
+		x <- x[x %in% autoSexMChr]
+	}
     return(x)
 }
 
@@ -1194,9 +1197,9 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 
 	# TITAN calls adjusted for >= copies - HLAMP
 	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
+	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, names[Corrected_Copy_Number + 1]]
 	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Call := "HLAMP"]
+	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, names[Corrected_Copy_Number + 1]]
 	
 	# TITAN calls adjust for HOMD
 	if (correctHOMD){

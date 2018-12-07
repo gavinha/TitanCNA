@@ -14,7 +14,7 @@
   loadAlleleCounts(inCounts, symmetric = TRUE, 
   		genomeStyle = "NCBI", sep = "\t", header = TRUE)
 
-	setGenomeStyle(x, genomeStyle = "NCBI", species = "Homo_sapiens")
+	setGenomeStyle(x, genomeStyle = "NCBI", species = "Homo_sapiens", filterExtraChr = TRUE)
 }
 
 \arguments{
@@ -38,6 +38,9 @@
   }
   \item{species}{
   	\code{character} denoting the species
+  }
+  \item{filterExtraChr}{
+  	\code{logical}; if \code{TRUE}, then will return the list of chromosomes given by \code{extractSeqlevelsByGroup} for the \code{species} and for autosomes and sex chromosomes, which means that only the major chromosomes are returned (i.e. 1:22, X, Y). 
   }
 }
 
