@@ -84,8 +84,9 @@ install_github("gavinha/TitanCNA")
 ### Install TitanCNA from Bioconductor
 From within R-3.3.2 or higher,  
 ```
-source("https://bioconductor.org/biocLite.R")
-biocLite("TitanCNA")
+if (!requireNamespace("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install("TitanCNA")
 ```
 
 ### Install other dependencies  
