@@ -93,8 +93,8 @@ BiocManager::install("TitanCNA")
 1. Install the HMMcopy suite
 Please follow instructions on the HMMcopy website <http://compbio.bccrc.ca/software/hmmcopy/>.
 
-2. [KRONOS](https://github.com/MO-BCCRC/titan_workflow) TITAN Workflow
-The easiest way to generate these files is by using the downloadable pipeline from https://github.com/MO-BCCRC/titan_workflow. 
+2. Install ichorCNA
+Please follow instructions on the GitHub Wiki <https://github.com/broadinstitute/ichorCNA>.s
 
 ## Usage
 R scripts are provided to run the R component of the TITAN analysis using the TitanCNA R/Bioconductor package.  

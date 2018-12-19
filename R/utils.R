@@ -462,25 +462,17 @@ getOverlap <- function(x, y, type = "within", colToReturn = "Copy_Number", metho
 
 getPositionOverlap <- function(chr, posn, dataVal) {
 # use RangedData to perform overlap
-    dataIR <- RangedData(space = dataVal[[1]], 
-    				IRanges(start = dataVal[[2]], end = dataVal[[3]]),
-    				val = dataVal[[4]])
-    				
+	colnames(dataVal)[4] <- "logR"
+	dataGR <- as(cnData, "GRanges")		
     ## load chr/posn as data.frame first to use proper chr ordering by factors/levels
-    chrDF <- data.frame(space=chr, start=posn, end=posn)
-    chrDF$space <- factor(chrDF$space, levels = unique(chr))    
-    chrIR <- as(chrDF, "RangedData")
-    
-    hits <- findOverlaps(query = chrIR, subject = dataIR)
+    chrDF <- data.frame(seqnames=chr, start=posn, end=posn)
+    chrDF$seqnames <- factor(chrDF$seqnames, levels = unique(chr))    
+    chrGR <- as(chrDF, "GRanges")
+    hits <- GenomicRanges::findOverlaps(query = chrGR, subject = dataGR)
     
     ## create full dataval list ##
     hitVal <- rep(NA, length = length(chr))
-    hitVal[from(hits)] <- dataIR$val[to(hits)]
-    #chrIR$hitVal <- hitVal
-    ## reorder to match input chr and posn arguments
-    #chrDF <- as.data.frame(chrIR)
-    #indReorder <- order(match(chrDF[, 1], chr))
-    #return(hitVal[indReorder])
+    hitVal[from(hits)] <- dataGR$logR[to(hits)]
 	return(hitVal) 
 }
 
@@ -1166,7 +1158,7 @@ mergeSegsByCol <- function(segs, colToMerge = "Copy_Number", centromeres = NULL)
 ## Recompute integer CN for high-level amplifications ##
 ## compute logR-corrected copy number ##
 correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes = NULL, 
-		maxCNtoCorrect.X = NULL, correctHOMD = FALSE, minPurityToCorrect = 0.2, gender = "male", chrs = c(1:22, "X")){
+		maxCNtoCorrect.X = NULL, correctHOMD = TRUE, minPurityToCorrect = 0.2, gender = "male", chrs = c(1:22, "X")){
 	names <- c("HOMD","HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 	names.chrX <- c("HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 	cn <- copy(cn)

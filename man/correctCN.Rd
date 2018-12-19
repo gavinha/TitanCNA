@@ -10,17 +10,17 @@
 
 \usage{
 correctIntegerCN(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes = NULL, 
-		maxCNtoCorrect.X = NULL, minPurityToCorrect = 0.2, gender = "male", 
+		maxCNtoCorrect.X = NULL, correctHOMD = TRUE, minPurityToCorrect = 0.2, gender = "male", 
 		chrs = c(1:22, "X"))
 }
 
 
 \arguments{
   \item{cn}{
-    \link[data.table]{data.table} object output from the function \link[outputTitanResults]{outputTitanResults}
+    \link[data.table]{data.table} object output from the function \link[TitanCNA]{outputTitanResults}
   }
   \item{segs}{
-    \link[data.table]{data.table} object output from the function \link[outputTitanSegments]{outputTitanSegments}
+    \link[data.table]{data.table} object output from the function \link[TitanCNA]{outputTitanSegments}
   }
   \item{purity}{
     Float type of the 1 minus the normal contamination estimate from TitanCNA
@@ -36,6 +36,9 @@ correctIntegerCN(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes = NULL,
   }
   \item{minPurityToCorrect}{
     If \code{purity} is less than \code{minPurityToCorrect}, then \code{Corrected_Copy_Number} will retain the same copy number values as the input copy number.
+  }
+  \item{correctHOMD}{
+  	If \code{TRUE}, then will correct the copy number of homozygous deletion bins and segments based on purity and ploidy corrected log ratios.
   }
   \item{gender}{
   	data.frame containing list of centromere regions. This should contain 3 columns: chr, start, and end. If this argument is used, then data at and flanking the centromeres will be removed.
@@ -95,7 +98,7 @@ ploidy <- tail(convergeParams$phi,1)
 segs <- outputTitanSegments(results, id = "test", convergeParams, 
   filename = NULL, igvfilename = NULL)
 corrIntCN.results <- correctIntegerCN(results, segs, 1 - norm, ploidy, maxCNtoCorrect.autosomes = NULL, 
-		maxCNtoCorrect.X = NULL, minPurityToCorrect = 0.2, gender = "female", chrs = 2)
+		maxCNtoCorrect.X = NULL, correctHOMD = TRUE, minPurityToCorrect = 0.2, gender = "female", chrs = 2)
 }
 
 
