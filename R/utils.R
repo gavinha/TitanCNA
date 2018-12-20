@@ -464,7 +464,7 @@ getOverlap <- function(x, y, type = "within", colToReturn = "Copy_Number", metho
 getPositionOverlap <- function(chr, posn, dataVal) {
 # use RangedData to perform overlap
 	colnames(dataVal)[4] <- "logR"
-	dataGR <- as(cnData, "GRanges")		
+	dataGR <- as(dataVal, "GRanges")		
     ## load chr/posn as data.frame first to use proper chr ordering by factors/levels
     chrDF <- data.frame(seqnames=chr, start=posn, end=posn)
     chrDF$seqnames <- factor(chrDF$seqnames, levels = unique(chr))    
