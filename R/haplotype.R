@@ -328,7 +328,7 @@ plotHaplotypeFraction <- function(dataIn, chr = c(1:22), resultType = "Haplotype
     
    	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))
+	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
 
     lohCol.hap <- c(`0`=phaseBlockCol[1], `1`=phaseBlockCol[2])
     lohCol.titan <- c("#00FF00", "#006400", "#0000FF", "#8B0000", 

@@ -187,7 +187,8 @@ if (!require(bsg, character.only=TRUE, quietly=TRUE, warn.conflicts=FALSE)) {
 } else {
 	seqinfo <- seqinfo(get(bsg))
 }
-seqlevelsStyle(chrs) <- genomeStyle
+#seqlevelsStyle(chrs) <- genomeStyle
+chrs <- mapSeqlevels(chrs, genomeStyle, drop = FALSE)[1, ]
 ## exclude chrX if gender==male ##
 if (gender == "male" || gender == "Male" || gender == "MALE"){
 	chrs <- chrs[chrs!=grep("X", chrs, value=TRUE)]

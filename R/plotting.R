@@ -22,7 +22,8 @@ plotAllelicRatio <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
 
 	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	genomeStyle <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	chr <- mapSeqlevels(chr, genomeStyle, drop = FALSE)[1, ]
 	
     dataIn <- copy(dataIn)
     if (!is.null(chr) && length(chr) == 1) {
@@ -82,7 +83,8 @@ plotClonalFrequency <- function(dataIn, chr = c(1:22),
 
 	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	genomeStyle <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	chr <- mapSeqlevels(chr, genomeStyle, drop = FALSE)[1, ]
 	
     # get unique set of cluster and estimates table:
     # 1st column is cluster number, 2nd column is
@@ -221,15 +223,16 @@ plotCNlogRByChr <- function(dataIn, chr = c(1:22), segs = NULL,
 	
 	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	genomeStyle <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	chr <- mapSeqlevels(chr, genomeStyle, drop = FALSE)[1, ]
 	
-	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
-		binCN <- "Corrected_Copy_Number"
-		segCN <- "Corrected_Copy_Number"
-	}else{
-		binCN <- "CopyNumber"
-		segCN <- "Copy_Number"
-	}
+  	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
+  		binCN <- "Corrected_Copy_Number"
+  		segCN <- "Corrected_Copy_Number"
+  	}else{
+  		binCN <- "CopyNumber"
+  		segCN <- "Copy_Number"
+  	}
 	
     dataIn <- copy(dataIn)
     ## adjust logR values for ploidy ##
@@ -314,7 +317,8 @@ plotSubcloneProfiles <- function(dataIn, chr = c(1:22), geneAnnot = NULL,
 
 	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	genomeStyle <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	chr <- mapSeqlevels(chr, genomeStyle, drop = FALSE)[1, ]
 
     ## pull out params from dots ##
     if (!is.null(args$cex.axis)) cex.axis <- args$cex.axis else cex.axis <- 0.75
@@ -462,22 +466,23 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
   
   	# use consistent chromosome naming convention
   	chr <- as.character(chr)
-	seqlevelsStyle(chr) <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	genomeStyle <- seqlevelsStyle(as.character(dataIn$Chr))[1]
+  	chr <- mapSeqlevels(chr, genomeStyle, drop = FALSE)[1, ]
   
-	dataType <- c("Median_logR", "Median_Ratio", "Median_HaplotypeRatio")
-	names(dataType) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
-	axisName <- c("Copy Number (log ratio)", "Allelic Ratio", "Haplotype Fraction")
-	names(axisName) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
-	axisNameCN <- c("Copy Number", "Allelic Copy Number")
-	names(axisNameCN) <- c("LogRatio", "AllelicRatio")
-	colName <- c("Copy_Number","TITAN_call", "TITAN_call")
-	names(colName) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
-
-	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
-		colName[1] <- "Corrected_Copy_Number"
-	}
-
-	dataIn <- copy(dataIn)
+  	dataType <- c("Median_logR", "Median_Ratio", "Median_HaplotypeRatio")
+  	names(dataType) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
+  	axisName <- c("Copy Number (log ratio)", "Allelic Ratio", "Haplotype Fraction")
+  	names(axisName) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
+  	axisNameCN <- c("Copy Number", "Allelic Copy Number")
+  	names(axisNameCN) <- c("LogRatio", "AllelicRatio")
+  	colName <- c("Copy_Number","TITAN_call", "TITAN_call")
+  	names(colName) <- c("LogRatio", "AllelicRatio", "HaplotypeRatio")
+  
+  	if (plotCorrectedCN && "Corrected_Copy_Number" %in% colnames(dataIn)){
+  		colName[1] <- "Corrected_Copy_Number"
+  	}
+  
+  	dataIn <- copy(dataIn)
 	# color coding
     alphaVal <- ceiling(alphaVal * 255)
     class(alphaVal) = "hexmode"

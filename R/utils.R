@@ -273,7 +273,7 @@ extractAlleleReadCounts <- function(bamFile, bamIndex,
 filterData <- function(data, chrs = NULL, minDepth = 10, 
     maxDepth = 200, positionList = NULL, map = NULL, 
     mapThres = 0.9, centromeres = NULL, centromere.flankLength = 0) {
-    genomeStyle <- seqlevelsStyle(data$chr)
+    genomeStyle <- seqlevelsStyle(data$chr)[1]
     if (!is.null(map)) {
         keepMap <- map >= mapThres
     } else {
@@ -367,8 +367,9 @@ extendSegments <- function(segs, removeCentromeres = FALSE, centromeres = NULL,
 
 
 removeCentromereSegs <- function(segs, centromeres, chrs = c(1:22, "X", "Y"), genomeStyle = "NCBI"){	
-	seqlevelsStyle(chrs) <- genomeStyle
-	segs <- copy(segs)
+	#seqlevelsStyle(chrs) <- genomeStyle
+	chrs <- mapSeqlevels(chrs, genomeStyle, drop = FALSE)[1, ]
+  segs <- copy(segs)
 	for (i in 1:nrow(centromeres)){
 		x <- as.data.frame(centromeres[i,]); 
 		names(x)[1:3] <- c("Chr","Start","End")
@@ -477,19 +478,19 @@ getPositionOverlap <- function(chr, posn, dataVal) {
 }
 
 setGenomeStyle <- function(x, genomeStyle = "NCBI", species = "Homo_sapiens", 
-	filterExtraChr = TRUE){
-	#chrs <- genomeStyles(species)[c("NCBI","UCSC")]
-	if (!genomeStyle %in% seqlevelsStyle(as.character(x))){
-    	x <- suppressWarnings(mapSeqlevels(as.character(x), 
-    					genomeStyle, drop = FALSE)[1,])
-    }
-    
-    if (filterExtraChr){
-		autoSexMChr <- extractSeqlevelsByGroup(species = species, 
-						style = genomeStyle, group = "all")
-		x <- x[x %in% autoSexMChr]
-	}
-    return(x)
+  filterExtraChr = TRUE){
+  #chrs <- genomeStyles(species)[c("NCBI","UCSC")]
+  if (!genomeStyle %in% seqlevelsStyle(as.character(x))[1]){
+  	x <- suppressWarnings(mapSeqlevels(as.character(x), 
+  					genomeStyle, drop = FALSE)[1,])
+  }
+  
+  if (filterExtraChr){
+    autoSexMChr <- extractSeqlevelsByGroup(species = species, 
+    				style = genomeStyle, group = "all")
+    x <- x[x %in% autoSexMChr]
+  }
+  return(x)
 }
 
 correctReadDepth <- function(tumWig, normWig, gcWig, mapWig, 
