@@ -162,7 +162,7 @@ plotClonalFrequency <- function(dataIn, chr = c(1:22),
         }
     } else {
         # plot for all chromosomes specified
-        ind <- dataIn[Chr %in% chr, which=T]
+        ind <- dataIn[Chr %in% chr, which=TRUE]
         dataIn <- dataIn[ind]
         clonalFreq <- clonalFreq[ind]
         coord <- getGenomeWidePositions(dataIn[, Chr],

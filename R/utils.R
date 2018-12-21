@@ -1019,7 +1019,7 @@ outputModelParameters <- function(convergeParams, results, filename,
     write.table(iter_str, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", 
         append = TRUE)
-    loglik_str <- signif(convergeParams$loglik[i], digits = 4)
+    loglik_str <- signif(convergeParams$loglik[i], digits = 6)
     loglik_str <- gsub(" ", "", loglik_str)
     outStr <- paste0("Log likelihood:\t", paste(loglik_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
@@ -1181,35 +1181,37 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 		segs[Chromosome == chrXStr, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=1)]
 		cn[Chr == chrXStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=1)]
 	}
+
 	## assign copy number to use - Corrected_Copy_Number and Corrected_Call
 	# same TITAN calls for autosomes - no change in copy number
-	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(Copy_Number)]
-	segs[Chromosome %in% chrs & Copy_Number < maxCNtoCorrect.autosomes, Corrected_Call := TITAN_call]
-	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(CopyNumber)]
-	cn[Chr %in% chrs & CopyNumber < maxCNtoCorrect.autosomes, Corrected_Call := TITANcall]
+	segs[, Corrected_Copy_Number := as.integer(Copy_Number)]
+	segs[, Corrected_Call := TITAN_call]
+	cn[, Corrected_Copy_Number := as.integer(CopyNumber)]
+	cn[, Corrected_Call := TITANcall]
 
-	# TITAN calls adjusted for >= copies - HLAMP
-	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-	segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, names[Corrected_Copy_Number + 1]]
-	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-	cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, names[Corrected_Copy_Number + 1]]
+	 if (purity >= minPurityToCorrect){
+		# TITAN calls adjusted for >= copies - HLAMP
+		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, names[Corrected_Copy_Number + 1]]
+		cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+		cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, names[Corrected_Copy_Number + 1]]
 	
-	# TITAN calls adjust for HOMD
-	if (correctHOMD){
-		segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-		segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Call := names[Corrected_Copy_Number + 1]]
-		cn[Chr %in% chrs & CopyNumber == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-		cn[Chr %in% chrs & CopyNumber == 0, Corrected_Call := names[Corrected_Copy_Number + 1]]
-	}
+		# TITAN calls adjust for HOMD
+		if (correctHOMD){
+			segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+			segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Call := names[Corrected_Copy_Number + 1]]
+			cn[Chr %in% chrs & CopyNumber == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+			cn[Chr %in% chrs & CopyNumber == 0, Corrected_Call := names[Corrected_Copy_Number + 1]]
+		}
 	
-	# Add corrected calls for bins with CopyNumber = NA (ie. not included in TITAN analysis)
-	cn[Chr %in% chrs & is.na(CopyNumber), Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-	cn[Chr %in% chrs & is.na(TITANcall), Corrected_Call := names[Corrected_Copy_Number + 1]]
+		# Add corrected calls for bins with CopyNumber = NA (ie. not included in TITAN analysis)
+		cn[Chr %in% chrs & is.na(CopyNumber), Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+		cn[Chr %in% chrs & is.na(TITANcall), Corrected_Call := names[Corrected_Copy_Number + 1]]
 	
-	# Adjust chrX copy number if purity is sufficiently high
-	# males - all data points in chrX is corrected
-	# females - only  
-	if (purity >= minPurityToCorrect){
+		# Adjust chrX copy number if purity is sufficiently high
+		# males - all data points in chrX is corrected
+		# females - only  
+	
 		if (gender == "male" & length(chrXStr) > 0){
 			segs[Chromosome == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
 			segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]

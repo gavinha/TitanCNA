@@ -263,7 +263,7 @@ optimalPath <- viterbiClonalCN(data,convergeParams)
 results <- outputTitanResults(data,convergeParams,optimalPath,
 			filename=NULL,posteriorProbs=F,subcloneProfiles=TRUE,
 			proportionThreshold = minClustProportion, proportionThresholdClonal = 0.05,
-			recomputeLogLik = TRUE, rerunViterbi = FALSE, verbose=verbose)
+			recomputeLogLik = FALSE, rerunViterbi = FALSE, verbose=verbose)
 convergeParams <- results$convergeParams
 results <- results$corrResults
 norm <- tail(convergeParams$n,1)
