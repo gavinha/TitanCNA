@@ -10,7 +10,7 @@ Ha, G., et al. (2014). [TITAN: Inference of copy number architectures in clonal 
 Gavin Ha  
 Fred Hutchinson Cancer Research Center  
 contact: <gavinha@gmail.com> or <gha@fredhutch.org>  
-Date: August 9, 2018  
+Date: January 2, 2019  
 Website: [GavinHaLab.org](https://gavinhalab.org/)
 
 ## Table of Contents
@@ -91,10 +91,10 @@ BiocManager::install("TitanCNA")
 
 ### Install other dependencies  
 1. Install the HMMcopy suite
-Please follow instructions on the HMMcopy website <http://compbio.bccrc.ca/software/hmmcopy/>.
+Please follow instructions on the HMMcopy GitHub <https://github.com/shahcompbio/hmmcopy_utils>.
 
 2. Install ichorCNA
-Please follow instructions on the GitHub Wiki <https://github.com/broadinstitute/ichorCNA>.s
+Please follow instructions on the ichorCNA GitHub Wiki <https://github.com/broadinstitute/ichorCNA>.
 
 ## Usage
 R scripts are provided to run the R component of the TITAN analysis using the TitanCNA R/Bioconductor package.  
