@@ -450,7 +450,7 @@ getOverlap <- function(x, y, type = "within", colToReturn = "Copy_Number", metho
   	if (method == "common"){
   		for (i in 1:length(splitInd)){
   			hitInd <- which(queryHits(hits)==runs$values[splitInd[i]])
-				ind <- which.max(width(ranges(hits[hitInd], ranges(x), ranges(y))))
+				ind <- which.max(width(IRanges::overlapsRanges(query = ranges(x), subject = ranges(y), hits = hits[hitInd])))
 				cn[unique(queryHits(hits)[hitInd])] <- values(y)[subjectHits(hits)[hitInd][ind], colToReturn]
 			}
 		}else{
@@ -602,6 +602,7 @@ computeBIC <- function(maxLoglik, M, N) {
 }
 
 computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRatio", 
+						use.corrected.cn = TRUE,  
 						S_Dbw.method = "Halkidi", symmetric = TRUE) {
     ## input x: Titan results dataframe from
     ## 'outputTitanResults()' S_Dbw Validity Index
@@ -612,25 +613,31 @@ computeSDbwIndex <- function(x, centroid.method = "median", data.type = "LogRati
     ## Tong and Tan (2009) Cluster validity based on the 
     ## improved S_Dbw index
     
-    if (!data.type %in% c("LogRatio", "AllelicRatio")){
+    if (!data.type %in% c("LogRatio", "AllelicRatio", "HaplotypeRatio")){
     	stop("computeSDbwIndex: data.type must be either 'LogRatio' or 'AllelicRatio'")
     }
     
       if (!S_Dbw.method %in% c("Halkidi", "Tong")){
     	stop("computeSDbwIndex: S_Dbw.method must be either 'Halkidi' or 'Tong'")
     }
-    
+    if (use.corrected.cn && "Corrected_Copy_Number" %in% names(x)){
+    	cn.colname <- "Corrected_Copy_Number"
+    	state.colName <- "TITANstate"
+    }else{
+    	cn.colname <- "CopyNumber"
+    	state.colName <- "TITANstate"
+    }
     ## flatten copynumber-clonalclusters to single vector
     if (data.type=="LogRatio"){
-    	cn <- x[, CopyNumber] + 1
+    	cn <- x[, get(cn.colname)] + 1
 		  cn[cn == 3] <- NA  ## remove all CN=2 positions
     	flatState <- (x[, ClonalCluster] - 1) * (max(cn, na.rm = TRUE)) + cn
     	flatState[is.na(flatState)] <- 3 ### assign all the CN=2 positions to cluster 3
     	CNdata <- scale(x[, get(data.type)])
     	x <- as.matrix(cbind(as.numeric(flatState), CNdata))
-    }else if (data.type=="AllelicRatio"){
-    	st <- x[, TITANstate] + 1
-    	st[x[, which(TITANcall == "HET")]] <- NA
+    }else if (data.type=="AllelicRatio" | data.type=="HaplotypeRatio"){
+    	st <- x[, get(state.colName)] + 1
+    	st[x[, which(get(state.colName) == "HET")]] <- NA
     	flatState <- (x[, ClonalCluster] - 1) * (max(st, na.rm = TRUE)) + st
     	if (symmetric){
     		flatState[is.na(flatState)] <- 4
@@ -969,7 +976,7 @@ outputTitanResults <- function(data, convergeParams,
 }
 
 outputModelParameters <- function(convergeParams, results, filename, 
-		S_Dbw.scale = 1, S_Dbw.method = "Tong") {
+		S_Dbw.scale = 1, S_Dbw.method = "Tong", S_Dbw.useCorrectedCN = TRUE) {
     message("titan: Saving parameters to ", filename)
     Z <- dim(convergeParams$s)[1]
     i <- dim(convergeParams$s)[2]  #iteration of training to use (last iteration)
@@ -988,10 +995,15 @@ outputModelParameters <- function(convergeParams, results, filename,
     outStr <- paste0("Clonal cluster cellular prevalence Z=", Z , ":\t", paste(s_str, collapse = " "))
     write.table(outStr, file = fc, col.names = FALSE, 
         row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
+    if ("HaplotypeRatio" %in% names(results)){
+    	ratioColName <- "HaplotypeRatio"
+    }else{
+    	ratioColName <- "AllelicRatio"
+    }
     for (j in 1:Z) {
         musR_str <- signif(convergeParams$muR[, j, i], digits = 4)
         musR_str <- gsub(" ", "", musR_str)
-        outStr <- paste0("AllelicRatio ", convergeParams$genotypeParams$alleleEmissionModel, 
+        outStr <- paste0(ratioColName, " ", convergeParams$genotypeParams$alleleEmissionModel, 
                          " means for clonal cluster Z=", j, ":\t", paste(musR_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
             row.names = FALSE, quote = FALSE, sep = "", 
@@ -1006,7 +1018,7 @@ outputModelParameters <- function(convergeParams, results, filename,
     if (convergeParams$genotypeParams$alleleEmissionModel == "Gaussian"){
         varR_str <- signif(convergeParams$varR[, i], digits = 4)
         varR_str <- gsub(" ", "", varR_str)
-        outStr <- paste0("AllelicRatio Gaussian variance:\t", paste(varR_str, collapse = " "))
+        outStr <- paste0(ratioColName, " Gaussian variance:\t", paste(varR_str, collapse = " "))
         write.table(outStr, file = fc, col.names = FALSE, 
           row.names = FALSE, quote = FALSE, sep = "", append = TRUE)
     }
@@ -1028,11 +1040,11 @@ outputModelParameters <- function(convergeParams, results, filename,
     
     # compute SDbw_index
     sdbw.LR <- computeSDbwIndex(results, centroid.method = "median", 
-    					data.type = "LogRatio", 
+    					data.type = "LogRatio", use.corrected.cn = S_Dbw.useCorrectedCN, 
     					S_Dbw.method = S_Dbw.method,
     					symmetric = convergeParams$symmetric)
     sdbw.AR <- computeSDbwIndex(results, centroid.method = "median", 
-    					data.type = "AllelicRatio", 
+    					data.type = ratioColName, use.corrected.cn = S_Dbw.useCorrectedCN,
     					S_Dbw.method = S_Dbw.method,
     					symmetric = convergeParams$symmetric)
     ## element-wise addition -> returns list
@@ -1040,8 +1052,8 @@ outputModelParameters <- function(convergeParams, results, filename,
     sdbw <- mapply('+', sdbw.LR, sdbw.AR, SIMPLIFY = FALSE)        
     
     ## print out combined S_Dbw ##
-	  printSDbw(sdbw.LR, fc, S_Dbw.scale, "LogRatio")
-    printSDbw(sdbw.AR, fc, S_Dbw.scale, "AllelicRatio")
+	printSDbw(sdbw.LR, fc, S_Dbw.scale, "LogRatio")
+    printSDbw(sdbw.AR, fc, S_Dbw.scale, ratioColName)
     printSDbw(sdbw, fc, S_Dbw.scale, "Both")
     close(fc)
     
@@ -1165,6 +1177,15 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	cn <- copy(cn)
 	segs <- copy(segs)
 	
+	## determine if Median_HaplotypeRatio (segs) and HaplotypeRatio (cn) columns exists (i.e. 10X analysis)
+	segs.allelicRatioColName <- "Median_Ratio"
+	if ("Median_HaplotypeRatio" %in% names(segs)){
+		segs.allelicRatioColName <- "Median_HaplotypeRatio"
+	}
+	cn.allelicRatioColName <- "AllelicRatio"
+	if ("HaplotypeRatio" %in% names(cn)){
+		cn.allelicRatioColName <- "HaplotypeRatio"
+	}
 	## set up chromosome style
 	autosomeStr <- grep("X|Y", chrs, value=TRUE, invert=TRUE)
 	chrXStr <- grep("X", chrs, value=TRUE)
@@ -1175,38 +1196,49 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	if (is.null(maxCNtoCorrect.X) & gender == "female" & length(chrXStr) > 0){
 		maxCNtoCorrect.X <- segs[Chromosome == chrXStr, max(Copy_Number, na.rm=TRUE)]
 	}
+	## correct log ratio and compute corrected CN
 	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=2)]
 	cn[Chr %in% chrs, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=2)]
+	## correct allelic ratio and compute corrected major/minor CN (exclude chrX for males since no allelic CN)
+	segs[Chromosome %in% chrs, Corrected_Ratio := allelicRatioBasedCN(get(segs.allelicRatioColName), logR_Copy_Number, purity, Cellular_Prevalence, rn=0.5, cn=2)]
+	cn[Chr %in% chrs, Corrected_Ratio := allelicRatioBasedCN(get(cn.allelicRatioColName), logR_Copy_Number, purity, CellularPrevalence, rn=0.5, cn=2)]
 	if (gender == "male" & length(chrXStr) > 0){ ## analyze chrX separately
 		segs[Chromosome == chrXStr, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=1)]
 		cn[Chr == chrXStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=1)]
+		segs[Chromosome == chrXStr, Corrected_Ratio := NA]
+		cn[Chr == chrXStr, Corrected_Ratio := NA]
 	}
 
-	## assign copy number to use - Corrected_Copy_Number and Corrected_Call
+	## assign copy number to use - Corrected_Copy_Number
 	# same TITAN calls for autosomes - no change in copy number
 	segs[, Corrected_Copy_Number := as.integer(Copy_Number)]
 	segs[, Corrected_Call := TITAN_call]
+	segs[, Corrected_MajorCN := as.integer(MajorCN)]
+	segs[, Corrected_MinorCN := as.integer(MinorCN)]
 	cn[, Corrected_Copy_Number := as.integer(CopyNumber)]
 	cn[, Corrected_Call := TITANcall]
 
 	 if (purity >= minPurityToCorrect){
 		# TITAN calls adjusted for >= copies - HLAMP
+		ind <- segs[Chromosome %in% chrs & Copy_Number >= 8, which = TRUE]
 		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, names[Corrected_Copy_Number + 1]]
+		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_MajorCN := as.integer(round(Corrected_Ratio * Corrected_Copy_Number))]
+		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_MinorCN := as.integer(round((1 - Corrected_Ratio) * Corrected_Copy_Number))]
 		cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-		cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, names[Corrected_Copy_Number + 1]]
-	
+		#cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_MajorCN := as.integer(round(Corrected_Ratio * Corrected_Copy_Number))]
+		#cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_MinorCN := as.integer(round((1 - Corrected_Ratio) * Corrected_Copy_Number))]
+		
 		# TITAN calls adjust for HOMD
 		if (correctHOMD){
+			ind <- c(ind, segs[Chromosome %in% chrs & Copy_Number == 0, which = TRUE])
 			segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Call := names[Corrected_Copy_Number + 1]]
+			segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_MajorCN := as.integer(round(Corrected_Ratio * Corrected_Copy_Number))]
+		segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_MinorCN := as.integer(round((1 - Corrected_Ratio) * Corrected_Copy_Number))]
 			cn[Chr %in% chrs & CopyNumber == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			cn[Chr %in% chrs & CopyNumber == 0, Corrected_Call := names[Corrected_Copy_Number + 1]]
 		}
 	
 		# Add corrected calls for bins with CopyNumber = NA (ie. not included in TITAN analysis)
 		cn[Chr %in% chrs & is.na(CopyNumber), Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-		cn[Chr %in% chrs & is.na(TITANcall), Corrected_Call := names[Corrected_Copy_Number + 1]]
 	
 		# Adjust chrX copy number if purity is sufficiently high
 		# males - all data points in chrX is corrected
@@ -1214,18 +1246,27 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	
 		if (gender == "male" & length(chrXStr) > 0){
 			segs[Chromosome == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
 			cn[Chr == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			cn[Chr == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
 		}else if (gender == "female"){
 			segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
 			cn[Chr == chrXStr & CopyNumber >= maxCNtoCorrect.X, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			cn[Chr == chrXStr & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
 		}
 	}
 	
-	return(list(cn = copy(cn), segs = copy(segs)))	
+	## assign copy number call (string) based on Corrected_Copy_Number 
+	# autosomes
+	segs[ind, Corrected_Call := names[Corrected_Copy_Number + 1]]
+	cn[ind, Corrected_Call := names[Corrected_Copy_Number + 1]]
+	# chrX
+	if (gender == "male" & length(chrXStr) > 0){
+		segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
+		cn[Chr == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
+	}else{ # female
+		segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
+		cn[Chr == chrXStr & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]		
+	}
+
+	return(list(cn = copy(cn), segs = copy(segs)))
 }
 
 ## compute copy number using corrected log ratio ##
@@ -1244,6 +1285,17 @@ logRbasedCN <- function(x, purity, ploidyT, cellPrev=NA, cn = 2){
 	return(ct)
 }
 
+allelicRatioBasedCN <- function(x, ct, purity, cellPrev=NA, rn = 0.5, cn = 2){
+	if (length(cellPrev) == 1 && is.na(cellPrev)){
+		cellPrev <- 1
+	}else{ #if cellPrev is a vector
+		cellPrev[is.na(cellPrev)] <- 1
+	}
+	totalAlleles <- ((1 - purity) * cn) + (purity * (1 - cellPrev)) * cn + (purity * cellPrev * ct)
+	rt <- (x * totalAlleles - (((1 - purity) * rn) * cn + (purity * (1 - cellPrev) * rn * cn))) / (purity * cellPrev * ct)
+	rt <- sapply(rt, min, 1)
+	return(rt)
+}
 
 getMajorMinorCN <- function(state, symmetric = TRUE){
 	majorCN <- NA

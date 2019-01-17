@@ -540,7 +540,7 @@ plotSegmentMedians <- function(dataIn, resultType = "LogRatio",
             value <- dataByChr[, MajorCN]
             value2 <- dataByChr[, MinorCN]
           }else{
-            value <- dataByChr[, Copy_Number]
+            value <- dataByChr[, get(colName[resultType])]
           }
         }else{
           value <- dataByChr[, get(dataType[resultType])]
@@ -639,14 +639,19 @@ plotChrLines <- function(chrs, chrBkpt, yrange) {
         cex.axis = 1.5, tick = FALSE)
 }
 
-getGenomeWidePositions <- function(chrs, posns) {
+getGenomeWidePositions <- function(chrs, posns, seqinfo = NULL) {
     # create genome coordinate scaffold
     positions <- as.numeric(posns)
     chrsNum <- unique(chrs)
     chrBkpt <- rep(0, length(chrsNum) + 1)
+    prevChrPos <- 0
     for (i in 2:length(chrsNum)) {
         chrInd <- which(chrs == chrsNum[i])
-        prevChrPos <- positions[chrInd[1] - 1]
+        if (!is.null(seqinfo)){
+        	prevChrPos <- seqinfo[i-1, "seqlengths"] + prevChrPos
+        }else{
+        	prevChrPos <- positions[chrInd[1] - 1]
+        }
         chrBkpt[i] = prevChrPos
         positions[chrInd] = positions[chrInd] + prevChrPos
     }
