@@ -1255,8 +1255,8 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	
 	## assign copy number call (string) based on Corrected_Copy_Number 
 	# autosomes
-	segs[ind, Corrected_Call := names[Corrected_Copy_Number + 1]]
-	cn[ind, Corrected_Call := names[Corrected_Copy_Number + 1]]
+	segs[, Corrected_Call := names[Corrected_Copy_Number + 1]]
+	cn[, Corrected_Call := names[Corrected_Copy_Number + 1]]
 	# chrX
 	if (gender == "male" & length(chrXStr) > 0){
 		segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
