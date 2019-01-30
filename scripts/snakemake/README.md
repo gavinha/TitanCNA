@@ -7,7 +7,7 @@ This workflow will run the TITAN a set of tumour-normal pairs, starting from the
 Gavin Ha  
 Fred Hutchinson Cancer Research Center  
 contact: <gavinha@gmail.com> or <gha@fredhutch.org>  
-Date: August 7, 2018  
+Date: January 30, 2019  
 Website: [GavinHaLab.org](https://gavinhalab.org/)
 
 ## Requirements
@@ -77,7 +77,7 @@ There are 2 separate files in use for `qsub`, which are provided as a template:
 
 To invoke the snakemake pipeline for `qsub`:
 ```
-snakemake -s  TitanCNA.snakefile --jobscript config/cluster_qsub.sh --cluster-config config/cluster_qsub.yaml --cluster-sync "qsub -l h_vmem={cluster.h_vmem},h_rt={cluster.h_rt} -pe {cluster.pe} -binding {cluster.binding}" -j 50
+snakemake -s TitanCNA.snakefile --jobscript config/cluster_qsub.sh --cluster-config config/cluster_qsub.yaml --cluster-sync "qsub -l h_vmem={cluster.h_vmem},h_rt={cluster.h_rt} -pe {cluster.pe} -binding {cluster.binding}" -j 50
 ```
 Here, the `h_vmem` (max memory), `h_rt` (max runtime) are used. For `runTitanCNA` task, the default setting is to use 1 core but additional number of cpus (per task) can help to speed up the analysis. This can be set with `-pe` and `-binding`. Your SGE settings may be different and users should adjust accordingly.
 
@@ -98,7 +98,7 @@ Users can run the snakemake files individually. This can be helpful for testing 
   snakemake -s ichorCNA.snakefile -np
   snakemake -s ichorCNA.snakefile --cores 5
   # OR
-  snakemake -s ichorCNA.snakefile --cluster-sync "qsub -l h_vmem={params.mem},h_rt={params.runtime} {params.pe}" -j 50 --jobscript config/cluster.sh
+  snakemake -s ichorCNA.snakefile --jobscript config/cluster_qsub.sh --cluster-config config/cluster_qsub.yaml --cluster-sync "qsub -l h_vmem={cluster.h_vmem},h_rt={cluster.h_rt} -pe {cluster.pe} -binding {cluster.binding}" -j 50
   # OR
   snakemake -s ichorCNA.snakefile --cluster-config config/cluster_slurm.yaml --cluster "sbatch -p {cluster.partition} --mem={cluster.mem} -t {cluster.time} -c {cluster.ncpus} -n {cluster.ntasks} -o {cluster.output}" -j 50
   ```
@@ -112,7 +112,7 @@ Users can run the snakemake files individually. This can be helpful for testing 
   snakemake -s getAlleleCounts.snakefile -np
   snakemake -s getAlleleCounts.snakefile --cores 5
   # OR
-  snakemake -s getAlleleCounts.snakefile --cluster-sync "qsub -l h_vmem={params.mem},h_rt={params.runtime} {params.pe}" -j 50 --jobscript config/cluster.sh
+  snakemake -s getAlleleCounts.snakefile --jobscript config/cluster_qsub.sh --cluster-config config/cluster_qsub.yaml --cluster-sync "qsub -l h_vmem={cluster.h_vmem},h_rt={cluster.h_rt} -pe {cluster.pe} -binding {cluster.binding}" -j 50
   # OR
   snakemake -s getAlleleCounts.snakefile --cluster-config config/cluster_slurm.yaml --cluster "sbatch -p {cluster.partition} --mem={cluster.mem} -t {cluster.time} -c {cluster.ncpus} -n {cluster.ntasks} -o {cluster.output}" -j 50
   ``` 
@@ -134,11 +134,12 @@ samTools:  /path/to/samtools
 These are provided in this (TitanCNA)[https://github.com/gavinha/TitanCNA] repo either under [code/](code/) or [R_scripts](https://github.com/gavinha/TitanCNA/tree/master/scripts/R_scripts). 
 ```
 readCounterScript:  /path/to/readCounter
-ichorCNA_rscript:  (/path/to/ichorCNA.R)[https://github.com/broadinstitute/ichorCNA/blob/master/scripts/runIchorCNA.R]
+ichorCNA_rscript:  /path/to/ichorCNA.R
 pyCountScript:  code/countPysam.py
 TitanCNA_rscript: ../R_scripts/titanCNA.R
 TitanCNA_selectSolutionRscript: ../R_scripts/selectSolution.R
 ```
+See the [ichorCNA](https://github.com/broadinstitute/ichorCNA/blob/master/scripts/runIchorCNA.R) repo for the ichorCNA R script.
 
 ### 3. Path to R package files
 Specify the directory in which [TitanCNA](https://github.com/gavinha/TitanCNA) and [ichorCNA](https://github.com/broadinstitute/ichorCNA) are installed.  
@@ -180,7 +181,7 @@ binSize:  10000
 ### 6. [ichorCNA.snakefile](ichorCNA.snakefile) settings
 Settings for the analysis of read coverage using ichorCNA.  
 - `ichorCNA_chrs` specifies the chromosomes to analyze in the R script; users do not need to be concerned about chromosome naming convention here as the code will handle it based on the `genomeStyle` set in the reference settings above.  
-- The GC and Map wig files *must* have match the `binSize` above. The various sizes supported will depend on which GC and Map wig files are generated.  We provide a few to select from in the (ichorCNA repo)[https://github.com/broadinstitute/ichorCNA/tree/master/inst/extdata]. Users can also create their own by following instructions from the [HMMcopy repo](https://github.com/shahcompbio/hmmcopy_utils).
+- The GC and Map wig files *must* have match the `binSize` above. The various sizes supported will depend on which GC and Map wig files are generated.  We provide a few to select from in the [ichorCNA repo](https://github.com/broadinstitute/ichorCNA/tree/master/inst/extdata). Users can also create their own by following instructions from the [HMMcopy repo](https://github.com/shahcompbio/hmmcopy_utils).
 ```
 ## ichorCNA params ##
 ichorCNA_gcWig: /path/to/gc_hg19_10kb.wig
