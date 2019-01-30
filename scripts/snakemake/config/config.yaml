@@ -20,14 +20,6 @@ cytobandFile:  None # only need if hg38
 centromere:  /path/to/ichorCNA/inst/extdata/GRCh37.p13_centromere_UCSC-gapTable.txt
 sex:  male   # use None if both females and males are in sample set
 
-## standard parameters for qsub memory, runtime, pe (parallel environment)
-# use what your scheduler designates for parameters; does not apply to local run
-# invoke using:
-# snakemake -s TitanCNA.snakefile --cluster-sync "qsub -l h_vmem={params.mem},h_rt={params.runtime} {params.pe}" -j 100 --jobscript config/cluster.sh
-std_mem:  4G
-std_runtime:  "05:00:00"  
-std_numCores:  -pe smp 1 -binding linear:1
-
 ## params for each step ##
 
 ## read depth params ##
@@ -53,9 +45,6 @@ ichorCNA_txnE:  0.9999
 ichorCNA_txnStrength:  10000
 ichorCNA_plotFileType:  png
 ichorCNA_plotYlim:  c(-2,4)
-ichorCNA_mem:  10G
-ichorCNA_runtime:  "300:00:00"
-ichorCNA_pe: -pe smp 1 -binding linear:1  
 
 ## allele counts - samtools, pysam ##
 # USERS MUST MODIFY getAlleleCounts.snakefile to use the correct CHRS naming
@@ -78,6 +67,3 @@ TitanCNA_txnExpLen: 1e15
 TitanCNA_plotYlim:  c(-2,4)
 TitanCNA_solutionThreshold: 0.05
 TitanCNA_numCores: 1
-TitanCNA_mem:  16G
-TitanCNA_runtime:  "300:00:00"
-TitanCNA_pe: -pe smp 1 -binding linear:1  

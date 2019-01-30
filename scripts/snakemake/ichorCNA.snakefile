@@ -16,10 +16,7 @@ rule read_counter:
 		readCounter=config["readCounterScript"],
 		binSize=config["binSize"],
 		qual="20",
-		chrs=config["chrs"],
-		mem=config["std_mem"],
-		runtime=config["std_runtime"],
-		pe=config["std_numCores"]
+		chrs=config["chrs"]
 	resources:
 		mem=4
 	log:
@@ -38,8 +35,8 @@ rule ichorCNA:
 		#segTxt="results/ichorCNA/{tumor}/{tumor}.seg.txt",
 		#seg="results/ichorCNA/{tumor}/{tumor}.seg",
 		#rdata="results/ichorCNA/{tumor}/{tumor}.RData",
-		outDir="results/ichorCNA/{tumor}/",
 	params:
+		outDir="results/ichorCNA/{tumor}/",
 		rscript=config["ichorCNA_rscript"],
 		libdir=config["ichorCNA_libdir"],
 		id="{tumor}",
@@ -62,13 +59,10 @@ rule ichorCNA:
 		txnStrength=config["ichorCNA_txnStrength"],
 		fracReadsChrYMale="0.001",
 		plotFileType=config["ichorCNA_plotFileType"],
-		plotYlim=config["ichorCNA_plotYlim"],
-		mem=config["ichorCNA_mem"],
-		runtime=config["ichorCNA_runtime"],
-		pe=config["ichorCNA_pe"]
+		plotYlim=config["ichorCNA_plotYlim"]
 	resources:
 		mem=4
 	log:
 		"logs/ichorCNA/{tumor}.log"	
 	shell:
-		"Rscript {params.rscript} --libdir {params.libdir} --id {params.id} --WIG {input.tum} --gcWig {params.gcwig} --mapWig {params.mapwig} --NORMWIG {input.norm} --ploidy \"{params.ploidy}\" --normal \"{params.normal}\" --maxCN {params.maxCN} --includeHOMD {params.includeHOMD} --genomeStyle {params.genomeStyle} --chrs \"{params.chrs}\" --estimateNormal {params.estimateNormal} --estimatePloidy {params.estimatePloidy} --estimateScPrevalence {params.estimateClonality} --scStates \"{params.scStates}\" --centromere {params.centromere} --exons.bed {params.exons} --txnE {params.txnE} --txnStrength {params.txnStrength} --fracReadsInChrYForMale {params.fracReadsChrYMale} --plotFileType {params.plotFileType} --plotYLim \"{params.plotYlim}\" --outDir {output.outDir} > {log} 2> {log}"
+		"Rscript {params.rscript} --libdir {params.libdir} --id {params.id} --WIG {input.tum} --gcWig {params.gcwig} --mapWig {params.mapwig} --NORMWIG {input.norm} --ploidy \"{params.ploidy}\" --normal \"{params.normal}\" --maxCN {params.maxCN} --includeHOMD {params.includeHOMD} --genomeStyle {params.genomeStyle} --chrs \"{params.chrs}\" --estimateNormal {params.estimateNormal} --estimatePloidy {params.estimatePloidy} --estimateScPrevalence {params.estimateClonality} --scStates \"{params.scStates}\" --centromere {params.centromere} --exons.bed {params.exons} --txnE {params.txnE} --txnStrength {params.txnStrength} --fracReadsInChrYForMale {params.fracReadsChrYMale} --plotFileType {params.plotFileType} --plotYLim \"{params.plotYlim}\" --outDir {params.outDir} > {log} 2> {log}"

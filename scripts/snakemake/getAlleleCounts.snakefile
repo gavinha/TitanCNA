@@ -21,10 +21,7 @@ rule getHETsites:
 	params:
 		refFasta=config["refFasta"],
 		snpDB=config["snpVCF"],
-		samtoolsCmd=config["samTools"],
-		mem=config["std_mem"],
-		runtime=config["std_runtime"],
-		pe=config["std_numCores"]
+		samtoolsCmd=config["samTools"]
 	log:
 		"logs/titan/hetPosns/{tumor}/{tumor}.chr{chr}.log"
 	shell:
@@ -43,10 +40,7 @@ rule getAlleleCountsByChr:
 		#refFasta=config["refFasta"],
 		mapQ=config["map_quality"],
 		baseQ=config["base_quality"],
-		vcfQ=config["vcf_quality"],
-		mem=config["std_mem"],
-		runtime=config["std_runtime"],
-		pe=config["std_numCores"]
+		vcfQ=config["vcf_quality"]
 	log:
 		"logs/titan/tumCounts/{tumor}/{tumor}.chr{chr}.log"
 	shell:

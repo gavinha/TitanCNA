@@ -57,7 +57,7 @@ pairings:
 See below for details about [config/config.yaml](config/config.yaml)
 
 # Run the analysis
-## 1. Invoking the full snakemake workflow for TITAN
+## 1. Invoking the full snakemake workflow on a single machine
 This will also run both `ichorCNA.snakefile` and `getAlleleCounts.snakefile` which generate the necessary inputs for `TitanCNA.snakfile`.
 ```
 # show commands and workflow
@@ -66,13 +66,27 @@ snakemake -s TitanCNA.snakefile -np
 snakemake -s TitanCNA.snakefile --cores 5
 ```
 
-## 2. Run snakemake jobs on a cluster  
-An implementation that works with Broad UGER (qsub) is provided.  
-Parameters for memory, runtime, and parallel environment can be specified directly in the snakemake files; default values for each rule has already been set in `params` within the [config.yaml](config/config.yaml) and the command below can be used as-is.  
-Other cluster parameters can be set directly in [cluster.sh](config/cluster.sh).  
-*Note: users will need to adjust these for use with their cluster-specific settings*
+## 2. Invoking the snakemake workflow on a cluster
+Here are instructions for running workflow on a cluster using specific resource settings for memory and runtime limits, and parallel environments.  
+There are two cluster configurations provided: `qsub` and `slurm`
+
+#### a. `qsub`
+There are 2 separate files in use for `qsub`, which are provided as a template:
+	`config/cluster_qsub.sh` - This file contains other `qsub` parameters. *Note that these settings are used for the Broad's UGER cluster so users will need to modify this for their own clusters.*  
+	`config/cluster_qsub.yaml` - This file contains the memory, runtime, and number of cores for certain tasks.  
+
+To invoke the snakemake pipeline for `qsub`:
 ```
-snakemake -s TitanCNA.snakefile --cluster-sync "qsub -l h_vmem={params.mem},h_rt={params.runtime} {params.pe}" -j 50 --jobscript config/cluster.sh
+snakemake -s  TitanCNA.snakefile --jobscript config/cluster_qsub.sh --cluster-config config/cluster_qsub.yaml --cluster-sync "qsub -l h_vmem={cluster.h_vmem},h_rt={cluster.h_rt} -pe {cluster.pe} -binding {cluster.binding}" -j 50
+```
+Here, the `h_vmem` (max memory), `h_rt` (max runtime) are used. For `runTitanCNA` task, the default setting is to use 1 core but additional number of cpus (per task) can help to speed up the analysis. This can be set with `-pe` and `-binding`. Your SGE settings may be different and users should adjust accordingly.
+
+#### b. `slurm`
+There is only one file in use for `slurm`:
+	`config/cluster_slurm.yaml` - This file contains the memory, runtime, and number of cores for certain tasks. 
+To invoke the snakemake pipeline for `qsub`:
+```
+snakemake -s TitanCNA.snakefile --cluster-config config/cluster_slurm.yaml --cluster "sbatch -p {cluster.partition} --mem={cluster.mem} -t {cluster.time} -c {cluster.ncpus} -n {cluster.ntasks} -o {cluster.output}" -j 50
 ```
 
 ## 3. Invoking individual steps in the workflow
@@ -85,6 +99,8 @@ Users can run the snakemake files individually. This can be helpful for testing 
   snakemake -s ichorCNA.snakefile --cores 5
   # OR
   snakemake -s ichorCNA.snakefile --cluster-sync "qsub -l h_vmem={params.mem},h_rt={params.runtime} {params.pe}" -j 50 --jobscript config/cluster.sh
+  # OR
+  snakemake -s ichorCNA.snakefile --cluster-config config/cluster_slurm.yaml --cluster "sbatch -p {cluster.partition} --mem={cluster.mem} -t {cluster.time} -c {cluster.ncpus} -n {cluster.ntasks} -o {cluster.output}" -j 50
   ```
   Note: This snakefile for ichorCNA is specific for TitanCNA and may differ from the snakemake workflow on https://github.com/broadinstitute/ichorCNA
   
@@ -97,6 +113,8 @@ Users can run the snakemake files individually. This can be helpful for testing 
   snakemake -s getAlleleCounts.snakefile --cores 5
   # OR
   snakemake -s getAlleleCounts.snakefile --cluster-sync "qsub -l h_vmem={params.mem},h_rt={params.runtime} {params.pe}" -j 50 --jobscript config/cluster.sh
+  # OR
+  snakemake -s getAlleleCounts.snakefile --cluster-config config/cluster_slurm.yaml --cluster "sbatch -p {cluster.partition} --mem={cluster.mem} -t {cluster.time} -c {cluster.ncpus} -n {cluster.ntasks} -o {cluster.output}" -j 50
   ``` 
   ### c. [TitanCNA.snakefile](TitanCNA.snakefile)
   i.   Run the [TitanCNA](https://github.com/gavinha/TitanCNA) analysis and generates solutions for different ploidy initializations and each clonal cluster.  
@@ -135,29 +153,18 @@ Global reference files used by many of the `snakefiles` and scripts.
 - `snpVCF` you can download the HapMap file (used for filtering heterozygous SNPs) here: https://console.cloud.google.com/storage/browser/genomics-public-data/resources/broad/hg38/v0  
 - `genomeStyle` specifies the chromosome naming convention to used for **output** files. Input files can be any convention as long as it is the same genome build. Only use `UCSC` (e.g. chr1) or `NCBI` (e.g. 1). 
 - `sex` set to `male` or `female`, otherwise `None` if both females and males are in sample set.
-- `cytobandFile` Only used for hg38! Coordinates for plotting the idiogram. The file is found in the (ichorCNA repo)[https://github.com/broadinstitute/ichorCNA/blob/master/inst/extdata/cytoBand_hg38.txt]
+- `cytobandFile` Only used for hg38! Coordinates for plotting the idiogram. The file is found in the (ichorCNA repo)[https://github.com/broadinstitute/ichorCNA/blob/master/inst/extdata/cytoBand_hg38.txt].
 ```
-genomeBuild: hg38
+genomeBuild: hg38 # Use "None" if hg19
 genomeStyle:  UCSC
 refFasta: /path/to/Homo_sapiens_assembly38.fasta
 snpVCF:  /path/to/hapmap_3.3.hg38.vcf.gz 
 cytobandFile:  data/cytoBand_hg38.txt # only need if hg38
 centromere:  /path/to/ichorCNA/inst/extdata/GRCh38.GCA_000001405.2_centromere_acen.txt
-sex:  male   # use None if both females and males are in sample set
+sex:  male   # use "None" if both females and males are in sample set
 ```
 
-### 5. Cluster resource parameter settings
-If you are using a cluster, then these are resource settings for memory and runtime limits, and parallel environments.  
-These are the default settings for all tasks that do not have rule-specific resources.  
-*Note that these settings are used for the Broad's UGER cluster so users will need to modify this for their own clusters.*
-```
-# invoke using: snakemake -s TitanCNA.snakefile --cluster-sync "qsub -l h_vmem={params.mem},h_rt={params.runtime} {params.pe}" -j 200 --jobscript config/cluster.sh
-std_mem:  4G # memory limit
-std_runtime:  "05:00:00" # runtime limit
-std_numCores:  -pe smp 1 -binding linear:1  # use one core 
-```
-
-### 6. readCounter settings
+### 5. readCounter settings
 Settings for the computing read coverage using `readCounter`.  
 - `chrs` Used by readCounter command line tool. Please comment out the chromosome naming convention that you do not wish to use.
 - `binSize` Various bin sizes can be used in the analysis. 
@@ -170,7 +177,7 @@ chrs: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X,Y
 binSize:  10000
 ```
 
-### 7. [ichorCNA.snakefile](ichorCNA.snakefile) settings
+### 6. [ichorCNA.snakefile](ichorCNA.snakefile) settings
 Settings for the analysis of read coverage using ichorCNA.  
 - `ichorCNA_chrs` specifies the chromosomes to analyze in the R script; users do not need to be concerned about chromosome naming convention here as the code will handle it based on the `genomeStyle` set in the reference settings above.  
 - The GC and Map wig files *must* have match the `binSize` above. The various sizes supported will depend on which GC and Map wig files are generated.  We provide a few to select from in the (ichorCNA repo)[https://github.com/broadinstitute/ichorCNA/tree/master/inst/extdata]. Users can also create their own by following instructions from the [HMMcopy repo](https://github.com/shahcompbio/hmmcopy_utils).
@@ -190,10 +197,7 @@ ichorCNA_includeHOMD: FALSE
 ichorCNA_txnE:  0.9999
 ichorCNA_txnStrength:  10000
 ichorCNA_plotFileType:  png
-ichorCNA_plotYlim:  c(-2,4)
-ichorCNA_mem:  10G
-ichorCNA_runtime:  "300:00:00"
-ichorCNA_pe: -pe smp 1 -binding linear:1  
+ichorCNA_plotYlim:  c(-2,4) 
 ```
 
 ### 7. [getAlleleCounts.snakefile](getAlleleCounts.snakefile) settings: Tumor allelic counts 
@@ -204,14 +208,13 @@ Note: Users must modify [getAlleleCounts.snakefile](getAlleleCounts.snakefile) t
 map_quality:  10
 base_quality: 10
 vcf_quality:  100
-
 ```
 
 ### 8. [TitanCNA.snakefile](TitanCNA.snakefile) settings
 Most settings can be left as default.  
 - `TitanCNA_maxNumClonalClusters` specifies the maximum number of clonal clusters to consider. For example, if set to 5, then 5 solutions are generated, each one considering a different number of cluster(s).  
 - `TitanCNA_maxPloidy` specifies the maximum ploidy to initialize. This be set to either `2` (only considers diploid solutions), `3` (considers diploid and triploid, and usually accounts for tetraploid), or `4` (for diploid, triploid, tetraploid or higher ploidies). Usually, `3` is suitable for most samples unless you know that your samples are tetraploid or even higher. For example, if set to `3`, then solutions for diploid and triploid will be generated. [code/selectSolution.R](code/selectSolution.R) will try to select the optimal solution; however, users should inspect to make sure results are accurate.  
-- `TitanCNA_numCores` specifies the number of cores to use on a single machine. `TitanCNA_pe` should also be set as to be consistent.
+- `TitanCNA_numCores` specifies the number of cores to use on a single machine. Ff using a cluster, then must match the settings for number of cpus in `config/cluster_qsub.yaml` or `config/cluster_slurm.yaml`.
 ```
 TitanCNA_maxNumClonalClusters: 2
 TitanCNA_chrs:  c(1:22, \"X\")
@@ -226,12 +229,5 @@ TitanCNA_alphaR:  10000
 TitanCNA_txnExpLen: 1e15
 TitanCNA_plotYlim:  c(-2,4)
 TitanCNA_solutionThreshold: 0.05
-TitanCNA_numCores: 1
-TitanCNA_mem:  16G
-TitanCNA_runtime:  "300:00:00"
-TitanCNA_pe: -pe smp 1 -binding linear:1  
+TitanCNA_numCores: 1 
 ```
-
-
-
-
