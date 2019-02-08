@@ -2,7 +2,7 @@ import pandas as pd
 import yaml
 import argparse
 import os
-
+#parses a standard wide form csv
 #sample_name,normal_name,tumor_bam,normal_bam
 #sample_T1D_E,sample_N1D_E,/data/path/sample_T1D_E.bwa.final.bam,/data/path/sample_N1D_E.bwa.final.bam
 
@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--nnc', dest='normalNameCol', action='append', required=False,
         help='The column index with the names of the tumor sample bams')
     parser.add_argument('--nbc', dest='normalBamCol', action='append', required=False,
-        help='File path to PhyloWGS output *.mutass.zip file')
+        help='The column index with the filepaths of the tumor sample bames')
     parser.add_argument('--r', dest='resultsFile', default = "samples.yaml", required=False,
         help='File path for output - default is current working directory samples.yaml')
 
