@@ -8,7 +8,7 @@ ichorCNA_libdir:  /path/to/ichorCNA_code
 pyCountScript:  code/countPysam.py
 TitanCNA_rscript: ../R_scripts/titanCNA.R
 TitanCNA_selectSolutionRscript: ../R_scripts/selectSolution.R
-TitanCNA_libdir:  ../../R/
+TitanCNA_libdir:  ../../
 
 ## reference settings and paths to reference files ##
 genomeBuild: hg19
