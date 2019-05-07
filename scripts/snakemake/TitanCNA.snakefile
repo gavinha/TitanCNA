@@ -72,7 +72,7 @@ rule selectSolution:
 		"logs/titan/selectSolution.log"
 	shell:
 		"""
-		ploidyRun2=results/titan/titanCNA_ploidy2/
+		ploidyRun2=results/titan/hmm/titanCNA_ploidy2/
 		if [ -d results/titan/hmm/titanCNA_ploidy3/ ]; then
 			ploidyRun3=results/titan/hmm/titanCNA_ploidy3/
 		else

@@ -1080,8 +1080,12 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 	  results$HaplotypeRatio <- pmax(results$HaplotypeRatio, 1-results$HaplotypeRatio)
 	}
   segs <- data.table(Sample = character(), Chromosome = character(), Start_Position.bp. = integer(), 
-                     End_Position.bp. = integer(), Length.snp. = integer(), Median_Ratio = numeric(),
-                     Median_HaplotypeRatio = numeric(), Median_logR = numeric(), TITAN_state = integer(),
+                     End_Position.bp. = integer(), Length.snp. = integer(), Median_Ratio = numeric())
+  # add HaplotypeRatio column if also present in results object
+  if (!is.null(results$HaplotypeRatio)){
+  	segs <- cbind(segs, Median_HaplotypeRatio = numeric())
+  }
+  segs <- cbind(segs, Median_logR = numeric(), TITAN_state = integer(),
                      TITAN_call = character(), Copy_Number = integer(), MinorCN = integer(), MajorCN = integer(),
                      Clonal_Cluster = integer(), Cellular_Prevalence = numeric())[1:numSegs]
 	segs[, Sample := id]
@@ -1106,8 +1110,6 @@ outputTitanSegments <- function(results, id, convergeParams, filename = NULL, ig
 		segs[j, "Cellular_Prevalence"] <- segDF[1, "CellularPrevalence"]
 		if (!is.null(segDF$HaplotypeRatio)){
 		  segs[j, "Median_HaplotypeRatio"] <- round(median(segDF$HaplotypeRatio, na.rm = TRUE), digits = 6)
-		}else{
-		  segs[j, "Median_HaplotypeRatio"] <- NA
 		}
 		if (segDF[1, "Chr"] == segDF[numR, "Chr"]){
 			segs[j, "End_Position.bp."] <- segDF[numR, "Position"]
@@ -1180,7 +1182,9 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	## determine if Median_HaplotypeRatio (segs) and HaplotypeRatio (cn) columns exists (i.e. 10X analysis)
 	segs.allelicRatioColName <- "Median_Ratio"
 	if ("Median_HaplotypeRatio" %in% names(segs)){
-		segs.allelicRatioColName <- "Median_HaplotypeRatio"
+		if (segs[, Median_HaplotypeRatio]){
+			segs.allelicRatioColName <- "Median_HaplotypeRatio"
+		}
 	}
 	cn.allelicRatioColName <- "AllelicRatio"
 	if ("HaplotypeRatio" %in% names(cn)){
