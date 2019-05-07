@@ -106,8 +106,8 @@ getParamAllClusters <- function(phiSamples, phiStr = "2"){
 #fc <- file(outLink, "w+")
 optSolutionAll <- NULL
 for (i in 1:numPatients){
-  id <- patients[i]
-	phi2Samples <- grep(paste(id, "_cluster", sep=""), phi2Files, value=T)
+  id <- paste(patients[i], "_cluster[0-9]+\\.params\\.txt$", sep="")
+	phi2Samples <- grep(id, phi2Files, value=T)
 	if (length(phi2Samples) > 0){
 	  phi2Params <- getParamAllClusters(phi2Samples, "2")
 	}
@@ -115,7 +115,7 @@ for (i in 1:numPatients){
   phi3Params <- NULL
   phi3Params$loglik <- NA
   if (!is.null(phi3Files)){
-    phi3Samples <- grep(paste(id, "_cluster", sep=""), phi3Files, value=T)	
+    phi3Samples <- grep(id, phi3Files, value=T)	
     if (length(phi3Samples) > 0){
       phi3Params <- getParamAllClusters(phi3Samples, "3")
     }
@@ -124,7 +124,7 @@ for (i in 1:numPatients){
 	phi4Params <- NULL
 	phi4Params$loglik <- NA
   if (!is.null(phi4Files)){
-    phi4Samples <- grep(paste(id, "_cluster", sep=""), phi4Files, value=T)
+    phi4Samples <- grep(id, phi4Files, value=T)
     if (length(phi4Samples) > 0){
 	    phi4Params <- getParamAllClusters(phi4Samples, "4")
     }
