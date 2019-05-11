@@ -7,6 +7,7 @@ ichorCNA_rscript:  /path/to/ichorCNA.R
 ichorCNA_libdir:  /path/to/ichorCNA_code
 pyCountScript:  code/countPysam.py
 TitanCNA_rscript: ../R_scripts/titanCNA.R
+TitanCNA_combineTitanIchorCNA:  code/combineTITAN-ichor.R
 TitanCNA_selectSolutionRscript: ../R_scripts/selectSolution.R
 TitanCNA_libdir:  ../../R/
 

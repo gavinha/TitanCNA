@@ -7,13 +7,13 @@ This workflow will run the TITAN a set of tumour-normal pairs, starting from the
 Gavin Ha  
 Fred Hutchinson Cancer Research Center  
 contact: <gavinha@gmail.com> or <gha@fredhutch.org>  
-Date: January 30, 2019  
+Date: May 11, 2019  
 Website: [GavinHaLab.org](https://gavinhalab.org/)
 
 ## Requirements
 ### Software packages or libraries
  - R-3.5
-   - TitanCNA (v1.15.0)
+   - TitanCNA (v1.15.0+)
    		- TitanCNA imports: GenomicRanges, dplyr, data.table, doMC
    - [ichorCNA](<https://github.com/broadinstitute/ichorCNA>) (v0.1.0) 
    - HMMcopy
@@ -118,8 +118,9 @@ Users can run the snakemake files individually. This can be helpful for testing 
   ``` 
   ### c. [TitanCNA.snakefile](TitanCNA.snakefile)
   i.   Run the [TitanCNA](https://github.com/gavinha/TitanCNA) analysis and generates solutions for different ploidy initializations and each clonal cluster.  
-  ii.  Merge results with ichorCNA output generate by [ichorCNA.snakefile](ichorCNA.snakefile) and post-processes copy number results.  
+  ii.  Merge results with ichorCNA output generate by [ichorCNA.snakefile](ichorCNA.snakefile) and post-processes copy number results. In particular, it combines chrX results from ichorCNA for male samples.
   iii. Select optimal solution for each samples and copies these to a new folder. The parameters are compiled in a text file.  
+  iv. Creates a new directory containing symbolic links to result files for optimal solutions of each sample.
 
 # Configuration and settings
 All settings for the workflow are contained in [config/config.yaml](config/config.yaml). The settings are organized by paths to scripts and reference files and then by each step in the workflow.
@@ -137,6 +138,7 @@ readCounterScript:  /path/to/readCounter
 ichorCNA_rscript:  /path/to/ichorCNA.R
 pyCountScript:  code/countPysam.py
 TitanCNA_rscript: ../R_scripts/titanCNA.R
+TitanCNA_combineTitanIchorCNA:  code/combineTITAN-ichor.R
 TitanCNA_selectSolutionRscript: ../R_scripts/selectSolution.R
 ```
 See the [ichorCNA](https://github.com/broadinstitute/ichorCNA/blob/master/scripts/runIchorCNA.R) repo for the ichorCNA R script.

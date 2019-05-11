@@ -12,15 +12,10 @@ PLOIDY = {2:[2], 3:[2,3], 4:[2,3,4]}
 rule all:
 	input: 
 		expand("results/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.titan.txt", tumor=config["pairings"], clustNum=CLUST[config["TitanCNA_maxNumClonalClusters"]], ploidy=PLOIDY[config["TitanCNA_maxPloidy"]]),
-		#expand("results/titan/hmm/titanCNA_ploidy{ploidy}/", ploidy=PLOIDY[config["TitanCNA_maxPloidy"]]),
-		"results/titan/hmm/optimalClusterSolution.txt"
-		
-#rule makeOutDir:
-#	output:
-#		"results/titan/hmm/titanCNA_ploidy{ploidy}/"
-#	params:
-#	shell:
-#		"mkdir -p {output}"
+		expand("results/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.titan.ichor.seg.txt", tumor=config["pairings"], clustNum=CLUST[config["TitanCNA_maxNumClonalClusters"]], ploidy=PLOIDY[config["TitanCNA_maxPloidy"]]),
+		expand("results/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.titan.ichor.cna.txt", tumor=config["pairings"], clustNum=CLUST[config["TitanCNA_maxNumClonalClusters"]], ploidy=PLOIDY[config["TitanCNA_maxPloidy"]]),
+		"results/titan/hmm/optimalClusterSolution.txt",
+		"results/titan/hmm/optimalClusterSolution/"
 		
 rule runTitanCNA:
 	input:
@@ -56,9 +51,27 @@ rule runTitanCNA:
 	shell:
 		"Rscript {params.titanRscript} --hetFile {input.alleleCounts} --cnFile {input.corrDepth} --outFile {output.titan} --outSeg {output.segTxt} --outParam {output.param} --outIGV {output.seg} --outPlotDir {params.outRoot} --libdir {params.libdir} --id {wildcards.tumor} --numClusters {wildcards.clustNum} --numCores {params.numCores} --normal_0 {params.normal} --ploidy_0 {wildcards.ploidy} --genomeStyle {params.genomeStyle} --genomeBuild {params.genomeBuild} --cytobandFile {params.cytobandFile} --chrs \"{params.chrs}\" --gender {params.sex} --estimateNormal {params.estimateNormal} --estimatePloidy {params.estimatePloidy} --estimateClonality {params.estimateClonality}  --centromere {params.centromere} --alphaK {params.alphaK} --txnExpLen {params.txnExpLen} --plotYlim \"{params.plotYlim}\" > {log} 2> {log}"
 	
-#--alleleModel {params.alleleModel} --alphaR {params.alphaR}
+rule combineTitanAndIchorCNA:
+	input:
+		titanSeg="results/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.segs.txt", 
+		titanBin="results/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.titan.txt",
+		titanParam="results/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.params.txt",
+		ichorSeg="results/ichorCNA/{tumor}/{tumor}.seg.txt",
+		ichorBin="results/ichorCNA/{tumor}/{tumor}.cna.seg",
+		ichorParam="results/ichorCNA/{tumor}/{tumor}.params.txt"
+	output:
+		segFile="results/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.titan.ichor.seg.txt",
+		binFile="results/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.titan.ichor.cna.txt",
+	params:
+		combineScript=config["TitanCNA_combineTitanIchorCNA"],
+		libdir=config["TitanCNA_libdir"],
+		centromere=config["centromere"],
+		sex=config["sex"]
+	log:
+		"logs/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.combineTitanIchorCNA.log"
+	shell:
+		"Rscript {params.combineScript} --libdir {params.libdir} --titanSeg {input.titanSeg} --titanBin {input.titanBin} --titanParam {input.titanParam} --ichorSeg {input.ichorSeg} --ichorBin {input.ichorBin} --ichorParam {input.ichorParam} --sex {params.sex} --outSegFile {output.segFile} --outBinFile {output.binFile} --centromere {params.centromere} > {log} 2> {log}"	
 	
-				
 rule selectSolution:
 	input:
 		#ploidyDirs=expand("results/titan/hmm/titanCNA_ploidy{ploidy}/", ploidy=PLOIDY[config["TitanCNA_maxPloidy"]]),
@@ -85,4 +98,23 @@ rule selectSolution:
 		fi
 		Rscript {params.solutionRscript} --ploidyRun2 $ploidyRun2 --ploidyRun3 $ploidyRun3 --ploidyRun4 $ploidyRun4 --threshold {params.threshold} --outFile {output} > {log} 2> {log}
 		"""
+		
+rule copyOptSolution:
+	input:
+		"results/titan/hmm/optimalClusterSolution.txt"
+	output:
+		directory("results/titan/hmm/optimalClusterSolution/")
+	params:
+	log:
+		"logs/titan/hmm/optSolution/copyOptSolution.log"
+	shell:
+		"""
+		curDir=`pwd`
+		for i in `cut -f11 {input} | grep -v "path"`;
+		do
+			echo -e "Creating sym links for $curDir/${{i}} to {output}"
+			ln -s ${{curDir}}/${{i}}* {output}
+		done		
+		"""
+
 	
