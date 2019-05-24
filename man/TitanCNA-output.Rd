@@ -18,7 +18,7 @@
       verbose = TRUE)
       
   outputModelParameters(convergeParams, results, filename, 
-  		S_Dbw.scale = 1, S_Dbw.method = "Tong")
+  		S_Dbw.scale = 1, S_Dbw.method = "Tong", S_Dbw.useCorrectedCN = TRUE)
   
   outputTitanSegments(results, id, convergeParams, filename = NULL, 
   		igvfilename = NULL)
@@ -76,6 +76,9 @@
   }
   \item{S_Dbw.method}{
   	Compute S_Dbw validity index using \code{Halkidi} or \code{Tong} method. See \code{\link{computeSDbwIndex}}.
+  }
+  \item{S_Dbw.useCorrectedCN}{
+  	\code{TRUE}: Will use corrected copy number calls for computing S_Dbw validity index. 
   }
   \item{verbose}{
     Print status messages.

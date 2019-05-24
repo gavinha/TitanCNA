@@ -9,8 +9,8 @@
 }
 \usage{
   computeSDbwIndex(x, centroid.method = "median", 
-  				data.type = "LogRatio", S_Dbw.method = "Halkidi",
-  				symmetric = TRUE)
+  				data.type = "LogRatio", use.corrected.cn =TRUE,
+  				S_Dbw.method = "Halkidi", symmetric = TRUE)
 }
 
 \arguments{
@@ -28,6 +28,9 @@
   }
   \item{S_Dbw.method}{
   	Compute S_Dbw validity index using \code{Halkidi} or \code{Tong} method. See details and references.
+  }
+  \item{use.corrected.cn}{
+  	\code{TRUE}: Will use corrected copy number calls for computing S_Dbw validity index. 
   }
 }
 \details{
