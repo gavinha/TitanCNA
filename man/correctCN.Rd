@@ -29,10 +29,10 @@ correctIntegerCN(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes = NULL,
     Float type of the average tumor ploidy estimate from TitanCNA
   }
   \item{maxCNtoCorrect.autosomes}{
-    Bins and segments in autosomes with this copy number value or higher will be corrected. If \code{NULL}, then it will use the maximum copy number value from the input data.
+    Bins and segments in autosomes with this copy number value or higher will be corrected. If \code{NULL}, then it will use the original copy number value from the input data.
   }
   \item{maxCNtoCorrect.X}{
-    Bins and segments in chromosome X, if provided, with this copy number value or higher will be corrected. If \code{NULL}, then it will use the maximum copy number value from the input data.
+    Bins and segments in chromosome X, if provided, with this copy number value or higher will be corrected. If \code{NULL}, then it will use the original copy number value from the input data.
   }
   \item{minPurityToCorrect}{
     If \code{purity} is less than \code{minPurityToCorrect}, then \code{Corrected_Copy_Number} will retain the same copy number values as the input copy number.
@@ -54,11 +54,13 @@ correctIntegerCN(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes = NULL,
 
 \value{
   \code{cn}: \code{\link[data.table]{data.table}} object that contains the same columns as the input object but also includes new columns \code{logR_Copy_Number}, \code{Corrected_Copy_Number}, \code{Corrected_Call}.
-  \code{segs}: \code{\link[data.table]{data.table}} object that contains the same columns as the input object but also includes new columns \code{logR_Copy_Number}, \code{Corrected_Copy_Number}, \code{Corrected_Call}.
+  \code{segs}: \code{\link[data.table]{data.table}} object that contains the same columns as the input object but also includes new columns \code{logR_Copy_Number}, \code{Corrected_Copy_Number}, \code{Corrected_Call}, \code{Corrected_MajorCN}, \code{Corrected_MinorCN}.
   Column definitions: 
   \item{logR_Copy_Number}{Purity and ploidy corrected log ratios that have been converted to a decimal-based copy number value.}
   \item{Corrected_Copy_Number}{\code{round(logR_Copy_Number)}}
   \item{Corrected_Call}{String representation of \code{Corrected_Copy_Number}; \code{HLAMP}=high-level amplification is assigned to bins/segments that have been corrected.}
+  \item{Corrected_MajorCN}{Purity and ploidy corrected integer (rounded) major copy number value.}
+  \item{Corrected_MinorCN}{Purity and ploidy corrected integer (rounded) minor copy number value.}
 }
 
 \references{

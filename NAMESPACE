@@ -1,7 +1,7 @@
 useDynLib(TitanCNA)
 import(IRanges,GenomicRanges,foreach,GenomeInfoDb,data.table,dplyr,VariantAnnotation)
 export(loadAlleleCounts,loadDefaultParameters,
-		filterData,getPositionOverlap,wigToRangedData,
+		filterData,getPositionOverlap,wigToRangedData,wigToGRanges,
 		outputTitanResults,outputModelParameters,correctReadDepth,
 		runEMclonalCN, viterbiClonalCN,computeSDbwIndex,
 		plotAllelicRatio,plotClonalFrequency,plotCNlogRByChr, plotIdiogram.hg38,

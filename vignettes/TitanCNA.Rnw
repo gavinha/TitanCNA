@@ -15,6 +15,7 @@
 \date{\today}
 
 \begin{document}
+\SweaveOpts{concordance=TRUE}
 
 \setkeys{Gin}{width=\textwidth}
 
@@ -80,14 +81,7 @@ data <- loadAlleleCounts(infile, genomeStyle = "NCBI")
 names(data)
 @
 
-Users can specify the desired chromosome naming convention by using the \verb|genomeStyle| argument. Using \verb|NCBI| will use chromosome names such as 1, 2, 3, ..., X, while using \verb|UCSC| will use names such as chr1, chr2, chr3, ..., chrX. Users can further change chromosome naming convention after by invoking \verb|setGenomeStyle|. Note that it does not matter what the chromosome convention was originally; using \verb|genomeStyle| argument and \verb|setGenomeStyle| function will return the specified convention.
-
-<<>>= 
-data$chr <- setGenomeStyle(data$chr, genomeStyle = "UCSC")
-head(data$chr)
-data$chr <- setGenomeStyle(data$chr, genomeStyle = "NCBI")
-head(data$chr)
-@
+Users can specify the desired chromosome naming convention by using the \verb|genomeStyle| argument. Using \verb|NCBI| will use chromosome names such as 1, 2, 3, ..., X, while using \verb|UCSC| will use names such as chr1, chr2, chr3, ..., chrX. Note that it does not matter what the chromosome convention was originally; using the \verb|genomeStyle| argument will return the desired convention.
 
 \subsection{Correct GC content and mappability biases}
 
@@ -218,8 +212,8 @@ head(optimalPath)
 It is difficult to interpret the output of this function directly. The user should use the function \verb|outputTitanResults| to format the results.
 
 \subsection{Format and print results to file}
-Two files are generated:
 
+\subsubsection{Position-specific Copy Number Results}
 Position-specific results that includes genotype, clonal cluster, and cellular prevalence estimates. The posterior probabilities at each position can optionally be returned. The results can be output to a file if a file name is specified for the \verb|filename| argument.
 
 
@@ -236,7 +230,7 @@ convergeParams <- results$convergeParam ## use corrected parameters
 results <- results$corrResults ## use corrected results
 @
 
-The format of this a list containing the following:
+The elements of this list contains the following:
 \begin{enumerate}
   \item \verb|results|: TITAN results, uncorrected for cluster number and parameters
   \item \verb|corrResults|: TITAN results, corrected by removing empty clusters and parameters adjusted accordingly.
@@ -275,8 +269,8 @@ When \verb|correctResults=TRUE|, the results will be post-processed to exclude c
 %  \item \verb|PhaseSet|: An identifier indicating the original haplotype phase block
 %\end{enumerate}
 
-
-New in version 1.10.1, users can now directly generate segments and output these to files.  There are two possible outputs to files: 1) Segments with detailed information, and 2) Segments prepared for loading into IGV.  These filenames can be specified in arguments \verb|filename| and \verb|igvfilename|
+\subsubsection{Copy number segments}
+Since version 1.10.1, users can directly generate segments and output these to files.  There are two output files: 1) Segments with detailed information, and 2) Segments compatible for loading into the Integrative Genomics Viewer (IGV) application.  These filenames can be specified in arguments \verb|filename| and \verb|igvfilename|
 
 <<eval>>=
 segs <- outputTitanSegments(results, id = "test", convergeParams, 
@@ -284,19 +278,63 @@ segs <- outputTitanSegments(results, id = "test", convergeParams,
 head(segs)
 @
 
-The definitions of the headers for the segments are the following:
+The definitions of the columns of the segment object \verb|segs| are the following:
 \begin{enumerate}
 	\item \verb|Sample|: Name of sample
 	\item \verb|Chromosome|, \verb|Start_Position.bp.|, \verb|End_Position.bp.|: Coordinates of segment
 	\item \verb|Length.snps.|: Number of SNPs in the segment
 	\item \verb|Median_Ratio|: Median allelic ratio across SNPs in the segment
 	\item \verb|Median_logR|: Median log ratio across SNPs in the segment
-	\item \verb|TITAN_state|, \verb|TITAN_call|, \verb|Copy_Number|: Same as defined above
+	\item \verb|TITAN_state|: Same as defined above
+	\item \verb|TITAN_call|: Same as defined above
+	\item \verb|Copy_Number|: Same as defined above
 	\item \verb|MinorCN|: Copy number of minor allele
 	\item \verb|MajorCN|: Copy number of major allele
-	\item \verb|Clonal_Cluster|, \verb|Cellular_Frequency|: Same as defined above
+	\item \verb|Clonal_Cluster|: Same as defined above
+	\item \verb|Cellular_Frequency|: Same as defined above
 \end{enumerate}
 
+\subsubsection{Adjusted Copy Number Results}
+New in version 1.17.1, copy number results can be further adjusted to reflect total integer and allelic copy number by correcting the HMM copy number states. The HMM normally supports a maximum copy number value of 8, but this correction will output an adjusted copy number based on the log ratio values. 
+
+Users can specify the initial copy number state to correct using \verb|maxCNtoCorrect.autosomes|. For example, if \verb|maxCNtoCorrect.autosomes=8|, then all positions and segments with copy number \verb|>=8| will be corrected. If \verb|correctHOMD=TRUE|, then homozygous deletion (copy number of 0) calls will be adjusted to account for potential label-switching (i.e. missed HOMD call) and false positives (i.e. incorrect HOMD call). Finally, users can specify the minimum tumor content required to performed the tumor purity and ploidy correction. Samples with lower tumor conent will likely have noisier adjusted values since tumor purity is used in the correction.
+
+The correction is cmoputed based on the following formula from Ref\cite{Ha2013} using observed log ratio $l_t$ at position or segment $t$ and tumor purity $(1-n)$ and tumor ploidy $\phi$: 
+
+\begin{eqnarray}
+l_t=\log\left(\frac{nc_{N}+\left(1-n\right)s_{z}c_{N}+\left(1-n\right)\left(1-s_{z}\right)c_t}{nc_{N}+\left(1-n\right)\phi}\right)\\
+\hat{c_T}=\frac{2^{l_T}\left[nc_{N}+\left(1-n\right)\phi\right]-nc_{N}+\left(1-n\right)s_{z}c_{N}}{\left(1-n\right)\left(1-s_{z}\right)}
+\end{eqnarray}
+where $\hat{c_{t}}$ is the adjusted tumor copy number at position or segment $t$.
+
+<<eval>>=
+# get the estimated tumor ploidy
+ploidy <- tail(convergeParams$phi, 1)
+# get the estimated normal
+normal <- tail(convergeParams$n, 1)
+# apply tumor purity and ploidy correction 
+corrIntCN.results <- correctIntegerCN(results, segs, 1 - normal, ploidy, 
+                                      maxCNtoCorrect.autosomes = 8, 
+                                      maxCNtoCorrect.X = NULL, 
+                                      correctHOMD = FALSE, minPurityToCorrect = 0.2, 
+                                      gender = "female", chrs = 2)
+head(corrIntCN.results$segs)
+# re-assign to results and segs objects
+results <- corrIntCN.results$cn
+segs <- corrIntCN.results$segs
+@
+
+Both position-level (\verb|results|) and segment-level (\verb|segs|) results will have additional columns appended for the adjusted copy number results.
+The additional columns are the following:
+\begin{enumerate}
+	\item \verb|logR_Copy_Number|: Purity and ploidy corrected log ratios that have been converted to a decimal-based copy number value.
+	\item \verb|Corrected_Copy_Number|: Purity and ploidy corrected total copy number rounded to the nearest integer.
+	\item \verb|Corrected_Call|: Copy number status of the total corrected copy number.
+	\item \verb|Corrected_MajorCN|: Purity and ploidy corrected integer (rounded) major copy number value.
+	\item \verb|Corrected_MinorCN|: Purity and ploidy corrected integer (rounded) minor copy number value.
+\end{enumerate}
+
+\subsubsection{Estimated Model Parameters}
 Model parameters and summary values such as the number of clonal clusters and their corresponding cellular prevalence, normal contamination, ploidy, and the S\_Dbw validity index for model selection later.
 
 <<eval=FALSE>>=

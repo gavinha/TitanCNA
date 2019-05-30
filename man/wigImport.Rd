@@ -1,12 +1,14 @@
 \name{WIG Import Functions}
 \alias{wigToRangedData}
+\alias{wigToGRanges}
 \title{
-  WIG Import Functions
+  WIG Import Functions. wigToGRanges (new) and wigToRangedData (deprecated)
 }
 \description{
   Fast fixedStep WIG file reading and parsing
 }
 \usage{
+wigToGRanges(wigfile, verbose = TRUE)
 wigToRangedData(wigfile, verbose = TRUE)
 }
 \arguments{
@@ -27,8 +29,7 @@ wigToRangedData(wigfile, verbose = TRUE)
   and will ignore any lines before the first line starting with \dQuote{fixedStep}.
 }
 \value{
-  \code{\link[IRanges:RangedData-class]{RangedData}} for
-  \code{\link{wigToRangedData}} with chromosome and position information, sorted
+  \code{\link{GRanges}} object with chromosome and position information, sorted
   in decreasing chromosal size and increasing position.
 
 }
@@ -38,16 +39,16 @@ wigToRangedData(wigfile, verbose = TRUE)
   }
 }
 \author{
-  Daniel Lai
+  Gavin Ha, Daniel Lai
 }
 
 \seealso{
-  \code{\link{wigToRangedData}} is a wrapper around these functions for easy
-  WIG file loading and structure formatting. It is taken from the \pkg{HMMcopy} package.
+  \code{\link{wigToGRanges}} is a wrapper around these functions for easy
+  WIG file loading and structure formatting. It is modified from the \pkg{HMMcopy} package.
 }
 
 \examples{
 	map <- system.file("extdata", "map_chr2.wig", package = "TitanCNA")
-	mScore <- as.data.frame(wigToRangedData(map))
+	mScore <- as.data.frame(wigToGRanges(map))
 }
 \keyword{IO}

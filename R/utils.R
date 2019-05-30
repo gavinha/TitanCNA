@@ -497,81 +497,81 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
 	genomeStyle = "NCBI", targetedSequence = NULL) {
     #require(HMMcopy)
     
-    message("Reading GC and mappability files")
-    gc <- wigToRangedData(gcWig)
-    map <- wigToRangedData(mapWig)
+  message("Reading GC and mappability files")
+  gc <- wigToGRanges(gcWig)
+  map <- wigToGRanges(mapWig)
+  
+  ### LOAD TUMOUR AND NORMAL FILES ###
+  message("Loading tumour file:", tumWig)
+  tumour_reads <- wigToGRanges(tumWig)
+  message("Loading normal file:", normWig)
+  normal_reads <- wigToGRanges(normWig)
+  
+  ### set the genomeStyle: NCBI or UCSC
+  #require(GenomeInfoDb)
+  seqlevelsStyle(gc) <- genomeStyle
+  seqlevelsStyle(map) <- genomeStyle
+  seqlevelsStyle(tumour_reads) <- genomeStyle
+  seqlevelsStyle(normal_reads) <- genomeStyle
+
+  ### make sure tumour wig and gc/map wigs have same
+  ### chromosomes
+  gc <- gc[seqnames(gc) %in% seqnames(tumour_reads)]
+  map <- map[seqnames(map) %in% seqnames(tumour_reads)]
+  samplesize <- 50000
+  
+  ### for targeted sequencing (e.g.  exome capture),
+  ### ignore bins with 0 for both tumour and normal
+  ### targetedSequence = RangedData (IRanges object)
+  ### containing list of targeted regions to consider;
+  ### 3 columns: chr, start, end
+  if (!is.null(targetedSequence)) {
+    message("Analyzing targeted regions...")
+    targetIR <- GRanges(ranges = IRanges(start = targetedSequence[, 2], 
+                end = targetedSequence[, 3]), seqnames = targetedSequence[, 1])
+    names(targetIR) <- setGenomeStyle(names(targetIR), genomeStyle)
+    hits <- findOverlaps(query = tumour_reads, subject = targetIR)
+    keepInd <- unique(queryHits(hits))    
+    tumour_reads <- tumour_reads[keepInd, ]
+    normal_reads <- normal_reads[keepInd, ]
+    gc <- gc[keepInd, ]
+    map <- map[keepInd, ]
+    samplesize <- min(ceiling(nrow(tumour_reads) * 
+        0.1), samplesize)
+  }
     
-    ### LOAD TUMOUR AND NORMAL FILES ###
-    message("Loading tumour file:", tumWig)
-    tumour_reads <- wigToRangedData(tumWig)
-    message("Loading normal file:", normWig)
-    normal_reads <- wigToRangedData(normWig)
-    
-    ### set the genomeStyle: NCBI or UCSC
-    #require(GenomeInfoDb)
-	names(gc) <- setGenomeStyle(names(gc), genomeStyle)
-	names(map) <- setGenomeStyle(names(map), genomeStyle)
-	names(tumour_reads) <- setGenomeStyle(names(tumour_reads), genomeStyle)
-	names(normal_reads) <- setGenomeStyle(names(normal_reads), genomeStyle)
-    
-    ### make sure tumour wig and gc/map wigs have same
-    ### chromosomes
-    gc <- gc[gc$space %in% tumour_reads$space, ]
-    map <- map[map$space %in% tumour_reads$space, ]
-    samplesize <- 50000
-    
-    ### for targeted sequencing (e.g.  exome capture),
-    ### ignore bins with 0 for both tumour and normal
-    ### targetedSequence = RangedData (IRanges object)
-    ### containing list of targeted regions to consider;
-    ### 3 columns: chr, start, end
-    if (!is.null(targetedSequence)) {
-        message("Analyzing targeted regions...")
-        targetIR <- RangedData(ranges = IRanges(start = targetedSequence[, 2], 
-                    end = targetedSequence[, 3]), space = targetedSequence[, 1])
-	names(targetIR) <- setGenomeStyle(names(targetIR), genomeStyle)
-        hits <- findOverlaps(query = tumour_reads, subject = targetIR)
-        keepInd <- unique(queryHits(hits))    
-        tumour_reads <- tumour_reads[keepInd, ]
-        normal_reads <- normal_reads[keepInd, ]
-        gc <- gc[keepInd, ]
-        map <- map[keepInd, ]
-        samplesize <- min(ceiling(nrow(tumour_reads) * 
-            0.1), samplesize)
-    }
-    
-    ### add GC and Map data to IRanges objects ###
-    tumour_reads$gc <- gc$value
-    tumour_reads$map <- map$value
-    colnames(tumour_reads) <- c("reads", "gc", "map")
-    normal_reads$gc <- gc$value
-    normal_reads$map <- map$value
-    colnames(normal_reads) <- c("reads", "gc", "map")
-    
-    ### CORRECT TUMOUR DATA FOR GC CONTENT AND
-    ### MAPPABILITY BIASES ###
-    message("Correcting Tumour")
-    tumour_copy <- correctReadcount(tumour_reads, samplesize = samplesize)
-    
-    ### CORRECT NORMAL DATA FOR GC CONTENT AND
-    ### MAPPABILITY BIASES ###
-    message("Correcting Normal")
-    normal_copy <- correctReadcount(normal_reads, samplesize = samplesize)
-    
-    ### COMPUTE LOG RATIO ###
-    message("Normalizing Tumour by Normal")
-    tumour_copy$copy <- tumour_copy$copy - normal_copy$copy
-    rm(normal_copy)
-    
-    ### PUTTING TOGETHER THE COLUMNS IN THE OUTPUT ###
-    temp <- cbind(chr = as.character(space(tumour_copy)), 
-        start = start(tumour_copy), end = end(tumour_copy), 
-        logR = tumour_copy$copy)
-    temp <- as.data.frame(temp, stringsAsFactors = FALSE)
-    mode(temp$start) <- "numeric"
-    mode(temp$end) <- "numeric"
-    mode(temp$logR) <- "numeric"
-    return(temp)
+  ### add GC and Map data to IRanges objects ###
+  tumour_reads$gc <- gc$value
+  tumour_reads$map <- map$value
+  colnames(values(tumour_reads)) <- c("reads", "gc", "map")
+  normal_reads$gc <- gc$value
+  normal_reads$map <- map$value
+  colnames(values(normal_reads)) <- c("reads", "gc", "map")
+  
+  ### CORRECT TUMOUR DATA FOR GC CONTENT AND
+  ### MAPPABILITY BIASES ###
+  message("Correcting Tumour")
+  tumour_copy <- correctReadcount(tumour_reads, samplesize = samplesize)
+  
+  ### CORRECT NORMAL DATA FOR GC CONTENT AND
+  ### MAPPABILITY BIASES ###
+  message("Correcting Normal")
+  normal_copy <- correctReadcount(normal_reads, samplesize = samplesize)
+  
+  ### COMPUTE LOG RATIO ###
+  message("Normalizing Tumour by Normal")
+  tumour_copy$copy <- tumour_copy$copy - normal_copy$copy
+  rm(normal_copy)
+  
+  ### PUTTING TOGETHER THE COLUMNS IN THE OUTPUT ###
+  temp <- cbind(chr = as.character(seqnames(tumour_copy)), 
+      start = start(tumour_copy), end = end(tumour_copy), 
+      logR = tumour_copy$copy)
+  temp <- as.data.frame(temp, stringsAsFactors = FALSE)
+  mode(temp$start) <- "numeric"
+  mode(temp$end) <- "numeric"
+  mode(temp$logR) <- "numeric"
+  return(temp)
 }
 
 

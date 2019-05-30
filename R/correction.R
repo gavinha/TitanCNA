@@ -1,4 +1,5 @@
 wigToRangedData <- function(wigfile, verbose = TRUE) {
+  .Deprecated("wigToGRanges")
   if (verbose) { message(paste("Slurping:", wigfile)) }
   input <- readLines(wigfile, warn = FALSE)
   breaks <- c(grep("fixedStep", input), length(input) + 1)
@@ -28,6 +29,34 @@ wigToRangedData <- function(wigfile, verbose = TRUE) {
   return(output)
 }
 
+wigToGRanges <- function(wigfile, verbose = TRUE){
+  if (verbose) { message(paste("Slurping:", wigfile)) }
+  input <- readLines(wigfile, warn = FALSE)
+  breaks <- c(grep("fixedStep", input), length(input) + 1)
+  temp <- NULL
+  span <- NULL
+  for (i in 1:(length(breaks) - 1)) {
+    data_range <- (breaks[i] + 1):(breaks[i + 1] - 1)
+    track_info <- input[breaks[i]]
+    if (verbose) { message(paste("Parsing:", track_info)) }
+    tokens <- strsplit(
+      sub("fixedStep chrom=(\\S+) start=(\\d+) step=(\\d+) span=(\\d+)",
+          "\\1 \\2 \\3 \\4", track_info, perl = TRUE), " ")[[1]]
+    span <- as.integer(tokens[4])
+    chr <- rep.int(tokens[1], length(data_range))
+    pos <- seq(from = as.integer(tokens[2]), by = as.integer(tokens[3]),
+               length.out = length(data_range))
+    val <- as.numeric(input[data_range])
+    temp <- c(temp, list(data.frame(chr, pos, val)))
+  }
+  if (verbose) { message("Sorting by decreasing chromosome size") }
+  lengths <- as.integer(lapply(temp, nrow))
+  temp <- temp[order(lengths, decreasing = TRUE)]
+  temp = do.call("rbind", temp)
+  output <- GenomicRanges::GRanges(ranges = IRanges(start = temp$pos, width = span),
+                       seqnames = temp$chr, value = temp$val)
+  return(output)
+}
 
 correctReadcount <- function(x, mappability = 0.9, samplesize = 50000,
     verbose = TRUE) {
