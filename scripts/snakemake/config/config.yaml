@@ -1,5 +1,6 @@
 ## path to tools
 samTools:  /path/to/samtools
+bcfTools:  /path/to/bcftools
 
 ## path to scripts ##
 readCounterScript:  /path/to/readCounter

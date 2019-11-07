@@ -112,8 +112,8 @@ rule copyOptSolution:
 		curDir=`pwd`
 		for i in `cut -f11 {input} | grep -v "path"`;
 		do
-			echo -e "Creating sym links for $curDir/${{i}} to {output}"
-			ln -s ${{curDir}}/${{i}}* {output}
+			echo -e "Copying $curDir/${{i}} to {output}"
+			cp ${{curDir}}/${{i}}* {output}
 		done		
 		"""
 

@@ -21,11 +21,12 @@ rule getHETsites:
 	params:
 		refFasta=config["refFasta"],
 		snpDB=config["snpVCF"],
-		samtoolsCmd=config["samTools"]
+		samtoolsCmd=config["samTools"],
+		bcftoolsCmd=config["bcfTools"]
 	log:
 		"logs/titan/hetPosns/{tumor}/{tumor}.chr{chr}.log"
 	shell:
-		"{params.samtoolsCmd} mpileup -uv -I -f {params.refFasta} -r {wildcards.chr} -l {params.snpDB} {input} | bcftools call -v -c - | grep -e '0/1' -e '#' > {output} 2> {log}"
+		"{params.samtoolsCmd} mpileup -uv -I -f {params.refFasta} -r {wildcards.chr} -l {params.snpDB} {input} | {params.bcftoolsCmd} call -v -c - | grep -e '0/1' -e '#' > {output} 2> {log}"
 
 
 rule getAlleleCountsByChr:
