@@ -113,7 +113,7 @@ rule copyOptSolution:
 		for i in `cut -f11 {input} | grep -v "path"`;
 		do
 			echo -e "Copying $curDir/${{i}} to {output}"
-			cp ${{curDir}}/${{i}}* {output}
+			cp -r ${{curDir}}/${{i}}* {output}
 		done		
 		"""
 
