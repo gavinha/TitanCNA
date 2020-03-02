@@ -1298,6 +1298,7 @@ allelicRatioBasedCN <- function(x, ct, purity, cellPrev=NA, rn = 0.5, cn = 2){
 	totalAlleles <- ((1 - purity) * cn) + (purity * (1 - cellPrev)) * cn + (purity * cellPrev * ct)
 	rt <- (x * totalAlleles - (((1 - purity) * rn) * cn + (purity * (1 - cellPrev) * rn * cn))) / (purity * cellPrev * ct)
 	rt <- sapply(rt, min, 1)
+	rt <- sapply(rt, max, 0)
 	return(rt)
 }
 

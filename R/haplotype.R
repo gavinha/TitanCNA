@@ -14,7 +14,7 @@ loadBXcountsFromBEDDir <- function(bxDir, chrs = c(1:22, "X", "Y"), minReads = 2
 	for (i in files){
 		message(i)
 		awkcmd <- paste0("awk -F \"\t\" \'{if (!$4) {print $1\"\t\"$2\"\t\"$3\"\t\"\"NA\"} else {print $1\"\t\"$2\"\t\"$3\"\t\"$4}}\' ", i)
-		bxChr <- fread(awkcmd, header = FALSE, na.strings = c("NA"))
+		bxChr <- fread(cmd = awkcmd, header = FALSE, na.strings = c("NA"))
 		colnames(bxChr) <- c("chr", "start", "end", "BX")
 		bxChr[, BXcounts:=sapply(BX, function(x){
 		if (!is.na(x)){
@@ -28,9 +28,8 @@ loadBXcountsFromBEDDir <- function(bxDir, chrs = c(1:22, "X", "Y"), minReads = 2
 		bxChr[, BX:=NULL]
 		bxAll <- rbind(bxAll, bxChr)
 	}
-	bxGR <- RangedData(space = bxAll[[1]], ranges = IRanges(start = bxAll[[2]], 
-										 end = bxAll[[3]]), BX.count = bxAll[[4]])
-	bxGR <- keepChr(bxGR, chr = chrs)
+  bxGR <- as(bxAll, "GRanges")
+	bxGR <- keepSeqlevels(bxGR, value = chrs, pruning.mode = "tidy")
 	return(bxGR)
 }
 
