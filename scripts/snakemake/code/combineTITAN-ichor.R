@@ -145,27 +145,27 @@ setcolorder(cn, c(cols, colnames(cn)[!colnames(cn) %in% cols]))
 #cn[is.na(CopyNumber), LogRatio := NA]
 
 ## filter outlier HOMD data points
-message("Filtering bins with outlier negative log ratios...")
-homdLenThres <- 10000
-homdNumSNPThres <- 40
-homdLogRThres.auto <- log2((2*(1-purity)) / (2*(1-purity) + ploidyT*purity)) - 1*homd.sd
-## OUTLIERS IN CHROMOSOME X SHOULD BE AGNOISTIC OF SEX 
-#if (gender == "male"){
-#	homdLogRThres.X <- round(log2((1*(1-purity)) / (1*(1-purity) + ploidyT*purity)), digits = 1) - 0.1
-#}else{
-#	homdLogRThres.X <- homdLogRThres.auto
-#}
-ind.homd.cn <- cn[LogRatio < homdLogRThres.auto, which = TRUE]
-message("Removing ", length(ind.homd.cn), " negative log ratio outlier bins ...")
-ind.segs.remove <- segs[((End-Start < homdLenThres | Length.snp. < homdNumSNPThres) & Corrected_Call == "HOMD") | Median_logR < homdLogRThres.auto, which=T]
-message("Removing ", length(ind.segs.remove), " negative log ratio outlier segments ...")
-if (length(ind.segs.remove) > 0){
-	segsToRemove <- segs[ind.segs.remove]
-	hits <- findOverlaps(query = as(as.data.frame(segsToRemove), "GRanges"), subject = as(as.data.frame(cn), "GRanges"))
-	ind.homd.segs <- union(subjectHits(hits), ind.homd.cn)
-}else{
-	ind.homd.segs <- ind.homd.cn
-}
+# message("Filtering bins with outlier negative log ratios...")
+# homdLenThres <- 10000
+# homdNumSNPThres <- 40
+# homdLogRThres.auto <- log2((2*(1-purity)) / (2*(1-purity) + ploidyT*purity)) - 1*homd.sd
+# ## OUTLIERS IN CHROMOSOME X SHOULD BE AGNOISTIC OF SEX 
+# #if (gender == "male"){
+# #	homdLogRThres.X <- round(log2((1*(1-purity)) / (1*(1-purity) + ploidyT*purity)), digits = 1) - 0.1
+# #}else{
+# #	homdLogRThres.X <- homdLogRThres.auto
+# #}
+# ind.homd.cn <- cn[LogRatio < homdLogRThres.auto, which = TRUE]
+# message("Removing ", length(ind.homd.cn), " negative log ratio outlier bins ...")
+# ind.segs.remove <- segs[((End-Start < homdLenThres | Length.snp. < homdNumSNPThres) & Corrected_Call == "HOMD") | Median_logR < homdLogRThres.auto, which=T]
+# message("Removing ", length(ind.segs.remove), " negative log ratio outlier segments ...")
+# if (length(ind.segs.remove) > 0){
+# 	segsToRemove <- segs[ind.segs.remove]
+# 	hits <- findOverlaps(query = as(as.data.frame(segsToRemove), "GRanges"), subject = as(as.data.frame(cn), "GRanges"))
+# 	ind.homd.segs <- union(subjectHits(hits), ind.homd.cn)
+# }else{
+# 	ind.homd.segs <- ind.homd.cn
+# }
 
 #message("Loading panel of normals: ", ichorNormPanel)
 #panel <- readRDS(ichorNormPanel)
@@ -180,13 +180,13 @@ if (length(ind.segs.remove) > 0){
 #ind.homd.panel <- queryHits(hits)
 #ind.homd.all <- union(ind.homd.panel, ind.homd.segs)
 # remove the elements 
-if (length(ind.homd.segs) > 0){
-	cn <- cn[-ind.homd.segs]
-}
-#cn <- cn[ind.homd.segs, FILTER := "EXCLUDE"]
-if (length(ind.segs.remove) > 0){
-	segs <- segs[-ind.segs.remove]
-}
+# if (length(ind.homd.segs) > 0){
+# 	cn <- cn[-ind.homd.segs]
+# }
+# #cn <- cn[ind.homd.segs, FILTER := "EXCLUDE"]
+# if (length(ind.segs.remove) > 0){
+# 	segs <- segs[-ind.segs.remove]
+# }
 #segs <- segs[ind.segs.remove, FILTER := "EXCLUDE"]
 
 ## correct copy number beyond maximum CN state based on purity and logR
