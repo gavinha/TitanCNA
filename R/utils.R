@@ -1176,15 +1176,22 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 		maxCNtoCorrect.X = NULL, correctHOMD = TRUE, minPurityToCorrect = 0.2, gender = "male", chrs = c(1:22, "X")){
 	names <- c("HOMD","HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 	names.chrX <- c("HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
-	cn <- copy(cn)
-	segs <- copy(segs)
-	
+	cn.tmp <- copy(cn)
+	segs.tmp <- copy(segs)
+  if (is.null(cn.tmp[["Start"]])){
+    cn.tmp[, c("Start", "End") := list(Position, Position)]
+  }
+  if (is.null(segs.tmp[["Start"]])){
+    segs.tmp[, c("start", "end") := list(Start_Position.bp., End_Position.bp.)]
+  }
+  cn.gr <- as(cn.tmp, "GRanges")
+  segs.gr <- as(segs.tmp, "GRanges")
+  rm(cn.tmp, segs.tmp)
+
 	## determine if Median_HaplotypeRatio (segs) and HaplotypeRatio (cn) columns exists (i.e. 10X analysis)
 	segs.allelicRatioColName <- "Median_Ratio"
 	if ("Median_HaplotypeRatio" %in% names(segs)){
-		if (segs[, Median_HaplotypeRatio]){
-			segs.allelicRatioColName <- "Median_HaplotypeRatio"
-		}
+		segs.allelicRatioColName <- "Median_HaplotypeRatio"
 	}
 	cn.allelicRatioColName <- "AllelicRatio"
 	if ("HaplotypeRatio" %in% names(cn)){
@@ -1202,19 +1209,23 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	}
 	## correct log ratio and compute corrected CN
 	segs[Chromosome %in% chrs, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=2)]
+  segs[Chromosome %in% chrs, Corrected_logR := log2(logR_Copy_Number / ploidy)]
 	cn[Chr %in% chrs, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=2)]
+  cn[Chr %in% chrs, Corrected_logR := log2(logR_Copy_Number / ploidy)]
 	## correct allelic ratio and compute corrected major/minor CN (exclude chrX for males since no allelic CN)
 	segs[Chromosome %in% chrs, Corrected_Ratio := allelicRatioBasedCN(get(segs.allelicRatioColName), logR_Copy_Number, purity, Cellular_Prevalence, rn=0.5, cn=2)]
 	cn[Chr %in% chrs, Corrected_Ratio := allelicRatioBasedCN(get(cn.allelicRatioColName), logR_Copy_Number, purity, CellularPrevalence, rn=0.5, cn=2)]
 	if (gender == "male" & length(chrXStr) > 0){ ## analyze chrX separately
 		segs[Chromosome == chrXStr, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, Cellular_Prevalence, cn=1)]
+    segs[Chromosome == chrXStr, Corrected_logR := log2(logR_Copy_Number / (ploidy / 2))]
 		cn[Chr == chrXStr, logR_Copy_Number := logRbasedCN(LogRatio, purity, ploidy, CellularPrevalence, cn=1)]
+    cn[Chr == chrXStr, Corrected_logR := log2(logR_Copy_Number / (ploidy / 2))]
 		segs[Chromosome == chrXStr, Corrected_Ratio := NA]
 		cn[Chr == chrXStr, Corrected_Ratio := NA]
 	}
 
-	## assign copy number to use - Corrected_Copy_Number
-	# same TITAN calls for autosomes - no change in copy number
+	####### assign copy number to use - Corrected_Copy_Number #######
+	# 1. initialize to same TITAN calls for autosomes - no change in copy number at this point
 	segs[, Corrected_Copy_Number := as.integer(Copy_Number)]
 	segs[, Corrected_Call := TITAN_call]
 	segs[, Corrected_MajorCN := as.integer(MajorCN)]
@@ -1222,49 +1233,75 @@ correctIntegerCN <- function(cn, segs, purity, ploidy, maxCNtoCorrect.autosomes 
 	cn[, Corrected_Copy_Number := as.integer(CopyNumber)]
 	cn[, Corrected_Call := TITANcall]
 
-	 if (purity >= minPurityToCorrect){
-		# TITAN calls adjusted for >= copies - HLAMP
-		ind <- segs[Chromosome %in% chrs & Copy_Number >= 8, which = TRUE]
-		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_MajorCN := as.integer(round(Corrected_Ratio * Corrected_Copy_Number))]
-		segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, Corrected_MinorCN := as.integer(round((1 - Corrected_Ratio) * Corrected_Copy_Number))]
-		cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-		#cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_MajorCN := as.integer(round(Corrected_Ratio * Corrected_Copy_Number))]
-		#cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, Corrected_MinorCN := as.integer(round((1 - Corrected_Ratio) * Corrected_Copy_Number))]
-		
-		# TITAN calls adjust for HOMD
+	if (purity >= minPurityToCorrect){
+		# 2. TITAN calls adjusted for >= maxCNtoCorrect.autosomes copies - HLAMP e.g. 8 max copies)
+		ind.seg.maxCN <- segs[Chromosome %in% chrs & Copy_Number >= maxCNtoCorrect.autosomes, which = TRUE]
+		segs[ind.seg.maxCN, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+    ind.cn.maxCN <- cn[Chr %in% chrs & CopyNumber >= maxCNtoCorrect.autosomes, which = TRUE]
+		cn[ind.cn.maxCN, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+
+		# 3. TITAN calls adjust for HOMD
+    ind.seg.homd <- NULL
+    ind.cn.homd <- NULL
 		if (correctHOMD){
-			ind <- c(ind, segs[Chromosome %in% chrs & Copy_Number == 0, which = TRUE])
-			segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_MajorCN := as.integer(round(Corrected_Ratio * Corrected_Copy_Number))]
-		segs[Chromosome %in% chrs & Copy_Number == 0, Corrected_MinorCN := as.integer(round((1 - Corrected_Ratio) * Corrected_Copy_Number))]
-			cn[Chr %in% chrs & CopyNumber == 0, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+			ind.seg.homd <- segs[Chromosome %in% chrs & Copy_Number == 0, which = TRUE]
+			segs[ind.seg.homd, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+      ind.cn.homd <- cn[Chr %in% chrs & CopyNumber == 0, which = TRUE]
+			cn[ind.cn.homd, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
 		}
 	
-		# Add corrected calls for bins with CopyNumber = NA (ie. not included in TITAN analysis)
-		cn[Chr %in% chrs & is.na(CopyNumber), Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+		# 4. Add corrected calls for bins with CopyNumber = NA (ie. not included in TITAN analysis)
+    ind.cn.naBins <- cn[Chr %in% chrs & is.na(CopyNumber), which = TRUE]
+		cn[ind.cn.naBins, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
 	
-		# Adjust chrX copy number if purity is sufficiently high
-		# males - all data points in chrX is corrected
-		# females - only  
-	
+		# 5. Adjust chrX copy number if purity is sufficiently high
+		# males - all data points in chrX will be corrected
+		# females - will already be corrected but will do special correction for copy number > maxCNtoCorrect.X (might be diff than maxCNtoCorrect.autosomes)
+    ind.seg.chrX <- NULL
+    ind.cn.chrX <- NULL
 		if (gender == "male" & length(chrXStr) > 0){
-			segs[Chromosome == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			cn[Chr == chrXStr, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-		}else if (gender == "female"){
-			segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-			cn[Chr == chrXStr & CopyNumber >= maxCNtoCorrect.X, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+      ind.seg.chrX <- segs[Chromosome == chrXStr, which = TRUE]
+			segs[ind.seg.chrX, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+      ind.cn.chrX <- cn[Chr == chrXStr, which = TRUE]
+			cn[ind.cn.chrX, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+		}else if (gender == "female"){  # already handled in Step 2
+      # ind.seg.chrX <- segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, which = TRUE]
+			# segs[ind.seg.chrX, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+      # ind.cn.chrX <- cn[Chr == chrXStr & CopyNumber >= maxCNtoCorrect.X, which = TRUE]
+			# cn[Cind.cn.chrX, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
 		}
+
+    # 6. Adjust copy number for inconsistent logR and copy number prediction (e.g. opposite copy number direction)
+    # mostly affects outliers, which are short or single point segments
+    # since chrX for males have all data corrected, it will by default not be included in this anyway
+    # chrX for females are treated as regular diploid chromosomes here
+    ind.seg.oppCNA <- segs[((round(logR_Copy_Number) < ploidy & Corrected_Copy_Number > ploidy) | 
+                            (round(logR_Copy_Number) > ploidy & Corrected_Copy_Number < ploidy)) &
+                           (abs(round(logR_Copy_Number) - Corrected_Copy_Number) > 2), which = TRUE]
+    # ind.seg.oppCNA1 <- segs[((round(logR_Copy_Number / ploidy) <= 1 & Corrected_Copy_Number / ploidy > 1) | 
+    #                         (round(logR_Copy_Number / ploidy) >= 1 & Corrected_Copy_Number / ploidy < 1)) &
+    #                        (abs(round(logR_Copy_Number) - Corrected_Copy_Number) > 2), which = TRUE]
+    segs[ind.seg.oppCNA, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+    # correct bins overlapping adjusted segs
+    if (length(ind.seg.oppCNA) > 0){    
+      hits <- findOverlaps(query = cn.gr, subject = segs.gr[ind.seg.oppCNA])
+      cn[queryHits(hits), Corrected_Copy_Number := segs[ind.seg.oppCNA][subjectHits(hits), Corrected_Copy_Number]]
+    }
+    ind.seg <- unique(c(ind.seg.maxCN, ind.seg.homd, ind.seg.chrX, ind.seg.oppCNA))
+    # assign copy number for Corrected_MajorCN, Corrected_MinorCN (for corrected segments only)
+    segs[ind.seg, Corrected_MajorCN := as.integer(round(Corrected_Ratio * Corrected_Copy_Number))]
+    segs[ind.seg, Corrected_MinorCN := as.integer(round((1 - Corrected_Ratio) * Corrected_Copy_Number))]
 	}
 	
-	## assign copy number call (string) based on Corrected_Copy_Number 
-	# autosomes
+	## assign copy number call (string) based on Corrected_Copy_Number
+	## for autosomes
+  # Corrected_Copy_Number, Corrected_logR
 	segs[, Corrected_Call := names[Corrected_Copy_Number + 1]]
-	cn[, Corrected_Call := names[Corrected_Copy_Number + 1]]
-	# chrX
+  cn[, Corrected_Call := names[Corrected_Copy_Number + 1]]
+	# for chrX
 	if (gender == "male" & length(chrXStr) > 0){
-		segs[Chromosome == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
-		cn[Chr == chrXStr, Corrected_Call := names[Corrected_Copy_Number + 2]]
+		segs[Chromosome == chrXStr, Corrected_Call := names.chrX[Corrected_Copy_Number + 1]]
+		cn[Chr == chrXStr, Corrected_Call := names.chrX[Corrected_Copy_Number + 1]]
 	}else{ # female
 		segs[Chromosome == chrXStr & Copy_Number >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]
 		cn[Chr == chrXStr & CopyNumber >= maxCNtoCorrect.X, Corrected_Call := "HLAMP"]		
