@@ -61,28 +61,6 @@ ichorCNmap <- c("HOMD","HETD","NEUT","GAIN","AMP","HLAMP", rep("HLAMP", 1000))
 #ichorCNmap <- list("0"="HOMD", "1"="DLOH", "2"="NEUT", "3"="GAIN", "4"="AMP", "5"="AMP")
 maxichorcn <- 5
 
-## get chromosome style
-titan$Chromosome <- as.character(titan$Chromosome)
-titan.cn$Chr <- as.character(titan.cn$Chr)
-genomeStyle <- seqlevelsStyle(titan.cn$Chr)[1]
-chrs <- c(1:22, "X")
-chrXStr <- grep("X", chrs, value=TRUE)
-seqlevelsStyle(chrs) <- genomeStyle
-
-## load parameters ##
-params <- read.delim(titanParams, header=F, as.is=T)
-purity <- 1 - as.numeric(params[1,2])
-ploidyT <- as.numeric(params[2,2])
-ploidy <- purity * ploidyT + (1-purity) * 2
-params.ichor <- read.delim(ichorParams, header=T, as.is=T)
-homd.var <- as.numeric(strsplit(params[params[,1]=="logRatio Gaussian variance:",2], " ")[[1]][1])
-homd.sd <- sqrt(homd.var)
-
-## get gender
-if (is.null(gender) || gender == "None"){
-	gender <- params.ichor[3, 2]
-}
-
 ## load segments 
 titan <- fread(titanSeg)
 if (length(titan[["Cellular_Frequency"]] == 0)){
@@ -104,6 +82,28 @@ ichor.cn <- cbind(Sample = id, ichor.cn)
 ichor.cn[, Position := start]
 setnames(ichor.cn, c("chr", "start", paste0(id,".copy.number"), paste0(id,".event"), paste0(id,".logR"), "end"), 
 		c("Chr", "Start", "CopyNumber", "TITANcall", "LogRatio", "End"))
+
+## get chromosome style
+titan$Chromosome <- as.character(titan$Chromosome)
+titan.cn$Chr <- as.character(titan.cn$Chr)
+genomeStyle <- seqlevelsStyle(titan.cn$Chr)[1]
+chrs <- c(1:22, "X")
+chrXStr <- grep("X", chrs, value=TRUE)
+seqlevelsStyle(chrs) <- genomeStyle
+
+## load parameters ##
+params <- read.delim(titanParams, header=F, as.is=T)
+purity <- 1 - as.numeric(params[1,2])
+ploidyT <- as.numeric(params[2,2])
+ploidy <- purity * ploidyT + (1-purity) * 2
+params.ichor <- read.delim(ichorParams, header=T, as.is=T)
+homd.var <- as.numeric(strsplit(params[params[,1]=="logRatio Gaussian variance:",2], " ")[[1]][1])
+homd.sd <- sqrt(homd.var)
+
+## get gender
+if (is.null(gender) || gender == "None"){
+	gender <- params.ichor[3, 2]
+}
 
 ## get bin overlap with SNPs - include ichor bins even if no SNPs overlap 
 titan.gr <- titan.cn[, .(Chr, Position)]
