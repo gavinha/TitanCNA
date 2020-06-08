@@ -66,11 +66,12 @@ rule combineTitanAndIchorCNA:
 		combineScript=config["TitanCNA_combineTitanIchorCNA"],
 		libdir=config["TitanCNA_libdir"],
 		centromere=config["centromere"],
-		sex=config["sex"]
+		sex=config["sex"],
+		mergeIchorHOMD=config["mergeIchorHOMD"]
 	log:
 		"logs/titan/hmm/titanCNA_ploidy{ploidy}/{tumor}_cluster{clustNum}.combineTitanIchorCNA.log"
 	shell:
-		"Rscript {params.combineScript} --libdir {params.libdir} --titanSeg {input.titanSeg} --titanBin {input.titanBin} --titanParam {input.titanParam} --ichorSeg {input.ichorSeg} --ichorBin {input.ichorBin} --ichorParam {input.ichorParam} --sex {params.sex} --outSegFile {output.segFile} --outBinFile {output.binFile} --centromere {params.centromere} > {log} 2> {log}"	
+		"Rscript {params.combineScript} --libdir {params.libdir} --titanSeg {input.titanSeg} --titanBin {input.titanBin} --titanParam {input.titanParam} --ichorSeg {input.ichorSeg} --ichorBin {input.ichorBin} --ichorParam {input.ichorParam} --mergeIchorHOMD {params.mergeIchorHOMD} --sex {params.sex} --outSegFile {output.segFile} --outBinFile {output.binFile} --centromere {params.centromere} > {log} 2> {log}"	
 	
 rule selectSolution:
 	input:

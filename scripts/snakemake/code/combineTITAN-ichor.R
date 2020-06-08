@@ -20,6 +20,7 @@ option_list <- list(
 	make_option(c("--ichorBin"), type="character", help="ichorCNA cna.seg file. Required."),
 	make_option(c("--ichorParams"), type="character", help="ichorCNA params.txt file. Required."),
 	make_option(c("--ichorNormPanel"), type="character", help="Panel of normals; bin-level black list."),
+	make_option(c("--mergeIchorHOMD"), type="logical", default = FALSE, help="Merge ichorCNA HOMD segment into final combined segments."),
 	make_option(c("--sex"), type="character", default="female", help="female or male. Default [%default]."),
 	make_option(c("--libdir"), type="character", help="TitanCNA directory path to source R files if custom changes made."),
   	make_option(c("--outSegFile"), type="character", help="New combined segment file. Required"),
@@ -38,6 +39,7 @@ ichorSeg <- opt$ichorSeg
 ichorBin <- opt$ichorBin
 ichorParams <- opt$ichorParams
 ichorNormPanel <- opt$ichorNormPanel
+mergeIchorHOMD <- as.logical(opt$mergeIchorHOMD)
 gender <- opt$sex
 outSegFile <- opt$outSegFile
 outBinFile <- opt$outBinFile
@@ -118,35 +120,42 @@ titan.ichor.cn[is.na(LogRatio), LogRatio := LogRatio.ichor] # assign ichor log r
 titan.ichor.cn <- titan.ichor.cn[, -c(grep("ichor", colnames(titan.ichor.cn),value=T)), with=F] 
 
 ## include HOMD from ichorCNA if missing in TitanCNA (usually when no SNPs are there)
-homdLogRThres.auto <- log2((2*(1-purity)) / (2*(1-purity) + ploidyT*purity)) + homd.sd
-ichor.segs[, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=2)]
-ichor.segs[, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
-ichor.segs[, Corrected_Call := ichorCNmap[Corrected_Copy_Number + 1]]
-ichor.segs[, Corrected_logR := log2(logR_Copy_Number / ploidy)]
-ichor.segs.homd.ind <- ichor.segs[Chromosome != chrXStr & Corrected_Copy_Number == 0 & Median_logR < homdLogRThres.auto, which = TRUE]
-if (length(ichor.segs.homd.ind)){
-	titan.gr <- copy(titan)
-	titan.gr[, Start := Start_Position.bp.]; titan.gr[, End := End_Position.bp.]
-	titan.gr <- as(titan.gr, "GRanges")
-	ichor.segs.gr <- copy(ichor.segs)
-	ichor.segs.gr[, Start := Start_Position.bp.]; ichor.segs.gr[, End := End_Position.bp.]
-	ichor.homd.gr <- as(ichor.segs.gr[ichor.segs.homd.ind], "GRanges")
-	#hits <- findOverlaps(query = titan.gr, subject = ichor.homd.gr)
-	titan.gr.combinedHomd <- sort(c(titan.gr, ichor.homd.gr))
-	titan.combinedHomd <- as.data.table(disjoin(titan.gr.combinedHomd, with.revmap = TRUE))
-	mcolData <- data.table()
-	for (i in 1:nrow(titan.combinedHomd)){
-		ind <- titan.combinedHomd[i, revmap][[1]]
-		if (length(ind) == 1){
-			mcolData <- rbind(mcolData, mcols(titan.gr.combinedHomd)[ind, c(4:19,21)])
-		}else{ # ind has more than one mapping index
-			ind.homd.gr <- ind[which(titan.gr.combinedHomd[ind]$Corrected_Copy_Number == 0)]
-			mcolData <- rbind(mcolData, mcols(titan.gr.combinedHomd)[ind.homd.gr, c(4:19,21)])
+if (mergeIchorHOMD){
+	homdLogRThres.auto <- log2((2*(1-purity)) / (2*(1-purity) + ploidyT*purity)) + homd.sd
+	ichor.segs[, logR_Copy_Number := logRbasedCN(Median_logR, purity, ploidy, cn=2)]
+	ichor.segs[, Corrected_Copy_Number := as.integer(round(logR_Copy_Number))]
+	ichor.segs[, Corrected_Call := ichorCNmap[Corrected_Copy_Number + 1]]
+	ichor.segs[, Corrected_logR := log2(logR_Copy_Number / ploidy)]
+	ichor.segs.homd.ind <- ichor.segs[Chromosome != chrXStr & Corrected_Copy_Number == 0 & Median_logR < homdLogRThres.auto, which = TRUE]
+	if (length(ichor.segs.homd.ind)){
+		titan.gr <- copy(titan)
+		titan.gr[, Start := Start_Position.bp.]; titan.gr[, End := End_Position.bp.]
+		titan.gr <- as(titan.gr, "GRanges")
+		ichor.segs.gr <- copy(ichor.segs)
+		ichor.segs.gr[, Start := Start_Position.bp.]; ichor.segs.gr[, End := End_Position.bp.]
+		ichor.homd.gr <- as(ichor.segs.gr[ichor.segs.homd.ind], "GRanges")
+		#hits <- findOverlaps(query = titan.gr, subject = ichor.homd.gr)
+		# chromosome X automatically ignored since titan doesn't contain this seqname
+		titan.gr.combinedHomd <- sort(c(titan.gr, ichor.homd.gr))
+		titan.combinedHomd <- as.data.table(disjoin(titan.gr.combinedHomd, with.revmap = TRUE))
+		mcolData <- data.table()
+		for (i in 1:nrow(titan.combinedHomd)){
+			ind <- titan.combinedHomd[i, revmap][[1]]
+			if (length(ind) == 1){
+				mcolData <- rbind(mcolData, mcols(titan.gr.combinedHomd)[ind, c(4:19,21)])
+			}else{ # ind has more than one mapping index
+				ind.homd.gr <- ind[which(titan.gr.combinedHomd[ind]$Corrected_Copy_Number == 0)] 
+				# should only be single index value
+				if (length(ind.homd.gr)){ # both indices are HOMD, then choose titan results
+					ind.homd.gr <- ind[which(!is.na(titan.gr.combinedHomd$Median_Ratio[ind]))]
+				}
+				mcolData <- rbind(mcolData, mcols(titan.gr.combinedHomd)[ind.homd.gr[1], c(4:19,21)])
+			}
 		}
+		titan.combinedHomd <- cbind(titan.combinedHomd, as.data.table(mcolData))
+		titan <- cbind(Sample = id, titan.combinedHomd[, -c(4:6)])
+		setnames(titan, c("seqnames", "start", "end"), c("Chromosome", "Start_Position.bp.", "End_Position.bp."))
 	}
-	titan.combinedHomd <- cbind(titan.combinedHomd, as.data.table(mcolData))
-	titan <- cbind(Sample = id, titan.combinedHomd[, -c(4:6)])
-	setnames(titan, c("seqnames", "start", "end"), c("Chromosome", "Start_Position.bp.", "End_Position.bp."))
 }
 
 ## combine TITAN (chr1-22) and ichorCNA (chrX) segments and bin/SNP level data ##

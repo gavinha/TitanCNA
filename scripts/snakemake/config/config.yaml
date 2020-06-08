@@ -69,3 +69,7 @@ TitanCNA_txnExpLen: 1e15
 TitanCNA_plotYlim:  c(-2,4)
 TitanCNA_solutionThreshold: 0.05
 TitanCNA_numCores: 1
+
+## Combine TitanCNA & ichorCNA
+mergeIchorHOMD: FALSE  # consider setting to TRUE when working with pure tumor
+
