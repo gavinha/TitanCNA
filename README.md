@@ -134,4 +134,4 @@ License: [GPLv3](LICENSE)
 
 TitanCNA R code is open source and R/Bioconductor package is under [GPLv3](LICENSE).  This applies to the v1.9.0 and all subsequent versions within and obtained from Bioconductor.  
 
-Users who are using TitanCNA earlier than v1.9.0 not for the purpose of academic research should contact gavinha@broadinstitute.org, sshah@bccrc.ca, and prebstein@bccancer.bc.ca to inquire about previous licensing.
+Users who are using TitanCNA earlier than v1.9.0 not for the purpose of academic research should contact gha@fredhutch.org, sshah@bccrc.ca, and prebstein@bccancer.bc.ca to inquire about previous licensing.
