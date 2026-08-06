@@ -529,7 +529,7 @@ correctReadDepth <- function(tumWig, normWig, gcWig, mapWig,
     message("Analyzing targeted regions...")
     targetIR <- GRanges(ranges = IRanges(start = targetedSequence[, 2], 
                 end = targetedSequence[, 3]), seqnames = targetedSequence[, 1])
-    names(targetIR) <- setGenomeStyle(names(targetIR), genomeStyle)
+    names(targetIR) <- setGenomeStyle(seqnames(targetIR), genomeStyle)
     hits <- findOverlaps(query = tumour_reads, subject = targetIR)
     keepInd <- unique(queryHits(hits))    
     tumour_reads <- tumour_reads[keepInd, ]
