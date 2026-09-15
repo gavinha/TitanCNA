@@ -100,7 +100,9 @@ option_list <- list(
 	make_option(c("--plotYlim"), type = "character", default = "c(-2,4)",
             help = "The Y-axis limits to use for plotting log ratio coverage results. [Default: %default]"),
 	make_option(c("--verbose"), type = "logical", default = FALSE,
-            help = "Be verbose; TRUE or FALSE [Default: %default]")
+            help = "Be verbose; TRUE or FALSE [Default: %default]"),
+	make_option(c("--plotCorrectedCN"), type = "logical", default = TRUE,
+            help = "CN plots will use corrected copy number ; TRUE or FALSE [Default: %default]")
 )
 
 parseobj <- OptionParser(option_list=option_list, usage = "usage: Rscript %prog [options]")
@@ -152,6 +154,7 @@ outigv <- opt$outIGV
 outplot <- opt$outPlotDir
 plotYlim <- eval(parse(text = opt$plotYlim))
 verbose <- opt$verbose
+plotCorrectedCN <- opt$plotCorrectedCN
 
 ## check arguments ##
 if (!normEstMeth %in% c("map", "fixed")){
@@ -311,7 +314,7 @@ for (chr in unique(results$Chr)){
 	}
 	plotCNlogRByChr(results, chr, segs = segs, ploidy=ploidy,
                         normal = norm, geneAnnot=NULL,  cex.axis=1.5,
-                        ylim=plotYlim, cex=0.5, xlab="", main=paste("Chr ",chr,sep=""))
+                        ylim=plotYlim, cex=0.5, xlab="", main=paste("Chr ",chr,sep=""), plotCorrectedCN = plotCorrectedCN)
 	plotAllelicRatio(results, chr, geneAnnot=NULL, spacing=4, cex.axis=1.5,
                         ylim=c(0,1), xlab="", cex=0.5, main=paste("Chr ",chr,sep=""))
 	plotClonalFrequency(results, chr, normal=norm, geneAnnot=NULL, spacing=4,
@@ -346,8 +349,8 @@ outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CNA.pdf")
 #png(outFile,width=1000,height=300)
 pdf(outFile,width=20,height=6)
 plotCNlogRByChr(dataIn=results, chr=chrs, segs = segs, ploidy=ploidy,
-                normal = norm, geneAnnot=NULL, spacing=4, main=id, xlab="",
-                ylim=plotYlim, cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5)
+                normal = norm, geneAnnot=NULL, spacing=4, main=paste0(id, sprintf(" (purity=%.2f, ploidy=%.2f)", 1-norm, ploidy)), xlab="",
+                ylim=plotYlim, cex=0.5, cex.axis=1.5, cex.lab=1.5, cex.main=1.5, plotCorrectedCN = plotCorrectedCN)
 dev.off()
 
 outFile <- paste0(outplot, "/", id, "_cluster", numClustersStr, "_CNASEG.pdf")
